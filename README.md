@@ -164,6 +164,11 @@ For continuous replication instead of nightly snapshots, add
 [Litestream](https://litestream.io) — one extra binary streaming the WAL to
 S3-compatible storage, no code changes.
 
+## Architecture and security
+
+[ARCHITECTURE.md](ARCHITECTURE.md) covers how the pieces fit together and the
+threat model — what this defends against, and what it deliberately does not.
+
 ## Roadmap
 
 Current work and the backlog live in [STATUS.md](STATUS.md); shipped work is in
