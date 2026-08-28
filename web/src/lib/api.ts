@@ -1,12 +1,14 @@
 import type {
   BundleDto,
   ContributionDto,
+  ContributionKind,
   EventDto,
   EventSummary,
   Me,
   PersonDetailDto,
   PersonDto,
   PersonLink,
+  ProposalDto,
   Role,
   RoomDto,
   SessionDetailDto,
@@ -154,6 +156,31 @@ export const api = {
   updateSettings: (slug: string, body: SettingsWrite) =>
     request<EventDto>('PATCH', `/e/${encode(slug)}/settings`, body),
 
+  // Proposal pool — the unconference pitch board (SPEC §8).
+  createProposal: (slug: string, body: ProposalWrite) =>
+    request<ProposalDto>('POST', `/e/${encode(slug)}/proposals`, body),
+  updateProposal: (slug: string, id: number, body: ProposalWrite) =>
+    request<ProposalDto>('PATCH', `/e/${encode(slug)}/proposals/${id}`, body),
+  deleteProposal: (slug: string, id: number) =>
+    request<void>('DELETE', `/e/${encode(slug)}/proposals/${id}`),
+  addProposalInterest: (slug: string, id: number) =>
+    request<void>('PUT', `/e/${encode(slug)}/proposals/${id}/interest`),
+  removeProposalInterest: (slug: string, id: number) =>
+    request<void>('DELETE', `/e/${encode(slug)}/proposals/${id}/interest`),
+  placeProposal: (slug: string, id: number, body: PlaceWrite) =>
+    request<{ session: SessionDto; proposalId: number }>(
+      'POST',
+      `/e/${encode(slug)}/proposals/${id}/place`,
+      body,
+    ),
+
+  // Restore-from-trash — admin undo for soft deletes (SPEC §8).
+  trash: (slug: string) => request<TrashDto>('GET', `/e/${encode(slug)}/trash`),
+  restoreSession: (slug: string, id: number) =>
+    request<SessionDto>('POST', `/e/${encode(slug)}/sessions/${id}/restore`),
+  restoreContribution: (slug: string, id: number) =>
+    request<ContributionDto>('POST', `/e/${encode(slug)}/contributions/${id}/restore`),
+
   // Personal agenda. Both calls are idempotent server-side and stay allowed on
   // archived events — a bookmark is not event content — so there is no SSE echo.
   starSession: (slug: string, id: number) =>
@@ -177,6 +204,37 @@ export interface SessionWrite {
   startsAt: string;
   endsAt: string;
   tagIds?: number[];
+}
+
+export interface ProposalWrite {
+  title: string;
+  description?: string;
+  /** Link to an existing person, or `null` to detach. */
+  speakerId?: number | null;
+  /** A name that matches nobody creates a person. Used instead of `speakerId`. */
+  speakerName?: string;
+  tagIds?: number[];
+}
+
+export interface PlaceWrite {
+  roomId: number;
+  startsAt: string;
+  endsAt: string;
+  type?: 'official' | 'open';
+}
+
+/** The two soft-deleted kinds an organiser can bring back. `deletedByName` on a
+ *  session is the pitch/creator name the server records against the row. */
+export interface TrashDto {
+  sessions: { id: number; title: string; deletedAt: string; deletedByName: string }[];
+  contributions: {
+    id: number;
+    sessionId: number;
+    kind: ContributionKind;
+    body: string;
+    deletedAt: string;
+    createdByName: string;
+  }[];
 }
 
 export interface PersonWrite {

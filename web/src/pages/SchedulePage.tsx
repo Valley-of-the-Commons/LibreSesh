@@ -431,6 +431,11 @@ export function SchedulePage() {
       body: 'Organisers add official sessions anywhere; everyone else proposes open sessions in the open-track rooms.',
     });
   }
+  tourSteps.push({
+    target: 'pitches',
+    title: 'Pitch a session',
+    body: 'Propose a session with no room or time, and say which pitches you would turn up to. Organisers place the popular ones on the grid.',
+  });
   if (role === 'admin') {
     tourSteps.push({
       target: 'manage',
@@ -464,6 +469,21 @@ export function SchedulePage() {
           </div>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <ThemeToggle />
+            {/* Everyone needs the board: attendees pitch there, viewers can
+                register interest. Linking it only from Manage hid it from the
+                people it exists for. */}
+            <Link
+              data-tour="pitches"
+              to={`/e/${slug}/proposals`}
+              className="rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500"
+            >
+              Pitches
+              {bundle.proposals.filter((p) => p.placedSessionId === null).length > 0 && (
+                <span className="ml-1 text-stone-400 dark:text-stone-500">
+                  {bundle.proposals.filter((p) => p.placedSessionId === null).length}
+                </span>
+              )}
+            </Link>
             {role === 'admin' && (
               <Link
                 data-tour="manage"

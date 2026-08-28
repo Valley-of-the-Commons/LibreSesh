@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import type { PersonDto, RoomDto, TagDto } from '@shared/types';
-import { api } from '../lib/api';
-import { fmtMin } from '../lib/format';
+import { ApiError, api, type TrashDto } from '../lib/api';
+import { fmtMin, relativeTime } from '../lib/format';
 import { useEventData } from '../lib/useEventData';
 import {
   EmptyState,
@@ -64,6 +64,21 @@ export function AdminPage() {
   const [cloneUser, setCloneUser] = useState('');
   const [cloneAdmin, setCloneAdmin] = useState('');
   const [cloning, setCloning] = useState(false);
+
+  const [trash, setTrash] = useState<TrashDto | null>(null);
+  const isAdmin = bundle?.role === 'admin';
+
+  const loadTrash = useCallback(async () => {
+    try {
+      setTrash(await api.trash(slug));
+    } catch (err) {
+      toast.show((err as Error).message);
+    }
+  }, [slug, toast]);
+
+  useEffect(() => {
+    if (isAdmin) void loadTrash();
+  }, [isAdmin, loadTrash]);
 
   if (event && loadedForSlug !== event.slug) {
     setLoadedForSlug(event.slug);
@@ -303,9 +318,36 @@ export function AdminPage() {
     }
   };
 
+  const restoreSession = async (id: number) => {
+    try {
+      data.apply({ type: 'session.created', entity: await api.restoreSession(slug, id) });
+      toast.show('Session restored');
+      await loadTrash();
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 'room_missing') {
+        toast.show('That session’s room was deleted — recreate the room first, then restore.');
+      } else {
+        fail(err);
+      }
+    }
+  };
+
+  const restoreContribution = async (id: number) => {
+    try {
+      data.apply({ type: 'contribution.created', entity: await api.restoreContribution(slug, id) });
+      toast.show('Contribution restored');
+      await loadTrash();
+    } catch (err) {
+      fail(err);
+    }
+  };
+
+  const trashEmpty =
+    trash !== null && trash.sessions.length === 0 && trash.contributions.length === 0;
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <div className="mb-6 flex items-center gap-3">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={() => navigate(`/e/${slug}`)}
@@ -314,6 +356,12 @@ export function AdminPage() {
           ← Schedule
         </button>
         <h1 className="text-lg font-semibold tracking-tight">Manage {event.name}</h1>
+        <Link
+          to={`/e/${slug}/proposals`}
+          className="ml-auto text-xs text-stone-500 dark:text-stone-400 underline"
+        >
+          Proposal pool
+        </Link>
       </div>
 
       <section className="mb-6 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
@@ -601,6 +649,73 @@ export function AdminPage() {
         <PrimaryButton onClick={() => void cloneEvent()} disabled={!cloneReady || cloning}>
           {cloning ? 'Duplicating…' : 'Duplicate event'}
         </PrimaryButton>
+      </section>
+
+      <section className="mb-6 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
+        <h2 className="mb-1 text-sm font-semibold">Trash</h2>
+        <p className="mb-3 text-xs text-stone-500 dark:text-stone-400">
+          Deleted sessions and contributions. Restoring puts them back for everyone.
+        </p>
+        {trash === null ? (
+          <p className="text-sm text-stone-400 dark:text-stone-500">Loading…</p>
+        ) : trashEmpty ? (
+          <p className="text-sm text-stone-400 dark:text-stone-500">Nothing has been deleted.</p>
+        ) : (
+          <div className="space-y-4">
+            {trash.sessions.length > 0 && (
+              <div>
+                <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
+                  Sessions
+                </h3>
+                <ul className="space-y-2">
+                  {trash.sessions.map((s) => (
+                    <li
+                      key={s.id}
+                      className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 dark:bg-stone-800 px-3 py-2"
+                    >
+                      <span className="min-w-32 flex-1 text-sm font-medium">{s.title}</span>
+                      <span className="text-xs text-stone-400 dark:text-stone-500">
+                        deleted {relativeTime(s.deletedAt)} · {s.deletedByName}
+                      </span>
+                      <SecondaryButton className="py-1" onClick={() => void restoreSession(s.id)}>
+                        Restore
+                      </SecondaryButton>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {trash.contributions.length > 0 && (
+              <div>
+                <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
+                  Contributions
+                </h3>
+                <ul className="space-y-2">
+                  {trash.contributions.map((c) => (
+                    <li
+                      key={c.id}
+                      className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 dark:bg-stone-800 px-3 py-2"
+                    >
+                      <span className="min-w-32 flex-1 truncate text-sm">
+                        <span className="text-stone-400 dark:text-stone-500">{c.kind}: </span>
+                        {c.body}
+                      </span>
+                      <span className="text-xs text-stone-400 dark:text-stone-500">
+                        deleted {relativeTime(c.deletedAt)} · {c.createdByName}
+                      </span>
+                      <SecondaryButton
+                        className="py-1"
+                        onClick={() => void restoreContribution(c.id)}
+                      >
+                        Restore
+                      </SecondaryButton>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       <section className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">

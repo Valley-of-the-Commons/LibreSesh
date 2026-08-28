@@ -1,0 +1,123 @@
+import { useState } from 'react';
+import type { ProposalDto, RoomDto } from '@shared/types';
+import type { PlaceWrite } from '../lib/api';
+import { fmtMin } from '../lib/format';
+import { zonedTimeToUtc } from '@shared/time';
+import { Field, Modal, PrimaryButton, SecondaryButton, inputClass } from './ui';
+
+const DURATIONS = [15, 30, 45, 60, 90, 120, 180];
+
+export interface PlaceProposalModalProps {
+  proposal: ProposalDto;
+  rooms: RoomDto[];
+  timezone: string;
+  days: string[];
+  dayLabels: Record<string, string>;
+  defaultDay: string;
+  dayStartMin: number;
+  saving: boolean;
+  onCancel: () => void;
+  onPlace: (body: PlaceWrite) => void;
+}
+
+/** Organiser-only: turn a pitch into a real session by giving it a room and a
+ *  slot. Fields mirror SessionModal, including the wall-clock → UTC conversion. */
+export function PlaceProposalModal({
+  proposal,
+  rooms,
+  timezone,
+  days,
+  dayLabels,
+  defaultDay,
+  dayStartMin,
+  saving,
+  onCancel,
+  onPlace,
+}: PlaceProposalModalProps) {
+  const [roomId, setRoomId] = useState<number>(rooms[0]?.id ?? 0);
+  const [day, setDay] = useState(defaultDay);
+  const [start, setStart] = useState(fmtMin(Math.max(dayStartMin, 14 * 60)));
+  const [durMin, setDurMin] = useState(30);
+  const [error, setError] = useState<string | null>(null);
+
+  const place = () => {
+    if (!roomId) {
+      setError('Add a room first');
+      return;
+    }
+    const [h, m] = start.split(':').map(Number);
+    const startMin = Math.round(((h ?? 0) * 60 + (m ?? 0)) / 5) * 5;
+    onPlace({
+      roomId,
+      startsAt: zonedTimeToUtc(day, startMin, timezone).toISOString(),
+      endsAt: zonedTimeToUtc(day, startMin + durMin, timezone).toISOString(),
+    });
+  };
+
+  return (
+    <Modal title="Place on the grid" onClose={onCancel}>
+      <p className="-mt-2 mb-3 text-xs text-stone-500 dark:text-stone-400">
+        “{proposal.title}” becomes a session. Its tags and speaker carry over.
+      </p>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Room">
+          <select
+            value={roomId}
+            onChange={(e) => setRoomId(Number(e.target.value))}
+            className={inputClass}
+          >
+            {rooms.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+                {r.openTrack ? ' (open)' : ''}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Day">
+          <select value={day} onChange={(e) => setDay(e.target.value)} className={inputClass}>
+            {days.map((d) => (
+              <option key={d} value={d}>
+                {dayLabels[d] ?? d}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Start (5-min steps)">
+          <input
+            type="time"
+            step={300}
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Duration">
+          <select
+            value={durMin}
+            onChange={(e) => setDurMin(Number(e.target.value))}
+            className={inputClass}
+          >
+            {DURATIONS.map((d) => (
+              <option key={d} value={d}>
+                {d} min
+              </option>
+            ))}
+          </select>
+        </Field>
+      </div>
+
+      {error && <p className="mb-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+
+      <div className="mt-4 flex gap-2">
+        <SecondaryButton className="ml-auto" onClick={onCancel}>
+          Cancel
+        </SecondaryButton>
+        <PrimaryButton onClick={place} disabled={saving || rooms.length === 0}>
+          {saving ? 'Placing…' : 'Place session'}
+        </PrimaryButton>
+      </div>
+    </Modal>
+  );
+}
