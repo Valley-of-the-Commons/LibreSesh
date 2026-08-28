@@ -32,6 +32,12 @@ All notable changes to this project are documented here.
   with author names and relative times. Authors delete their own; admins delete
   or hide anything. Descriptions render as markdown with raw HTML escaped
   before parsing.
+- **Duplicate an event.** Organisers can clone an event from its admin page;
+  rooms and tags carry over, sessions and contributions do not.
+- **Reorderable room columns.** Arrow controls in the admin page, renumbering
+  the list so rooms created before this existed sort themselves out.
+- **Overlap badge.** Admins may double-book a room, so clashing blocks are
+  badged on the calendar rather than prevented.
 - **Filters in the URL.** Room and tag multi-select, free-text search and a
   "now / next" quick filter, all held in the query string so a filtered view is
   shareable.
@@ -39,6 +45,6 @@ All notable changes to this project are documented here.
   capped at 5 attempts per 15 minutes, refunding the token on success.
 - **Deployment.** Docker Compose and systemd run modes behind Caddy, a nightly
   `VACUUM INTO` backup script with retention, and a VPS runbook in the README.
-- **Tests.** 85 Vitest cases covering the role matrix, session write rules,
+- **Tests.** 92 Vitest cases covering the role matrix, session write rules,
   overlap and stale-edit handling, contribution moderation, the rate limiter,
   timezone maths and the SSE stream.
