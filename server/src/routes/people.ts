@@ -76,14 +76,26 @@ export function peopleRoutes(ctx: Ctx): Router {
         .get(req.event.id, req.identity.id);
 
       const name = body.name ?? existing?.name ?? req.identity.display_name;
-      if (nameClash(req.event.id, name, existing?.id)) {
-        throw conflict('Someone here already goes by that name', 'name_taken');
+      const clash = nameClash(req.event.id, name, existing?.id);
+      // Naming yourself as the speaker on a session or a pitch auto-creates an
+      // unclaimed person under your display name. Refusing the collision would
+      // lock you out of your own profile for good, since every retry defaults
+      // to the same name — so claim that record instead. It is the same person,
+      // and it folds the speaker entry into the profile.
+      if (clash && clash.identity_id !== null) {
+        throw conflict('Someone else here already goes by that name', 'name_taken');
       }
 
       let id: number;
       if (existing) {
         write(existing, { ...body, name });
         id = existing.id;
+      } else if (clash) {
+        ctx.db
+          .prepare('UPDATE people SET identity_id = ? WHERE id = ?')
+          .run(req.identity.id, clash.id);
+        write(clash, { ...body, name });
+        id = clash.id;
       } else {
         const now = new Date().toISOString();
         id = Number(

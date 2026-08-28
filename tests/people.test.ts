@@ -12,6 +12,7 @@ import {
 
 describe('speaker profiles', () => {
   let harness: Harness;
+  let eventId: number;
   let roomId: number;
   let admin: Agent;
   let user: Agent;
@@ -19,7 +20,7 @@ describe('speaker profiles', () => {
 
   beforeEach(async () => {
     harness = makeHarness();
-    const eventId = seedEvent(harness.db);
+    eventId = seedEvent(harness.db);
     roomId = seedRoom(harness.db, eventId, { openTrack: 1 });
     admin = await actorWithRole(harness, 'testconf', 'admin-pw');
     user = await actorWithRole(harness, 'testconf', 'user-pw');
@@ -194,9 +195,56 @@ describe('speaker profiles', () => {
       expect(asOther.body.people[0].claimed).toBe(true);
     });
 
-    it('refuses a name another profile already uses', async () => {
-      await admin.post('/api/e/testconf/people').send({ name: 'Taken' }).expect(201);
-      await user.patch('/api/e/testconf/me/profile').send({ name: 'Taken' }).expect(409);
+    it('claims an unclaimed person that already has your name', async () => {
+      // Naming yourself as the speaker auto-creates an unclaimed person. Editing
+      // your profile afterwards must adopt that record, not collide with it —
+      // otherwise you are locked out of your own profile permanently.
+      const me = await user.get('/api/me').expect(200);
+      const roomId = seedRoom(harness.db, eventId, { name: 'Self', openTrack: 1 });
+      const session = await user
+        .post('/api/e/testconf/sessions')
+        .send({
+          roomId,
+          title: 'Mine',
+          speakerName: me.body.displayName,
+          startsAt: at(DAY_ONE, 800),
+          endsAt: at(DAY_ONE, 860),
+        })
+        .expect(201);
+
+      // 201: your profile now exists, whether it was created or adopted.
+      const profile = await user
+        .patch('/api/e/testconf/me/profile')
+        .send({ bio: 'I ran this' })
+        .expect(201);
+      expect(profile.body.id).toBe(session.body.speakerId);
+      expect(profile.body.isMine).toBe(true);
+      expect(profile.body.bio).toBe('I ran this');
+
+      // One person, not two.
+      const bundle = await user.get('/api/e/testconf/bundle').expect(200);
+      const named = bundle.body.people.filter(
+        (p: { name: string }) => p.name === me.body.displayName,
+      );
+      expect(named).toHaveLength(1);
+    });
+
+    it('still refuses a name another identity has claimed', async () => {
+      await viewer.patch('/api/e/testconf/me/profile').send({ name: 'Taken' }).expect(201);
+      const res = await user
+        .patch('/api/e/testconf/me/profile')
+        .send({ name: 'Taken' })
+        .expect(409);
+      expect(res.body.error.code).toBe('name_taken');
+    });
+
+    it('claims an unclaimed roster entry when you take its name', async () => {
+      await admin.post('/api/e/testconf/people').send({ name: 'Unclaimed' }).expect(201);
+      const res = await user
+        .patch('/api/e/testconf/me/profile')
+        .send({ name: 'Unclaimed' })
+        .expect(201);
+      expect(res.body.isMine).toBe(true);
     });
 
     it('is read-only once the event is archived', async () => {
