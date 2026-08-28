@@ -26,3 +26,11 @@ coverage/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# --- Data ---
+# The SQLite database and its WAL sidecars: attendee content and password hashes
+data/
+deploy/data/
+*.db
+*.db-wal
+*.db-shm
