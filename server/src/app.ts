@@ -15,6 +15,7 @@ import { contributionRoutes } from './routes/contributions.js';
 import { eventAuthRoutes } from './routes/eventAuth.js';
 import { eventRoutes } from './routes/events.js';
 import { meRoutes } from './routes/me.js';
+import { peopleRoutes } from './routes/people.js';
 import { roomRoutes } from './routes/rooms.js';
 import { sessionRoutes } from './routes/sessions.js';
 import { settingsRoutes } from './routes/settings.js';
@@ -57,6 +58,7 @@ export function createApp(db: Db, config: Config): App {
   event.use(tagRoutes(ctx));
   event.use(sessionRoutes(ctx));
   event.use(contributionRoutes(ctx));
+  event.use(peopleRoutes(ctx));
   event.use(settingsRoutes(ctx));
   api.use('/e/:slug', event);
 

@@ -84,9 +84,28 @@ const OPEN_TITLES = [
   'Cold brew and cold takes',
 ];
 
+/** Speakers are real records now, so the demo gives them profiles worth reading. */
 const SPEAKERS = [
-  'Ada Lovelace', 'Grace Hopper', 'Alan Kay', 'Barbara Liskov', 'Radia Perlman',
-  'Jean Bartik', 'Karen Spärck Jones', 'Ken Thompson', '', '',
+  {
+    name: 'Ada Lovelace',
+    bio: 'Works on the analytical side of things. Happy to talk through **anything** on the notes below.',
+    links: [{ label: 'Notes', url: 'https://example.org/ada' }],
+  },
+  {
+    name: 'Grace Hopper',
+    bio: 'Compilers, plain language, and a low tolerance for "we have always done it this way".',
+    links: [{ label: 'Talks', url: 'https://example.org/grace' }],
+  },
+  { name: 'Alan Kay', bio: 'Interested in what the medium makes thinkable.', links: [] },
+  {
+    name: 'Barbara Liskov',
+    bio: 'Abstraction, substitution, and why the interface is the promise.',
+    links: [{ label: 'Papers', url: 'https://example.org/liskov' }],
+  },
+  { name: 'Radia Perlman', bio: 'Networks that heal themselves.', links: [] },
+  { name: 'Jean Bartik', bio: 'Programmed the room-sized ones.', links: [] },
+  { name: 'Karen Spärck Jones', bio: 'On weighting what matters in a pile of text.', links: [] },
+  { name: 'Ken Thompson', bio: 'Small tools, composed.', links: [] },
 ];
 
 const NOTES = [
@@ -187,6 +206,25 @@ function main(): void {
       ),
     );
 
+    const insertPerson = db.prepare(
+      `INSERT INTO people (event_id, identity_id, name, bio, links, created_at, updated_at)
+       VALUES (?, NULL, ?, ?, ?, ?, ?)`,
+    );
+    const personIds = SPEAKERS.map((speaker) =>
+      Number(
+        insertPerson.run(
+          eventId,
+          speaker.name,
+          speaker.bio,
+          JSON.stringify(speaker.links),
+          now,
+          now,
+        ).lastInsertRowid,
+      ),
+    );
+    // A couple of sessions deliberately have no speaker at all.
+    const speakerChoices: (number | null)[] = [...personIds, null, null];
+
     const organiser = createIdentity(db, 'programme_team');
     const attendees = [organiser, ...Array.from({ length: 5 }, () => createIdentity(db))];
     db.prepare(
@@ -196,9 +234,9 @@ function main(): void {
     const days = [startDate, endDate];
     const insertSession = db.prepare(
       `INSERT INTO sessions
-        (event_id, room_id, type, title, description, speaker, starts_at, ends_at,
+        (event_id, room_id, type, title, description, speaker, speaker_id, starts_at, ends_at,
          created_by, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?)`,
     );
     const insertSessionTag = db.prepare(
       'INSERT OR IGNORE INTO session_tags (session_id, tag_id) VALUES (?, ?)',
@@ -223,7 +261,7 @@ function main(): void {
               'official',
               OFFICIAL_TITLES[titleIndex],
               'A short description of the session. Written in **markdown**, rendered safely.',
-              pick(SPEAKERS),
+              pick(speakerChoices),
               startsAt.toISOString(),
               endsAt.toISOString(),
               organiser,
@@ -254,7 +292,7 @@ function main(): void {
           'open',
           title,
           'Proposed on the day. Turn up, or do not.',
-          '',
+          null,
           startsAt.toISOString(),
           endsAt.toISOString(),
           author,

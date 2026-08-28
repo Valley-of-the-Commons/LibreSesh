@@ -2,15 +2,18 @@ import { Router } from 'express';
 import type { BundleDto, SessionDetailDto } from '../shared/types.js';
 import { atLeast } from '../auth.js';
 import type { Ctx } from '../context.js';
-import type { ContributionRow, RoomRow, SessionRow, TagRow } from '../db.js';
+import type { ContributionRow, PersonRow, RoomRow, SessionRow, TagRow } from '../db.js';
 import {
   NameResolver,
+  speakerNames,
   tagIdsBySession,
   toContributionDto,
   toEventDto,
+  toPersonDto,
   toRoomDto,
   toSessionDto,
   toTagDto,
+  loadSessionDto,
 } from '../mappers.js';
 import { limit } from '../ratelimit.js';
 import { getSession } from '../sessionRules.js';
@@ -38,11 +41,18 @@ export function bundleRoutes(ctx: Ctx): Router {
       )
       .all(eventId);
 
+    const people = ctx.db
+      .prepare<[number], PersonRow>(
+        'SELECT * FROM people WHERE event_id = ? AND deleted_at IS NULL ORDER BY name',
+      )
+      .all(eventId);
+
     const tagMap = tagIdsBySession(
       ctx.db,
       sessions.map((s) => s.id),
     );
     const names = new NameResolver(ctx.db);
+    const speakers = speakerNames(ctx.db, eventId);
 
     // Admins see hidden contributions in the count; everyone else does not.
     const counts = ctx.db
@@ -61,8 +71,14 @@ export function bundleRoutes(ctx: Ctx): Router {
       rooms: rooms.map(toRoomDto),
       tags: tags.map(toTagDto),
       sessions: sessions.map((s) =>
-        toSessionDto(s, tagMap.get(s.id) ?? [], names.get(s.created_by)),
+        toSessionDto(
+          s,
+          tagMap.get(s.id) ?? [],
+          names.get(s.created_by),
+          s.speaker_id === null ? '' : (speakers.get(s.speaker_id) ?? ''),
+        ),
       ),
+      people: people.map((p) => toPersonDto(p, req.identity.id)),
       contributionCounts: Object.fromEntries(counts.map((c) => [c.session_id, c.n])),
     };
     res.json(bundle);
@@ -81,11 +97,7 @@ export function bundleRoutes(ctx: Ctx): Router {
       .all(session.id, isAdmin ? 1 : 0);
 
     const detail: SessionDetailDto = {
-      session: toSessionDto(
-        session,
-        tagIdsBySession(ctx.db, [session.id]).get(session.id) ?? [],
-        names.get(session.created_by),
-      ),
+      session: loadSessionDto(ctx.db, session),
       contributions: contributions.map((c) => toContributionDto(c, names.get(c.created_by))),
     };
     res.json(detail);

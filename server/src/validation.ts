@@ -98,7 +98,9 @@ export const sessionSchema = z.object({
   type: z.enum(['official', 'open']).optional(),
   title: trimmed(120),
   description: optionalTrimmed(5000).optional(),
-  speaker: optionalTrimmed(120).optional(),
+  speakerId: z.number().int().positive().nullable().optional(),
+  /** Convenience for the session form: names an existing person or creates one. */
+  speakerName: optionalTrimmed(120).optional(),
   startsAt: isoInstantSchema,
   endsAt: isoInstantSchema,
   tagIds: z.array(z.number().int().positive()).max(20).optional(),
@@ -135,6 +137,36 @@ export const contributionSchema = z
   });
 
 export const hiddenSchema = z.object({ hidden: z.boolean() });
+
+/** Profile links reuse the contribution URL rules: http(s) only. */
+const linkSchema = z.object({
+  label: trimmed(60),
+  url: z
+    .string()
+    .max(2000)
+    .refine((raw) => {
+      try {
+        const parsed = new URL(raw);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+      } catch {
+        return false;
+      }
+    }, 'Only http and https links'),
+});
+
+export const personSchema = z.object({
+  name: trimmed(120),
+  bio: optionalTrimmed(2000).optional(),
+  links: z.array(linkSchema).max(10).optional(),
+});
+export const personPatchSchema = personSchema.partial();
+
+/** Editing your own profile cannot reassign who owns it. */
+export const myProfileSchema = z.object({
+  name: trimmed(120).optional(),
+  bio: optionalTrimmed(2000).optional(),
+  links: z.array(linkSchema).max(10).optional(),
+});
 
 export const settingsSchema = z
   .object({

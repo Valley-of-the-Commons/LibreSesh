@@ -43,13 +43,37 @@ export interface TagDto {
   color: string;
 }
 
+export interface PersonLink {
+  label: string;
+  url: string;
+}
+
+export interface PersonDto {
+  id: number;
+  name: string;
+  bio: string;
+  links: PersonLink[];
+  /** True when this profile belongs to the requesting identity. */
+  isMine: boolean;
+  /** True when some attendee owns it, so only they and organisers may edit. */
+  claimed: boolean;
+  updatedAt: string;
+}
+
+export interface PersonDetailDto {
+  person: PersonDto;
+  sessions: SessionDto[];
+}
+
 export interface SessionDto {
   id: number;
   roomId: number;
   type: SessionType;
   title: string;
   description: string;
+  /** Resolved from the linked person; empty when the session has no speaker. */
   speaker: string;
+  speakerId: number | null;
   /** UTC ISO-8601. */
   startsAt: string;
   endsAt: string;
@@ -78,6 +102,7 @@ export interface BundleDto {
   rooms: RoomDto[];
   tags: TagDto[];
   sessions: SessionDto[];
+  people: PersonDto[];
   /** sessionId -> count of visible contributions. */
   contributionCounts: Record<number, number>;
 }
@@ -101,6 +126,9 @@ export type ChangeType =
   | 'tag.created'
   | 'tag.updated'
   | 'tag.deleted'
+  | 'person.created'
+  | 'person.updated'
+  | 'person.deleted'
   | 'event.updated';
 
 export interface ChangeEvent {
