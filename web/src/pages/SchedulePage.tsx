@@ -13,6 +13,7 @@ import { Gate } from '../components/Gate';
 import { IdentityPanel } from '../components/IdentityPanel';
 import { ListView } from '../components/ListView';
 import { SessionModal } from '../components/SessionModal';
+import { Tour, tourSeen, type TourStep } from '../components/Tour';
 import { Chip, EmptyState, RoleBadge, Spinner, useToast } from '../components/ui';
 
 const NOW_TICK_MS = 30_000;
@@ -26,6 +27,7 @@ export function SchedulePage() {
   const filters = useFilters();
 
   const [identityOpen, setIdentityOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
   const [arrange, setArrange] = useState(false);
   const [editing, setEditing] = useState<{ session?: SessionDto } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -38,6 +40,18 @@ export function SchedulePage() {
     const timer = setInterval(() => setClock(Date.now()), NOW_TICK_MS);
     return () => clearInterval(timer);
   }, []);
+
+  const closeTour = useCallback(() => setTourOpen(false), []);
+
+  // First visit to this event auto-starts the tour, once the schedule has
+  // painted and storage doesn't already say it's been seen.
+  useEffect(() => {
+    if (data.status !== 'ready' || tourSeen(slug)) return;
+    const raf = requestAnimationFrame(() => {
+      if (document.querySelector('[data-tour]')) setTourOpen(true);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [data.status, slug]);
 
   const bundle = data.bundle;
   const event = bundle?.event;
@@ -282,6 +296,69 @@ export function SchedulePage() {
   const canArrange =
     !event.archived && (role === 'admin' || (role === 'user' && bundle.rooms.some((r) => r.openTrack)));
 
+  // Ordered coach-marks. Role-conditional controls are dropped here; the Tour
+  // itself also skips any target that isn't in the DOM. Not memoised because
+  // Tour freezes its own copy on mount.
+  const participant = event.userRoleLabel;
+  const tourSteps: TourStep[] = [
+    {
+      target: 'identity',
+      title: 'This is you',
+      body: `You're known by a name on this device, not an account. Tap to rename yourself, or enter another password to change your role from ${participant}.`,
+    },
+    {
+      target: 'days',
+      title: 'Pick a day',
+      body: 'One tab per day of the event.',
+    },
+    {
+      target: 'view',
+      title: 'Grid or list',
+      body: 'Grid shows the rooms side by side; list is a plain agenda that reads better on a phone.',
+    },
+    {
+      target: 'now',
+      title: 'Jump to now',
+      body: 'Scrolls the grid to the current time and the yellow now-line.',
+    },
+    {
+      target: 'session-block',
+      title: 'Open a session',
+      body: "Tap any block for its description, speaker and everyone's notes, links and questions. Dashed green blocks are open sessions that anyone may propose.",
+    },
+    {
+      target: 'filters',
+      title: 'Narrow it down',
+      body: 'Search plus room and tag filters. Filters live in the URL, so a filtered view can be shared as a link.',
+    },
+  ];
+  if (canArrange) {
+    tourSteps.push({
+      target: 'arrange',
+      title: 'Move things around',
+      body: 'Turn on Arrange, then drag a block to change its time or room, or drag its bottom edge to change its length. It snaps to 5 minutes and only moves what you may edit.',
+    });
+  }
+  if (canWrite) {
+    tourSteps.push({
+      target: 'add',
+      title: 'Add a session',
+      body: 'Organisers add official sessions anywhere; everyone else proposes open sessions in the open-track rooms.',
+    });
+  }
+  if (role === 'admin') {
+    tourSteps.push({
+      target: 'manage',
+      title: 'Organiser tools',
+      body: 'Rooms, tags, passwords, duplicating the event and archiving all live behind Manage.',
+    });
+  }
+  tourSteps.push({
+    target: 'live',
+    title: "It's live",
+    body: 'Everyone else sees your changes within a second, with no refresh needed.',
+  });
+
   return (
     <div className="min-h-screen bg-stone-100 text-stone-900">
       <header className="sticky top-0 z-30 border-b border-stone-200 bg-stone-50/95 backdrop-blur">
@@ -295,7 +372,7 @@ export function SchedulePage() {
           </Link>
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold tracking-tight">{event.name}</div>
-            <div className="truncate text-xs text-stone-500">
+            <div data-tour="live" className="truncate text-xs text-stone-500">
               {days.length} day{days.length > 1 ? 's' : ''} ·{' '}
               {event.archived ? 'archived — read-only' : data.connected ? 'schedule is live' : 'reconnecting…'}
             </div>
@@ -303,6 +380,7 @@ export function SchedulePage() {
           <div className="ml-auto flex items-center gap-2">
             {role === 'admin' && (
               <Link
+                data-tour="manage"
                 to={`/e/${slug}/admin`}
                 className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-stone-600 hover:border-stone-400"
               >
@@ -311,6 +389,16 @@ export function SchedulePage() {
             )}
             <button
               type="button"
+              onClick={() => setTourOpen(true)}
+              aria-label="Take the tour"
+              title="Take the tour"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white text-xs font-medium text-stone-500 hover:border-stone-400"
+            >
+              ?
+            </button>
+            <button
+              type="button"
+              data-tour="identity"
               onClick={() => setIdentityOpen(true)}
               className="flex items-center gap-2 rounded-full border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium hover:border-stone-400"
             >
@@ -321,7 +409,10 @@ export function SchedulePage() {
         </div>
 
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 pb-3">
-          <div className="flex overflow-x-auto rounded-lg border border-stone-300 bg-white p-0.5 no-scrollbar">
+          <div
+            data-tour="days"
+            className="flex overflow-x-auto rounded-lg border border-stone-300 bg-white p-0.5 no-scrollbar"
+          >
             {days.map((d) => {
               const label = dayLabel(d, today);
               return (
@@ -343,7 +434,7 @@ export function SchedulePage() {
             })}
           </div>
 
-          <div className="flex rounded-lg border border-stone-300 bg-white p-0.5">
+          <div data-tour="view" className="flex rounded-lg border border-stone-300 bg-white p-0.5">
             {(['cal', 'list'] as const).map((v) => (
               <button
                 key={v}
@@ -361,6 +452,7 @@ export function SchedulePage() {
 
           <button
             type="button"
+            data-tour="now"
             onClick={jumpToNow}
             className="rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-stone-900 shadow-sm hover:brightness-95"
           >
@@ -371,6 +463,7 @@ export function SchedulePage() {
             {canArrange && (
               <button
                 type="button"
+                data-tour="arrange"
                 onClick={() => setArrange((a) => !a)}
                 aria-pressed={arrange}
                 className={`rounded-lg border px-3 py-2 text-xs font-medium ${
@@ -385,6 +478,7 @@ export function SchedulePage() {
             {canWrite && (
               <button
                 type="button"
+                data-tour="add"
                 onClick={() => setEditing({})}
                 className="rounded-lg bg-stone-900 px-3 py-2 text-xs font-semibold text-white hover:bg-stone-700"
               >
@@ -395,7 +489,7 @@ export function SchedulePage() {
         </div>
 
         <div className="mx-auto max-w-6xl overflow-x-auto px-4 pb-3 no-scrollbar">
-          <div className="flex items-center gap-1.5 whitespace-nowrap">
+          <div data-tour="filters" className="flex items-center gap-1.5 whitespace-nowrap">
             <input
               value={filters.q}
               onChange={(e) => filters.set({ q: e.target.value })}
@@ -569,6 +663,8 @@ export function SchedulePage() {
           Drag sessions you may edit · snaps to 5 min
         </div>
       )}
+
+      {tourOpen && <Tour steps={tourSteps} eventKey={slug} onClose={closeTour} />}
     </div>
   );
 }

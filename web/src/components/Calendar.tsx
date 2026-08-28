@@ -309,7 +309,7 @@ export function Calendar({
             </div>
           )}
 
-          {placed.map(({ session, startMin, durMin, endMin }) => {
+          {placed.map(({ session, startMin, durMin, endMin }, blockIndex) => {
             const active = drag?.id === session.id ? drag : null;
             const effectiveStart = startMin + (active?.mode === 'move' ? active.deltaMin : 0);
             const effectiveDur = active?.mode === 'resize' ? active.durMin : durMin;
@@ -329,6 +329,8 @@ export function Calendar({
             return (
               <div
                 key={session.id}
+                // Anchor for the guided tour on the first block only.
+                data-tour={blockIndex === 0 ? 'session-block' : undefined}
                 role="button"
                 tabIndex={0}
                 aria-label={`${session.title}, ${fmtMin(startMin)} to ${fmtMin(endMin)}${
