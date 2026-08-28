@@ -1,0 +1,28 @@
+# --- Security ---
+.env*
+*.pem
+*.key
+.DS_Store
+Thumbs.db
+
+# Raw session transcripts — host-disk backup only, may contain tool output/secrets
+_planning/transcripts-backup/
+
+# Working status + backlog — private by default
+_planning/STATUS.md
+
+# Claude Code harness + dev container — local only, not shared/published
+.claude/
+.devcontainer/
+
+# --- Node ---
+node_modules/
+dist/
+build/
+coverage/
+.next/
+.vercel/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
