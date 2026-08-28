@@ -45,6 +45,7 @@ export function AdminPage() {
   const [endDate, setEndDate] = useState('');
   const [dayStart, setDayStart] = useState('');
   const [dayEnd, setDayEnd] = useState('');
+  const [userRoleLabel, setUserRoleLabel] = useState('');
   const [viewerPassword, setViewerPassword] = useState('');
   const [userPassword, setUserPassword] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
@@ -70,6 +71,7 @@ export function AdminPage() {
     setEndDate(event.endDate);
     setDayStart(fmtMin(event.dayStartMin));
     setDayEnd(fmtMin(event.dayEndMin));
+    setUserRoleLabel(event.userRoleLabel);
     // Clear the duplicate form too, so it isn't pre-filled after a clone.
     setCloneName('');
     setCloneSlug('');
@@ -213,6 +215,7 @@ export function AdminPage() {
         endDate,
         dayStartMin: toMinutes(dayStart),
         dayEndMin: toMinutes(dayEnd),
+        ...(userRoleLabel.trim() ? { userRoleLabel: userRoleLabel.trim() } : {}),
         ...(viewerPassword ? { viewerPassword } : {}),
         ...(userPassword ? { userPassword } : {}),
         ...(adminPassword ? { adminPassword } : {}),
@@ -431,6 +434,18 @@ export function AdminPage() {
             <input type="time" step={300} value={dayEnd} onChange={(e) => setDayEnd(e.target.value)} className={inputClass} />
           </Field>
         </div>
+        <Field
+          label="What you call your participants"
+          hint="Shown on role badges and in prompts. “attendee”, “participant”, “member”…"
+        >
+          <input
+            value={userRoleLabel}
+            onChange={(e) => setUserRoleLabel(e.target.value)}
+            maxLength={24}
+            className={inputClass}
+          />
+        </Field>
+
         <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-400">
           Change passwords
         </p>
@@ -439,7 +454,7 @@ export function AdminPage() {
           <Field label="Viewer">
             <input value={viewerPassword} onChange={(e) => setViewerPassword(e.target.value)} className={inputClass} />
           </Field>
-          <Field label="User">
+          <Field label={userRoleLabel.trim() || 'User'}>
             <input value={userPassword} onChange={(e) => setUserPassword(e.target.value)} className={inputClass} />
           </Field>
           <Field label="Admin">

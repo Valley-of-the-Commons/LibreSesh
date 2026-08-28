@@ -58,7 +58,7 @@ describe('identity', () => {
   it('mints an anonymous identity on first contact and keeps it', async () => {
     const agent = agentFor(harness);
     const first = await agent.get('/api/me').expect(200);
-    expect(first.body.displayName).toMatch(/^anon_[a-z0-9]{5}$/);
+    expect(first.body.displayName).toMatch(/^attendee_[a-z0-9]{5}$/);
     expect(first.body.roles).toEqual({});
 
     const second = await agent.get('/api/me').expect(200);

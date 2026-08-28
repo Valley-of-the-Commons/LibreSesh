@@ -29,6 +29,8 @@ export interface DetailSheetProps {
   timezone: string;
   canEdit: boolean;
   archived: boolean;
+  /** The event's word for the middle role, used in the upgrade prompt. */
+  userLabel: string;
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -48,6 +50,7 @@ export function DetailSheet({
   timezone,
   canEdit,
   archived,
+  userLabel,
   onClose,
   onEdit,
   onDelete,
@@ -241,7 +244,8 @@ export function DetailSheet({
           </p>
         ) : !canContribute ? (
           <p className="rounded-lg bg-stone-50 px-3 py-2 text-xs text-stone-500">
-            Enter the user password (tap your name, top right) to add notes, links and questions.
+            Enter the {userLabel} password (tap your name, top right) to add notes, links and
+            questions.
           </p>
         ) : (
           <div className="rounded-xl border border-stone-200 p-3">

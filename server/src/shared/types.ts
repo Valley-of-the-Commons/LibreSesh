@@ -24,6 +24,8 @@ export interface EventDto extends EventSummary {
   timezone: string;
   dayStartMin: number;
   dayEndMin: number;
+  /** What this event calls its middle role, e.g. "attendee". */
+  userRoleLabel: string;
 }
 
 export interface RoomDto {

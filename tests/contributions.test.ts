@@ -46,7 +46,7 @@ describe('contributions', () => {
   it('accepts notes and questions from users', async () => {
     const note = await post(author, { kind: 'note', body: 'A note' }).expect(201);
     expect(note.body.kind).toBe('note');
-    expect(note.body.createdByName).toMatch(/^anon_/);
+    expect(note.body.createdByName).toMatch(/^attendee_/);
     await post(author, { kind: 'question', body: 'Why?' }).expect(201);
   });
 
@@ -331,6 +331,55 @@ describe('event settings and creation', () => {
     const fresh = await actorWithRole(harness, 'testconf', 'brand-new');
     const bundle = await fresh.get('/api/e/testconf/bundle').expect(200);
     expect(bundle.body.role).toBe('admin');
+  });
+
+  it('defaults the user role label to attendee and lets an admin rename it', async () => {
+    const before = await admin.get('/api/e/testconf/bundle').expect(200);
+    expect(before.body.event.userRoleLabel).toBe('attendee');
+
+    const updated = await admin
+      .patch('/api/e/testconf/settings')
+      .send({ userRoleLabel: '  participant  ' })
+      .expect(200);
+    expect(updated.body.userRoleLabel).toBe('participant');
+
+    await admin.patch('/api/e/testconf/settings').send({ userRoleLabel: '   ' }).expect(400);
+    await admin.patch('/api/e/testconf/settings').send({ userRoleLabel: 'x'.repeat(25) }).expect(400);
+  });
+
+  it('takes a user role label at creation and carries it into a clone', async () => {
+    await admin
+      .post('/api/events')
+      .set('X-Instance-Key', 'instance-pw')
+      .send({
+        name: 'Labelled',
+        slug: 'labelled',
+        timezone: 'Europe/Berlin',
+        startDate: '2026-09-01',
+        endDate: '2026-09-02',
+        viewerPassword: 'viewer1',
+        userPassword: 'user111',
+        adminPassword: 'admin11',
+        userRoleLabel: 'member',
+      })
+      .expect(201);
+    const bundle = await admin.get('/api/e/labelled/bundle').expect(200);
+    expect(bundle.body.event.userRoleLabel).toBe('member');
+
+    await admin
+      .post('/api/events/labelled/clone')
+      .send({
+        newSlug: 'labelled-2',
+        newName: 'Labelled 2',
+        startDate: '2027-09-01',
+        endDate: '2027-09-02',
+        viewerPassword: 'viewer2',
+        userPassword: 'user222',
+        adminPassword: 'admin22',
+      })
+      .expect(201);
+    const clone = await admin.get('/api/e/labelled-2/bundle').expect(200);
+    expect(clone.body.event.userRoleLabel).toBe('member');
   });
 
   it('rejects an end date before the start', async () => {

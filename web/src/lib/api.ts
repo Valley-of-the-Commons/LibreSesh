@@ -74,6 +74,7 @@ export const api = {
       viewerPassword: string;
       userPassword: string;
       adminPassword: string;
+      userRoleLabel?: string;
     },
   ) => request<EventSummary>('POST', '/events', body, { 'X-Instance-Key': instanceKey }),
   cloneEvent: (
@@ -158,5 +159,6 @@ export interface SettingsWrite {
   viewerPassword?: string;
   userPassword?: string;
   adminPassword?: string;
+  userRoleLabel?: string;
   archived?: boolean;
 }

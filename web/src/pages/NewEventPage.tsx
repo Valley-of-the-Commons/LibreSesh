@@ -24,6 +24,7 @@ export function NewEventPage() {
   const [timezone, setTimezone] = useState(browserTimezone());
   const [startDate, setStartDate] = useState(todayIso());
   const [endDate, setEndDate] = useState(todayIso());
+  const [userRoleLabel, setUserRoleLabel] = useState('attendee');
   const [viewerPassword, setViewerPassword] = useState('');
   const [userPassword, setUserPassword] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
@@ -50,6 +51,7 @@ export function NewEventPage() {
         viewerPassword,
         userPassword,
         adminPassword,
+        userRoleLabel: userRoleLabel.trim() || 'attendee',
       });
       toast.show('Event created — you are its admin');
       navigate(`/e/${created.slug}`);
@@ -129,6 +131,18 @@ export function NewEventPage() {
           </Field>
         </div>
 
+        <Field
+          label="What you call your participants"
+          hint="Shown on role badges and in prompts. “attendee”, “participant”, “member”…"
+        >
+          <input
+            value={userRoleLabel}
+            onChange={(e) => setUserRoleLabel(e.target.value)}
+            maxLength={24}
+            className={inputClass}
+          />
+        </Field>
+
         <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-400">
           Event passwords
         </p>
@@ -139,7 +153,7 @@ export function NewEventPage() {
             className={inputClass}
           />
         </Field>
-        <Field label="User — add contributions and open sessions">
+        <Field label={`${userRoleLabel.trim() || 'Attendee'} — add contributions and open sessions`}>
           <input
             value={userPassword}
             onChange={(e) => setUserPassword(e.target.value)}

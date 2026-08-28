@@ -7,6 +7,7 @@ export interface IdentityPanelProps {
   me: Me | null;
   slug: string;
   role: Role;
+  userLabel: string;
   onMe: (me: Me) => void;
   onRoleChange: (role: Role) => void;
   onSignOut: () => void;
@@ -18,6 +19,7 @@ export function IdentityPanel({
   me,
   slug,
   role,
+  userLabel,
   onMe,
   onRoleChange,
   onSignOut,
@@ -61,7 +63,7 @@ export function IdentityPanel({
     <Modal title="Your identity" onClose={onClose}>
       <div className="-mt-2 mb-4 flex items-center justify-between">
         <span className="text-xs text-stone-500">Role for this event</span>
-        <RoleBadge role={role} />
+        <RoleBadge role={role} userLabel={userLabel} />
       </div>
 
       <Field label="Display name" hint="Saved on this device. No account needed.">

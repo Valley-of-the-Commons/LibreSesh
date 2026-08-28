@@ -17,7 +17,8 @@ function randomString(length: number, alphabet: string): string {
 }
 
 export const newIdentityToken = (): string => randomString(TOKEN_LENGTH, BASE62);
-export const newDisplayName = (): string => `anon_${randomString(5, LOWER36)}`;
+/** Suffixed so two people in the same room can tell each other apart. */
+export const newDisplayName = (): string => `attendee_${randomString(5, LOWER36)}`;
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace

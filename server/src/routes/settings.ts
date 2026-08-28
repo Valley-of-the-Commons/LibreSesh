@@ -32,7 +32,7 @@ export function settingsRoutes(ctx: Ctx): Router {
         .prepare(
           `UPDATE events SET name = ?, start_date = ?, end_date = ?, day_start_min = ?,
                   day_end_min = ?, viewer_pw_hash = ?, user_pw_hash = ?, admin_pw_hash = ?,
-                  archived = ?
+                  archived = ?, user_role_label = ?
             WHERE id = ?`,
         )
         .run(
@@ -45,6 +45,7 @@ export function settingsRoutes(ctx: Ctx): Router {
           body.userPassword ? hashPassword(body.userPassword) : current.user_pw_hash,
           body.adminPassword ? hashPassword(body.adminPassword) : current.admin_pw_hash,
           body.archived === undefined ? current.archived : body.archived ? 1 : 0,
+          body.userRoleLabel ?? current.user_role_label,
           current.id,
         );
 

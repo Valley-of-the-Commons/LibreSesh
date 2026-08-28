@@ -31,7 +31,8 @@ export function Field({
   );
 }
 
-export function RoleBadge({ role }: { role: Role }) {
+/** `userLabel` is the event's own word for the middle role, e.g. "attendee". */
+export function RoleBadge({ role, userLabel }: { role: Role; userLabel?: string }) {
   const style = {
     admin: 'bg-stone-900 text-white',
     user: 'bg-emerald-100 text-emerald-800',
@@ -39,7 +40,7 @@ export function RoleBadge({ role }: { role: Role }) {
   }[role];
   return (
     <span className={`rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${style}`}>
-      {role}
+      {role === 'user' ? (userLabel ?? 'attendee') : role}
     </span>
   );
 }

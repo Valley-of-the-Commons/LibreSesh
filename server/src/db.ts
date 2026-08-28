@@ -21,6 +21,7 @@ export interface EventRow {
   user_pw_hash: string;
   admin_pw_hash: string;
   archived: number;
+  user_role_label: string;
   created_at: string;
 }
 

@@ -315,7 +315,7 @@ export function SchedulePage() {
               className="flex items-center gap-2 rounded-full border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium hover:border-stone-400"
             >
               <span className="max-w-24 truncate">{me?.displayName ?? '…'}</span>
-              <RoleBadge role={role} />
+              <RoleBadge role={role} userLabel={event.userRoleLabel} />
             </button>
           </div>
         </div>
@@ -509,6 +509,7 @@ export function SchedulePage() {
           timezone={timezone}
           canEdit={canEdit(selected)}
           archived={event.archived}
+          userLabel={event.userRoleLabel}
           onClose={closeSession}
           onEdit={() => setEditing({ session: selected })}
           onDelete={() => void deleteSession(selected)}
@@ -544,10 +545,13 @@ export function SchedulePage() {
           me={me}
           slug={slug}
           role={role}
+          userLabel={event.userRoleLabel}
           onMe={setMe}
           onRoleChange={(next) => {
             setIdentityOpen(false);
-            toast.show(`You are now ${next} for this event`);
+            toast.show(
+              `You are now ${next === 'user' ? event.userRoleLabel : next} for this event`,
+            );
             void data.reload();
           }}
           onSignOut={() => {

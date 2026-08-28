@@ -16,6 +16,8 @@ const optionalTrimmed = (max: number) =>
     .pipe(z.string().max(max));
 
 export const displayNameSchema = trimmed(40);
+/** What an event calls its middle role. Shown as a chip, so keep it short. */
+export const roleLabelSchema = trimmed(24);
 export const slugSchema = z
   .string()
   .regex(/^[a-z0-9-]{3,40}$/, 'Slug must be 3–40 characters of a–z, 0–9 or -');
@@ -48,6 +50,7 @@ export const createEventSchema = z
     viewerPassword: passwordSchema,
     userPassword: passwordSchema,
     adminPassword: passwordSchema,
+    userRoleLabel: roleLabelSchema.optional(),
   })
   .refine((v) => v.endDate >= v.startDate, {
     message: 'End date must not be before the start date',
@@ -143,6 +146,7 @@ export const settingsSchema = z
     viewerPassword: passwordSchema.optional(),
     userPassword: passwordSchema.optional(),
     adminPassword: passwordSchema.optional(),
+    userRoleLabel: roleLabelSchema.optional(),
     archived: z.boolean().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });

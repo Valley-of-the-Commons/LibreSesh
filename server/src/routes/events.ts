@@ -44,8 +44,8 @@ export function eventRoutes(ctx: Ctx): Router {
       .prepare(
         `INSERT INTO events
           (slug, name, timezone, start_date, end_date, day_start_min, day_end_min,
-           viewer_pw_hash, user_pw_hash, admin_pw_hash, archived, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+           viewer_pw_hash, user_pw_hash, admin_pw_hash, archived, user_role_label, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
       )
       .run(
         body.slug,
@@ -58,6 +58,7 @@ export function eventRoutes(ctx: Ctx): Router {
         hashPassword(body.viewerPassword),
         hashPassword(body.userPassword),
         hashPassword(body.adminPassword),
+        body.userRoleLabel ?? 'attendee',
         now,
       );
 
@@ -98,8 +99,8 @@ export function eventRoutes(ctx: Ctx): Router {
         .prepare(
           `INSERT INTO events
             (slug, name, timezone, start_date, end_date, day_start_min, day_end_min,
-             viewer_pw_hash, user_pw_hash, admin_pw_hash, archived, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)`,
+             viewer_pw_hash, user_pw_hash, admin_pw_hash, archived, user_role_label, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
         )
         .run(
           body.newSlug,
@@ -112,6 +113,7 @@ export function eventRoutes(ctx: Ctx): Router {
           hashPassword(body.viewerPassword),
           hashPassword(body.userPassword),
           hashPassword(body.adminPassword),
+          source.user_role_label,
           now,
         );
       const id = Number(info.lastInsertRowid);

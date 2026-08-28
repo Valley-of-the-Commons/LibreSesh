@@ -22,6 +22,7 @@ export const toEventDto = (e: EventRow): EventDto => ({
   timezone: e.timezone,
   dayStartMin: e.day_start_min,
   dayEndMin: e.day_end_min,
+  userRoleLabel: e.user_role_label,
 });
 
 export const toRoomDto = (r: RoomRow): RoomDto => ({
