@@ -25,10 +25,6 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 - **People dedupe/merge.** Anyone who can create a session or a pitch can create
   a person by typing a new speaker name, so "A. Lovelace" and "Ada Lovelace" can
   coexist. Right for an unconference, but there is no merge tool.
-- **Interest on a pitch does not carry to the placed session.** Placing a
-  proposal creates a session, but the people who said they would come are not
-  moved onto its star list, so the signal is lost exactly when it becomes
-  actionable.
 
 ## Medium Priority
 
