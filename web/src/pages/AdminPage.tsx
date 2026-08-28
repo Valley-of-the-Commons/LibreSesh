@@ -16,6 +16,13 @@ import {
 
 const DEFAULT_TAG_COLOR = '#6B7280';
 
+const slugify = (value: string): string =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40);
+
 /** Rooms, tags, passwords and event settings — admin only (SPEC §7.1). */
 export function AdminPage() {
   const { slug = '' } = useParams();
@@ -40,15 +47,37 @@ export function AdminPage() {
   const [viewerPassword, setViewerPassword] = useState('');
   const [userPassword, setUserPassword] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  // Holds the slug the settings form was filled from. Duplicating an event
+  // navigates straight to the new event's admin page, which re-renders this
+  // same component instance — so a plain boolean latch would leave the previous
+  // event's values in the form.
+  const [loadedForSlug, setLoadedForSlug] = useState<string | null>(null);
 
-  if (event && !settingsLoaded) {
-    setSettingsLoaded(true);
+  const [cloneName, setCloneName] = useState('');
+  const [cloneSlug, setCloneSlug] = useState('');
+  const [cloneStart, setCloneStart] = useState('');
+  const [cloneEnd, setCloneEnd] = useState('');
+  const [cloneViewer, setCloneViewer] = useState('');
+  const [cloneUser, setCloneUser] = useState('');
+  const [cloneAdmin, setCloneAdmin] = useState('');
+  const [cloning, setCloning] = useState(false);
+
+  if (event && loadedForSlug !== event.slug) {
+    setLoadedForSlug(event.slug);
     setName(event.name);
     setStartDate(event.startDate);
     setEndDate(event.endDate);
     setDayStart(fmtMin(event.dayStartMin));
     setDayEnd(fmtMin(event.dayEndMin));
+    // Clear the duplicate form too, so it isn't pre-filled after a clone.
+    setCloneName('');
+    setCloneSlug('');
+    setCloneStart('');
+    setCloneEnd('');
+    setCloneViewer('');
+    setCloneUser('');
+    setCloneAdmin('');
+    setCloning(false);
   }
 
   const fail = (err: unknown) => toast.show((err as Error).message);
@@ -167,6 +196,38 @@ export function AdminPage() {
       toast.show('Settings saved');
     } catch (err) {
       fail(err);
+    }
+  };
+
+  // The organiser on this page is already the event admin, so no instance key
+  // is needed — the endpoint accepts either.
+  const cloneSlugValue = cloneSlug || slugify(cloneName);
+  const cloneReady =
+    cloneName.trim().length > 0 &&
+    /^[a-z0-9-]{3,40}$/.test(cloneSlugValue) &&
+    cloneStart.length > 0 &&
+    cloneEnd.length > 0 &&
+    cloneViewer.length >= 6 &&
+    cloneUser.length >= 6 &&
+    cloneAdmin.length >= 6;
+
+  const cloneEvent = async () => {
+    setCloning(true);
+    try {
+      const created = await api.cloneEvent(slug, {
+        newName: cloneName.trim(),
+        newSlug: cloneSlugValue,
+        startDate: cloneStart,
+        endDate: cloneEnd,
+        viewerPassword: cloneViewer,
+        userPassword: cloneUser,
+        adminPassword: cloneAdmin,
+      });
+      toast.show('Event duplicated — you are its organiser');
+      navigate(`/e/${created.slug}/admin`);
+    } catch (err) {
+      fail(err);
+      setCloning(false);
     }
   };
 
@@ -338,6 +399,67 @@ export function AdminPage() {
           </Field>
         </div>
         <PrimaryButton onClick={() => void saveSettings()}>Save settings</PrimaryButton>
+      </section>
+
+      <section className="mb-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-1 text-sm font-semibold">Duplicate event</h2>
+        <p className="mb-3 text-xs text-stone-500">
+          Rooms and tags carry over to the new event; sessions and contributions do not.
+        </p>
+        <Field label="New name">
+          <input value={cloneName} onChange={(e) => setCloneName(e.target.value)} className={inputClass} />
+        </Field>
+        <Field
+          label="New slug"
+          hint={`Used in the URL: /e/${cloneSlugValue || 'your-event'}`}
+        >
+          <input
+            value={cloneSlug}
+            onChange={(e) => setCloneSlug(slugify(e.target.value))}
+            placeholder={slugify(cloneName) || 'your-event'}
+            className={inputClass}
+          />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Start date">
+            <input
+              type="date"
+              value={cloneStart}
+              onChange={(e) => {
+                setCloneStart(e.target.value);
+                if (cloneEnd < e.target.value) setCloneEnd(e.target.value);
+              }}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="End date">
+            <input
+              type="date"
+              value={cloneEnd}
+              min={cloneStart}
+              onChange={(e) => setCloneEnd(e.target.value)}
+              className={inputClass}
+            />
+          </Field>
+        </div>
+        <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-400">
+          New passwords
+        </p>
+        <p className="mb-3 text-xs text-stone-500">At least 6 characters each.</p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Field label="Viewer">
+            <input value={cloneViewer} onChange={(e) => setCloneViewer(e.target.value)} className={inputClass} />
+          </Field>
+          <Field label="User">
+            <input value={cloneUser} onChange={(e) => setCloneUser(e.target.value)} className={inputClass} />
+          </Field>
+          <Field label="Admin">
+            <input value={cloneAdmin} onChange={(e) => setCloneAdmin(e.target.value)} className={inputClass} />
+          </Field>
+        </div>
+        <PrimaryButton onClick={() => void cloneEvent()} disabled={!cloneReady || cloning}>
+          {cloning ? 'Duplicating…' : 'Duplicate event'}
+        </PrimaryButton>
       </section>
 
       <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
