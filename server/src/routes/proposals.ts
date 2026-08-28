@@ -298,6 +298,15 @@ export function proposalRoutes(ctx: Ctx): Router {
         );
         for (const tagId of tagIds) insert.run(id, tagId);
 
+        // Everyone who said they would come now has it on their agenda —
+        // otherwise the signal is lost exactly when it becomes actionable.
+        ctx.db
+          .prepare(
+            `INSERT OR IGNORE INTO stars (identity_id, session_id, created_at)
+             SELECT identity_id, ?, ? FROM proposal_interest WHERE proposal_id = ?`,
+          )
+          .run(id, now, row.id);
+
         ctx.db
           .prepare('UPDATE proposals SET placed_session_id = ?, updated_at = ? WHERE id = ?')
           .run(id, now, row.id);

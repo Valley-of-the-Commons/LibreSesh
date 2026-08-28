@@ -155,6 +155,24 @@ describe('proposal pool', () => {
       await place(viewer, p.body.id).expect(403);
     });
 
+    it('moves everyone who was interested onto the session as a star', async () => {
+      const p = await pitch(pitcher).expect(201);
+      await viewer.put(`/api/e/testconf/proposals/${p.body.id}/interest`).expect(204);
+      await other.put(`/api/e/testconf/proposals/${p.body.id}/interest`).expect(204);
+
+      const placed = await place(admin, p.body.id).expect(201);
+      const sessionId = placed.body.session.id;
+
+      const asViewer = await viewer.get('/api/e/testconf/bundle').expect(200);
+      expect(asViewer.body.starredSessionIds).toContain(sessionId);
+      const asOther = await other.get('/api/e/testconf/bundle').expect(200);
+      expect(asOther.body.starredSessionIds).toContain(sessionId);
+      // The pitcher never registered interest, so they are not starred.
+      const asPitcher = await pitcher.get('/api/e/testconf/bundle').expect(200);
+      expect(asPitcher.body.starredSessionIds).not.toContain(sessionId);
+      expect(asViewer.body.starCounts[sessionId]).toBe(2);
+    });
+
     it('refuses to place the same pitch twice', async () => {
       const p = await pitch(pitcher).expect(201);
       await place(admin, p.body.id).expect(201);
