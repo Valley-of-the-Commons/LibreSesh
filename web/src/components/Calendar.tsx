@@ -335,6 +335,11 @@ export function Calendar({
                   clash ? ', overlaps another session' : ''
                 }`}
                 onPointerDown={(e) => startDrag(e, session, startMin, durMin, 'move')}
+                // Draggable blocks open from the drag's mouse-up (so a drag is
+                // not mistaken for a tap); everything else opens on plain click.
+                onClick={() => {
+                  if (!editable) onOpen(session.id);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
