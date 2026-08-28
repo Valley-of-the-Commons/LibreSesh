@@ -18,6 +18,7 @@ import { eventRoutes } from './routes/events.js';
 import { meRoutes } from './routes/me.js';
 import { peopleRoutes } from './routes/people.js';
 import { roomRoutes } from './routes/rooms.js';
+import { proposalRoutes } from './routes/proposals.js';
 import { sessionRoutes } from './routes/sessions.js';
 import { settingsRoutes } from './routes/settings.js';
 import { trashRoutes } from './routes/trash.js';
@@ -61,6 +62,7 @@ export function createApp(db: Db, config: Config): App {
   event.use(roomRoutes(ctx));
   event.use(tagRoutes(ctx));
   event.use(sessionRoutes(ctx));
+  event.use(proposalRoutes(ctx));
   event.use(contributionRoutes(ctx));
   event.use(peopleRoutes(ctx));
   event.use(agendaRoutes(ctx));

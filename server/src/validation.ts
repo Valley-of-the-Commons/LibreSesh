@@ -138,6 +138,24 @@ export const contributionSchema = z
 
 export const hiddenSchema = z.object({ hidden: z.boolean() });
 
+/** A pitch: everything a session has except a room and a time. */
+export const proposalSchema = z.object({
+  title: trimmed(120),
+  description: optionalTrimmed(5000).optional(),
+  speakerId: z.number().int().positive().nullable().optional(),
+  speakerName: optionalTrimmed(120).optional(),
+  tagIds: z.array(z.number().int().positive()).max(20).optional(),
+});
+export const proposalPatchSchema = proposalSchema.partial();
+
+/** Placing a pitch onto the grid. */
+export const placeSchema = z.object({
+  roomId: z.number().int().positive(),
+  startsAt: isoInstantSchema,
+  endsAt: isoInstantSchema,
+  type: z.enum(['official', 'open']).optional(),
+});
+
 /** Profile links reuse the contribution URL rules: http(s) only. */
 const linkSchema = z.object({
   label: trimmed(60),

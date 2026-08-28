@@ -91,6 +91,19 @@ export interface PersonRow {
   deleted_at: string | null;
 }
 
+export interface ProposalRow {
+  id: number;
+  event_id: number;
+  title: string;
+  description: string;
+  speaker_id: number | null;
+  created_by: number;
+  placed_session_id: number | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+}
+
 export interface ContributionRow {
   id: number;
   session_id: number;

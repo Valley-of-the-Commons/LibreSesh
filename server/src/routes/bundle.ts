@@ -14,6 +14,7 @@ import {
   toSessionDto,
   toTagDto,
   loadSessionDto,
+  loadProposalDtos,
 } from '../mappers.js';
 import { limit } from '../ratelimit.js';
 import { getSession } from '../sessionRules.js';
@@ -79,6 +80,7 @@ export function bundleRoutes(ctx: Ctx): Router {
         ),
       ),
       people: people.map((p) => toPersonDto(p, req.identity.id)),
+      proposals: loadProposalDtos(ctx.db, eventId, req.identity.id),
       starredSessionIds: ctx.db
         .prepare<[number, number], { session_id: number }>(
           `SELECT st.session_id FROM stars st

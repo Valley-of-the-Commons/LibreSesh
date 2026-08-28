@@ -1,0 +1,326 @@
+import { Router } from 'express';
+import { atLeast, requireRole, requireWritable } from '../auth.js';
+import { audit } from '../audit.js';
+import type { Ctx } from '../context.js';
+import type { ProposalRow } from '../db.js';
+import { conflict, forbidden, notFound } from '../errors.js';
+import {
+  NameResolver,
+  loadSessionDto,
+  speakerNames,
+  toProposalDto,
+} from '../mappers.js';
+import { limit } from '../ratelimit.js';
+import {
+  assertMayPlace,
+  assertNoOverlap,
+  assertTagsBelong,
+  assertValidTimes,
+  getRoom,
+  getSession,
+} from '../sessionRules.js';
+import { parse, placeSchema, proposalPatchSchema, proposalSchema } from '../validation.js';
+
+/**
+ * The unconference flow: anyone may pitch a session with no room or time, the
+ * room shows interest, and an organiser places the popular ones on the grid.
+ */
+export function proposalRoutes(ctx: Ctx): Router {
+  const router = Router({ mergeParams: true });
+
+  const load = (eventId: number, id: number): ProposalRow => {
+    const row = ctx.db
+      .prepare<[number, number], ProposalRow>(
+        'SELECT * FROM proposals WHERE id = ? AND event_id = ? AND deleted_at IS NULL',
+      )
+      .get(id, eventId);
+    if (!row) throw notFound('No such proposal');
+    return row;
+  };
+
+  /** Rebuild one proposal's DTO for the given viewer. */
+  const dtoFor = (row: ProposalRow, viewerId: number) => {
+    const tagIds = ctx.db
+      .prepare<[number], { tag_id: number }>(
+        'SELECT tag_id FROM proposal_tags WHERE proposal_id = ?',
+      )
+      .all(row.id)
+      .map((r) => r.tag_id);
+    const count = ctx.db
+      .prepare<[number], { n: number }>(
+        'SELECT COUNT(*) AS n FROM proposal_interest WHERE proposal_id = ?',
+      )
+      .get(row.id);
+    const mine = ctx.db
+      .prepare<[number, number], { proposal_id: number }>(
+        'SELECT proposal_id FROM proposal_interest WHERE proposal_id = ? AND identity_id = ?',
+      )
+      .get(row.id, viewerId);
+    return toProposalDto(row, {
+      tagIds,
+      authorName: new NameResolver(ctx.db).get(row.created_by),
+      speakerName:
+        row.speaker_id === null
+          ? ''
+          : (speakerNames(ctx.db, row.event_id).get(row.speaker_id) ?? ''),
+      interestCount: count?.n ?? 0,
+      interested: mine !== undefined,
+    });
+  };
+
+  /** Same rule as sessions: a name nobody matches becomes a new person. */
+  const resolveSpeaker = (
+    eventId: number,
+    body: { speakerId?: number | null; speakerName?: string },
+    current: number | null,
+  ): number | null => {
+    if (body.speakerId !== undefined) return body.speakerId;
+    if (body.speakerName === undefined) return current;
+    const name = body.speakerName.trim();
+    if (name === '') return null;
+    const existing = ctx.db
+      .prepare<[number, string], { id: number }>(
+        'SELECT id FROM people WHERE event_id = ? AND name = ? AND deleted_at IS NULL',
+      )
+      .get(eventId, name);
+    if (existing) return existing.id;
+    const now = new Date().toISOString();
+    return Number(
+      ctx.db
+        .prepare(
+          `INSERT INTO people (event_id, identity_id, name, bio, links, created_at, updated_at)
+           VALUES (?, NULL, ?, '', '[]', ?, ?)`,
+        )
+        .run(eventId, name, now, now).lastInsertRowid,
+    );
+  };
+
+  const setTags = (proposalId: number, tagIds: number[]) => {
+    ctx.db.prepare('DELETE FROM proposal_tags WHERE proposal_id = ?').run(proposalId);
+    const insert = ctx.db.prepare(
+      'INSERT OR IGNORE INTO proposal_tags (proposal_id, tag_id) VALUES (?, ?)',
+    );
+    for (const tagId of new Set(tagIds)) insert.run(proposalId, tagId);
+  };
+
+  router.post(
+    '/proposals',
+    requireRole(ctx.db, 'user'),
+    requireWritable,
+    limit(ctx.limiter, 'session'),
+    (req, res) => {
+      const body = parse(proposalSchema, req.body);
+      const tagIds = body.tagIds ?? [];
+      assertTagsBelong(ctx.db, req.event.id, tagIds);
+
+      const now = new Date().toISOString();
+      const id = ctx.db.transaction((): number => {
+        const speakerId = resolveSpeaker(req.event.id, body, null);
+        const newId = Number(
+          ctx.db
+            .prepare(
+              `INSERT INTO proposals
+                (event_id, title, description, speaker_id, created_by, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            )
+            .run(
+              req.event.id,
+              body.title,
+              body.description ?? '',
+              speakerId,
+              req.identity.id,
+              now,
+              now,
+            ).lastInsertRowid,
+        );
+        setTags(newId, tagIds);
+        return newId;
+      })();
+
+      const dto = dtoFor(load(req.event.id, id), req.identity.id);
+      audit(ctx.db, {
+        identityId: req.identity.id,
+        eventId: req.event.id,
+        action: 'create',
+        entity: 'proposal',
+        entityId: id,
+      });
+      ctx.broker.publish(req.event.slug, 'proposal.created', dto);
+      res.status(201).json(dto);
+    },
+  );
+
+  router.patch(
+    '/proposals/:id',
+    requireRole(ctx.db, 'user'),
+    requireWritable,
+    limit(ctx.limiter, 'session'),
+    (req, res) => {
+      const row = load(req.event.id, Number(req.params.id));
+      if (!atLeast(req.role, 'admin') && row.created_by !== req.identity.id) {
+        throw forbidden('That is not your proposal');
+      }
+      if (row.placed_session_id !== null) {
+        throw conflict('That pitch is already on the grid — edit the session instead', 'placed');
+      }
+
+      const body = parse(proposalPatchSchema, req.body);
+      if (body.tagIds) assertTagsBelong(ctx.db, req.event.id, body.tagIds);
+
+      ctx.db.transaction(() => {
+        const speakerId = resolveSpeaker(req.event.id, body, row.speaker_id);
+        ctx.db
+          .prepare(
+            `UPDATE proposals SET title = ?, description = ?, speaker_id = ?, updated_at = ?
+              WHERE id = ?`,
+          )
+          .run(
+            body.title ?? row.title,
+            body.description ?? row.description,
+            speakerId,
+            new Date().toISOString(),
+            row.id,
+          );
+        if (body.tagIds) setTags(row.id, body.tagIds);
+      })();
+
+      const dto = dtoFor(load(req.event.id, row.id), req.identity.id);
+      ctx.broker.publish(req.event.slug, 'proposal.updated', dto);
+      res.json(dto);
+    },
+  );
+
+  router.delete(
+    '/proposals/:id',
+    requireRole(ctx.db, 'user'),
+    requireWritable,
+    limit(ctx.limiter, 'write'),
+    (req, res) => {
+      const row = load(req.event.id, Number(req.params.id));
+      if (!atLeast(req.role, 'admin') && row.created_by !== req.identity.id) {
+        throw forbidden('That is not your proposal');
+      }
+      ctx.db
+        .prepare('UPDATE proposals SET deleted_at = ? WHERE id = ?')
+        .run(new Date().toISOString(), row.id);
+      audit(ctx.db, {
+        identityId: req.identity.id,
+        eventId: req.event.id,
+        action: 'delete',
+        entity: 'proposal',
+        entityId: row.id,
+      });
+      ctx.broker.publish(req.event.slug, 'proposal.deleted', { id: row.id });
+      res.status(204).end();
+    },
+  );
+
+  /** "I would come to this." Viewers included — interest is not a write to the
+   *  programme, and it is the whole point of a pitch board. */
+  const interest = [requireRole(ctx.db, 'viewer'), limit(ctx.limiter, 'write')];
+
+  router.put('/proposals/:id/interest', ...interest, (req, res) => {
+    const row = load(req.event.id, Number(req.params.id));
+    ctx.db
+      .prepare(
+        `INSERT INTO proposal_interest (identity_id, proposal_id, created_at) VALUES (?, ?, ?)
+         ON CONFLICT(identity_id, proposal_id) DO NOTHING`,
+      )
+      .run(req.identity.id, row.id, new Date().toISOString());
+    ctx.broker.publish(req.event.slug, 'proposal.updated', dtoFor(row, req.identity.id));
+    res.status(204).end();
+  });
+
+  router.delete('/proposals/:id/interest', ...interest, (req, res) => {
+    const row = load(req.event.id, Number(req.params.id));
+    ctx.db
+      .prepare('DELETE FROM proposal_interest WHERE identity_id = ? AND proposal_id = ?')
+      .run(req.identity.id, row.id);
+    ctx.broker.publish(req.event.slug, 'proposal.updated', dtoFor(row, req.identity.id));
+    res.status(204).end();
+  });
+
+  /** Place a pitch on the grid: creates the session and links the two. */
+  router.post(
+    '/proposals/:id/place',
+    requireRole(ctx.db, 'admin'),
+    requireWritable,
+    limit(ctx.limiter, 'session'),
+    (req, res) => {
+      const row = load(req.event.id, Number(req.params.id));
+      if (row.placed_session_id !== null) {
+        throw conflict('That pitch is already on the grid', 'placed');
+      }
+
+      const body = parse(placeSchema, req.body);
+      const room = getRoom(ctx.db, req.event.id, body.roomId);
+      const type = body.type ?? (room.open_track === 1 ? 'open' : 'official');
+      assertMayPlace(req.role, room, type);
+
+      const window = { startsAt: new Date(body.startsAt), endsAt: new Date(body.endsAt) };
+      assertValidTimes(req.event, window);
+      assertNoOverlap(ctx.db, req.event.id, room.id, window);
+
+      const now = new Date().toISOString();
+      const sessionId = ctx.db.transaction((): number => {
+        const id = Number(
+          ctx.db
+            .prepare(
+              `INSERT INTO sessions
+                (event_id, room_id, type, title, description, speaker, speaker_id,
+                 starts_at, ends_at, created_by, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?)`,
+            )
+            .run(
+              req.event.id,
+              room.id,
+              type,
+              row.title,
+              row.description,
+              row.speaker_id,
+              window.startsAt.toISOString(),
+              window.endsAt.toISOString(),
+              // The pitcher keeps ownership, so they can still edit an open session.
+              row.created_by,
+              now,
+              now,
+            ).lastInsertRowid,
+        );
+        // Carry the pitch's tags onto the session.
+        const tagIds = ctx.db
+          .prepare<[number], { tag_id: number }>(
+            'SELECT tag_id FROM proposal_tags WHERE proposal_id = ?',
+          )
+          .all(row.id)
+          .map((r) => r.tag_id);
+        const insert = ctx.db.prepare(
+          'INSERT OR IGNORE INTO session_tags (session_id, tag_id) VALUES (?, ?)',
+        );
+        for (const tagId of tagIds) insert.run(id, tagId);
+
+        ctx.db
+          .prepare('UPDATE proposals SET placed_session_id = ?, updated_at = ? WHERE id = ?')
+          .run(id, now, row.id);
+        return id;
+      })();
+
+      const session = loadSessionDto(ctx.db, getSession(ctx.db, req.event.id, sessionId));
+      audit(ctx.db, {
+        identityId: req.identity.id,
+        eventId: req.event.id,
+        action: 'place',
+        entity: 'proposal',
+        entityId: row.id,
+      });
+      ctx.broker.publish(req.event.slug, 'session.created', session);
+      ctx.broker.publish(
+        req.event.slug,
+        'proposal.updated',
+        dtoFor(load(req.event.id, row.id), req.identity.id),
+      );
+      res.status(201).json({ session, proposalId: row.id });
+    },
+  );
+
+  return router;
+}

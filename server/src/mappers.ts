@@ -4,6 +4,7 @@ import type {
   EventSummary,
   PersonDto,
   PersonLink,
+  ProposalDto,
   RoomDto,
   SessionDto,
   TagDto,
@@ -13,6 +14,7 @@ import type {
   Db,
   EventRow,
   PersonRow,
+  ProposalRow,
   RoomRow,
   SessionRow,
   TagRow,
@@ -155,6 +157,91 @@ export function loadSessionDto(db: Db, row: SessionRow): SessionDto {
           .prepare<[number], { name: string }>('SELECT name FROM people WHERE id = ?')
           .get(row.speaker_id)?.name ?? '');
   return toSessionDto(row, tagIds, names.get(row.created_by), speaker);
+}
+
+/** Proposal DTOs need per-viewer interest, so they are built with the viewer. */
+export function loadProposalDtos(
+  db: Db,
+  eventId: number,
+  viewerIdentityId: number,
+): ProposalDto[] {
+  const rows = db
+    .prepare<[number], ProposalRow>(
+      'SELECT * FROM proposals WHERE event_id = ? AND deleted_at IS NULL ORDER BY created_at',
+    )
+    .all(eventId);
+  if (rows.length === 0) return [];
+
+  const names = new NameResolver(db);
+  const speakers = speakerNames(db, eventId);
+
+  const tags = new Map<number, number[]>();
+  for (const row of db
+    .prepare<[number], { proposal_id: number; tag_id: number }>(
+      `SELECT pt.proposal_id, pt.tag_id FROM proposal_tags pt
+         JOIN proposals p ON p.id = pt.proposal_id WHERE p.event_id = ?`,
+    )
+    .all(eventId)) {
+    const list = tags.get(row.proposal_id);
+    if (list) list.push(row.tag_id);
+    else tags.set(row.proposal_id, [row.tag_id]);
+  }
+
+  const counts = new Map(
+    db
+      .prepare<[number], { proposal_id: number; n: number }>(
+        `SELECT pi.proposal_id, COUNT(*) AS n FROM proposal_interest pi
+           JOIN proposals p ON p.id = pi.proposal_id WHERE p.event_id = ?
+          GROUP BY pi.proposal_id`,
+      )
+      .all(eventId)
+      .map((r) => [r.proposal_id, r.n]),
+  );
+  const mine = new Set(
+    db
+      .prepare<[number, number], { proposal_id: number }>(
+        `SELECT pi.proposal_id FROM proposal_interest pi
+           JOIN proposals p ON p.id = pi.proposal_id
+          WHERE p.event_id = ? AND pi.identity_id = ?`,
+      )
+      .all(eventId, viewerIdentityId)
+      .map((r) => r.proposal_id),
+  );
+
+  return rows.map((row) => toProposalDto(row, {
+    tagIds: tags.get(row.id) ?? [],
+    authorName: names.get(row.created_by),
+    speakerName: row.speaker_id === null ? '' : (speakers.get(row.speaker_id) ?? ''),
+    interestCount: counts.get(row.id) ?? 0,
+    interested: mine.has(row.id),
+  }));
+}
+
+export function toProposalDto(
+  row: ProposalRow,
+  extra: {
+    tagIds: number[];
+    authorName: string;
+    speakerName: string;
+    interestCount: number;
+    interested: boolean;
+  },
+): ProposalDto {
+  return {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    speaker: extra.speakerName,
+    speakerId: row.speaker_id,
+    tagIds: extra.tagIds,
+    createdBy: row.created_by,
+    createdByName: extra.authorName,
+    placedSessionId: row.placed_session_id,
+    interestCount: extra.interestCount,
+    interested: extra.interested,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
 export function toContributionDto(row: ContributionRow, authorName: string): ContributionDto {

@@ -96,6 +96,25 @@ export interface ContributionDto {
   hidden: boolean;
 }
 
+export interface ProposalDto {
+  id: number;
+  title: string;
+  description: string;
+  speaker: string;
+  speakerId: number | null;
+  tagIds: number[];
+  createdBy: number;
+  createdByName: string;
+  /** Set once an organiser has placed it on the grid. */
+  placedSessionId: number | null;
+  /** How many people said they would come. */
+  interestCount: number;
+  /** Whether the requesting identity is one of them. */
+  interested: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface BundleDto {
   event: EventDto;
   role: Role;
@@ -103,6 +122,8 @@ export interface BundleDto {
   tags: TagDto[];
   sessions: SessionDto[];
   people: PersonDto[];
+  /** Pitches waiting for a slot, plus those already placed. */
+  proposals: ProposalDto[];
   /** Sessions this identity has starred for their personal agenda. */
   starredSessionIds: number[];
   /** sessionId -> how many people starred it. An interest signal for
@@ -131,6 +152,9 @@ export type ChangeType =
   | 'tag.created'
   | 'tag.updated'
   | 'tag.deleted'
+  | 'proposal.created'
+  | 'proposal.updated'
+  | 'proposal.deleted'
   | 'person.created'
   | 'person.updated'
   | 'person.deleted'
