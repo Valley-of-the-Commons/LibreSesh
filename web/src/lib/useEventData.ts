@@ -4,6 +4,7 @@ import type {
   ChangeEvent,
   ContributionDto,
   EventDto,
+  PersonDto,
   RoomDto,
   SessionDto,
   TagDto,
@@ -56,6 +57,9 @@ const byRoomOrder = (rooms: RoomDto[]): RoomDto[] =>
 
 const byTagName = (tags: TagDto[]): TagDto[] =>
   tags.slice().sort((a, b) => a.name.localeCompare(b.name));
+
+const byPersonName = (people: PersonDto[]): PersonDto[] =>
+  people.slice().sort((a, b) => a.name.localeCompare(b.name));
 
 const bumpCount = (counts: Record<number, number>, sessionId: number, by: number) => ({
   ...counts,
@@ -160,6 +164,27 @@ function applyChange(state: State, change: ChangeEvent): State {
           tags: bundle.tags.filter((t) => t.id !== id),
           sessions: bundle.sessions.map((s) =>
             s.tagIds.includes(id) ? { ...s, tagIds: s.tagIds.filter((t) => t !== id) } : s,
+          ),
+        },
+      };
+    }
+    case 'person.created':
+    case 'person.updated':
+      return {
+        ...state,
+        bundle: { ...bundle, people: byPersonName(upsert(bundle.people, change.entity as PersonDto)) },
+      };
+    case 'person.deleted': {
+      const { id } = change.entity as { id: number };
+      return {
+        ...state,
+        bundle: {
+          ...bundle,
+          people: bundle.people.filter((p) => p.id !== id),
+          // The server detaches the person's sessions; mirror that so a stale
+          // speaker name never lingers on the grid.
+          sessions: bundle.sessions.map((s) =>
+            s.speakerId === id ? { ...s, speakerId: null, speaker: '' } : s,
           ),
         },
       };

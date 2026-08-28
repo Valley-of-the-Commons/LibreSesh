@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import type { RoomDto, TagDto } from '@shared/types';
+import type { PersonDto, RoomDto, TagDto } from '@shared/types';
 import { api } from '../lib/api';
 import { fmtMin } from '../lib/format';
 import { useEventData } from '../lib/useEventData';
@@ -36,6 +36,7 @@ export function AdminPage() {
   const [reordering, setReordering] = useState(false);
   const [tagName, setTagName] = useState('');
   const [tagColor, setTagColor] = useState(DEFAULT_TAG_COLOR);
+  const [personName, setPersonName] = useState('');
 
   const bundle = data.bundle;
   const event = bundle?.event;
@@ -197,6 +198,33 @@ export function AdminPage() {
     try {
       await api.deleteTag(slug, tag.id);
       data.apply({ type: 'tag.deleted', entity: { id: tag.id } });
+    } catch (err) {
+      fail(err);
+    }
+  };
+
+  const addPerson = async () => {
+    if (!personName.trim()) return;
+    try {
+      const created = await api.createPerson(slug, { name: personName.trim() });
+      data.apply({ type: 'person.created', entity: created });
+      setPersonName('');
+    } catch (err) {
+      fail(err);
+    }
+  };
+
+  const removePerson = async (person: PersonDto) => {
+    if (
+      !window.confirm(
+        `Delete ${person.name}? Their sessions keep their slot but lose the speaker.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.deletePerson(slug, person.id);
+      data.apply({ type: 'person.deleted', entity: { id: person.id } });
     } catch (err) {
       fail(err);
     }
@@ -411,6 +439,56 @@ export function AdminPage() {
           />
           <PrimaryButton className="mb-3" onClick={() => void addTag()}>
             Add tag
+          </PrimaryButton>
+        </div>
+      </section>
+
+      <section className="mb-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-1 text-sm font-semibold">People</h2>
+        <p className="mb-3 text-xs text-stone-500">
+          Speaker and host profiles. Anyone can claim their own from the schedule.
+        </p>
+        <ul className="mb-4 space-y-2">
+          {bundle.people.map((person) => (
+            <li
+              key={person.id}
+              className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 px-3 py-2"
+            >
+              <span className="min-w-32 flex-1 text-sm font-medium">{person.name}</span>
+              {person.claimed && (
+                <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs text-stone-600">
+                  claimed
+                </span>
+              )}
+              <Link to={`/e/${slug}/p/${person.id}`} className="text-xs text-stone-500 underline">
+                edit
+              </Link>
+              <button
+                type="button"
+                onClick={() => void removePerson(person)}
+                className="text-xs text-red-500 underline"
+              >
+                delete
+              </button>
+            </li>
+          ))}
+          {bundle.people.length === 0 && (
+            <li className="text-sm text-stone-400">No people yet.</li>
+          )}
+        </ul>
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <Field label="New person">
+              <input
+                value={personName}
+                onChange={(e) => setPersonName(e.target.value)}
+                maxLength={120}
+                className={inputClass}
+              />
+            </Field>
+          </div>
+          <PrimaryButton className="mb-3" onClick={() => void addPerson()}>
+            Add person
           </PrimaryButton>
         </div>
       </section>

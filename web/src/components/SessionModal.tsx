@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { RoomDto, Role, SessionDto, TagDto } from '@shared/types';
+import type { PersonDto, RoomDto, Role, SessionDto, TagDto } from '@shared/types';
 import type { SessionWrite } from '../lib/api';
 import { fmtMin, place } from '../lib/format';
 import { zonedTimeToUtc } from '@shared/time';
@@ -11,6 +11,7 @@ export interface SessionModalProps {
   session?: SessionDto;
   rooms: RoomDto[];
   tags: TagDto[];
+  people: PersonDto[];
   role: Role;
   timezone: string;
   days: string[];
@@ -28,6 +29,7 @@ export function SessionModal({
   session,
   rooms,
   tags,
+  people,
   role,
   timezone,
   days,
@@ -49,7 +51,10 @@ export function SessionModal({
 
   const existing = session ? place(session, timezone) : null;
   const [title, setTitle] = useState(session?.title ?? '');
-  const [speaker, setSpeaker] = useState(session?.speaker ?? '');
+  const [speakerId, setSpeakerId] = useState<number | null>(session?.speakerId ?? null);
+  // Revealed by the "add someone new" option; a typed name creates a person.
+  const [addingSpeaker, setAddingSpeaker] = useState(false);
+  const [newSpeaker, setNewSpeaker] = useState('');
   const [description, setDescription] = useState(session?.description ?? '');
   const [roomId, setRoomId] = useState<number>(session?.roomId ?? allowedRooms[0]?.id ?? 0);
   const [day, setDay] = useState(existing?.date ?? defaultDay);
@@ -76,11 +81,12 @@ export function SessionModal({
       setError(`Open sessions must sit between ${fmtMin(dayStartMin)} and ${fmtMin(dayEndMin)}`);
       return;
     }
+    const newName = newSpeaker.trim();
     onSave({
       roomId,
       type: isAdmin ? type : undefined,
       title: title.trim(),
-      speaker: speaker.trim(),
+      ...(addingSpeaker && newName ? { speakerName: newName } : { speakerId }),
       description: description.trim(),
       startsAt: zonedTimeToUtc(day, startMin, timezone).toISOString(),
       endsAt: zonedTimeToUtc(day, startMin + durMin, timezone).toISOString(),
@@ -113,12 +119,37 @@ export function SessionModal({
         />
       </Field>
       <Field label="Speaker / host">
-        <input
-          value={speaker}
-          onChange={(e) => setSpeaker(e.target.value)}
-          maxLength={120}
+        <select
+          value={addingSpeaker ? 'new' : speakerId === null ? '' : String(speakerId)}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === 'new') {
+              setAddingSpeaker(true);
+              setSpeakerId(null);
+            } else {
+              setAddingSpeaker(false);
+              setSpeakerId(v ? Number(v) : null);
+            }
+          }}
           className={inputClass}
-        />
+        >
+          <option value="">— none —</option>
+          {people.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+          <option value="new">+ Add someone new</option>
+        </select>
+        {addingSpeaker && (
+          <input
+            value={newSpeaker}
+            onChange={(e) => setNewSpeaker(e.target.value)}
+            maxLength={120}
+            placeholder="Their name"
+            className={`${inputClass} mt-1.5`}
+          />
+        )}
       </Field>
       <Field label="Description" hint="Markdown is supported.">
         <textarea

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type {
   ContributionDto,
   ContributionKind,
@@ -21,6 +22,7 @@ const KINDS: ContributionKind[] = ['question', 'note', 'link'];
 
 export interface DetailSheetProps {
   session: SessionDto;
+  slug: string;
   rooms: RoomDto[];
   tags: TagDto[];
   contributions: ContributionDto[] | undefined;
@@ -42,6 +44,7 @@ export interface DetailSheetProps {
 /** Bottom sheet on mobile, side panel from `sm` up (SPEC §7.4). */
 export function DetailSheet({
   session,
+  slug,
   rooms,
   tags,
   contributions,
@@ -132,7 +135,13 @@ export function DetailSheet({
             </h2>
             <p className="mt-1 text-sm text-stone-500">
               {fmtMin(startMin)}–{fmtMin(endMin)} · {room?.name ?? 'unknown room'} ·{' '}
-              {session.speaker || 'no speaker yet'}
+              {session.speakerId ? (
+                <Link to={`/e/${slug}/p/${session.speakerId}`} className="text-blue-700 underline">
+                  {session.speaker}
+                </Link>
+              ) : (
+                session.speaker || 'no speaker yet'
+              )}
             </p>
           </div>
           <button

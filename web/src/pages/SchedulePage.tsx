@@ -595,6 +595,7 @@ export function SchedulePage() {
       {selected && (
         <DetailSheet
           session={selected}
+          slug={slug}
           rooms={bundle.rooms}
           tags={bundle.tags}
           contributions={data.contributions[selected.id]}
@@ -618,6 +619,7 @@ export function SchedulePage() {
           session={editing.session}
           rooms={bundle.rooms}
           tags={bundle.tags}
+          people={bundle.people}
           role={role}
           timezone={timezone}
           days={days}
@@ -639,6 +641,7 @@ export function SchedulePage() {
           me={me}
           slug={slug}
           role={role}
+          people={bundle.people}
           userLabel={event.userRoleLabel}
           onMe={setMe}
           onRoleChange={(next) => {

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import type { Me, Role } from '@shared/types';
+import { useNavigate } from 'react-router-dom';
+import type { Me, PersonDto, Role } from '@shared/types';
 import { ApiError, api } from '../lib/api';
 import { Field, Modal, PrimaryButton, RoleBadge, SecondaryButton, inputClass } from './ui';
 
@@ -7,6 +8,8 @@ export interface IdentityPanelProps {
   me: Me | null;
   slug: string;
   role: Role;
+  /** The event's roster, used to find the caller's own profile. */
+  people: PersonDto[];
   userLabel: string;
   onMe: (me: Me) => void;
   onRoleChange: (role: Role) => void;
@@ -19,16 +22,41 @@ export function IdentityPanel({
   me,
   slug,
   role,
+  people,
   userLabel,
   onMe,
   onRoleChange,
   onSignOut,
   onClose,
 }: IdentityPanelProps) {
+  const navigate = useNavigate();
   const [name, setName] = useState(me?.displayName ?? '');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [profileBusy, setProfileBusy] = useState(false);
+
+  // Jump to your own profile, creating an empty one first if you have none.
+  const editProfile = async () => {
+    if (profileBusy) return;
+    const mine = people.find((p) => p.isMine);
+    if (mine) {
+      onClose();
+      navigate(`/e/${slug}/p/${mine.id}`);
+      return;
+    }
+    setProfileBusy(true);
+    setError(null);
+    try {
+      const created = await api.updateMyProfile(slug, {});
+      onClose();
+      navigate(`/e/${slug}/p/${created.id}`);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setProfileBusy(false);
+    }
+  };
 
   const saveName = async () => {
     const trimmed = name.trim();
@@ -98,6 +126,17 @@ export function IdentityPanel({
         </div>
         {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
       </Field>
+
+      <div className="mt-2">
+        <button
+          type="button"
+          onClick={() => void editProfile()}
+          disabled={profileBusy}
+          className="text-xs font-medium text-stone-600 underline hover:text-stone-900 disabled:opacity-40"
+        >
+          Edit your profile for this event
+        </button>
+      </div>
 
       <div className="mt-2 flex items-center justify-between">
         <button

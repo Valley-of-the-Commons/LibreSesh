@@ -4,6 +4,9 @@ import type {
   EventDto,
   EventSummary,
   Me,
+  PersonDetailDto,
+  PersonDto,
+  PersonLink,
   Role,
   RoomDto,
   SessionDetailDto,
@@ -118,6 +121,19 @@ export const api = {
     request<TagDto>('PATCH', `/e/${encode(slug)}/tags/${id}`, body),
   deleteTag: (slug: string, id: number) => request<void>('DELETE', `/e/${encode(slug)}/tags/${id}`),
 
+  person: (slug: string, id: number) =>
+    request<PersonDetailDto>('GET', `/e/${encode(slug)}/people/${id}`),
+  createPerson: (slug: string, body: PersonWrite) =>
+    request<PersonDto>('POST', `/e/${encode(slug)}/people`, body),
+  updatePerson: (slug: string, id: number, body: Partial<PersonWrite>) =>
+    request<PersonDto>('PATCH', `/e/${encode(slug)}/people/${id}`, body),
+  deletePerson: (slug: string, id: number) =>
+    request<void>('DELETE', `/e/${encode(slug)}/people/${id}`),
+  // 201 when it creates your profile, 200 when it updates it — the caller only
+  // needs the person back either way.
+  updateMyProfile: (slug: string, body: Partial<PersonWrite>) =>
+    request<PersonDto>('PATCH', `/e/${encode(slug)}/me/profile`, body),
+
   createSession: (slug: string, body: SessionWrite) =>
     request<SessionDto>('POST', `/e/${encode(slug)}/sessions`, body),
   updateSession: (slug: string, id: number, body: Partial<SessionWrite> & { expectedUpdatedAt?: string }) =>
@@ -144,10 +160,19 @@ export interface SessionWrite {
   type?: 'official' | 'open';
   title: string;
   description?: string;
-  speaker?: string;
+  /** Link to an existing person, or `null` to detach. */
+  speakerId?: number | null;
+  /** A name that matches nobody creates a person. Used instead of `speakerId`. */
+  speakerName?: string;
   startsAt: string;
   endsAt: string;
   tagIds?: number[];
+}
+
+export interface PersonWrite {
+  name: string;
+  bio?: string;
+  links?: PersonLink[];
 }
 
 export interface SettingsWrite {
