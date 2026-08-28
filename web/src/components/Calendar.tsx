@@ -50,6 +50,36 @@ function laneLayout(
   return out;
 }
 
+/**
+ * Ids of sessions that share a room and a time span with another session.
+ * The server permits admins to double-book, so the calendar flags the clash
+ * rather than preventing it. Back-to-back sessions do not count.
+ */
+export function overlappingIds(
+  items: { session: SessionDto; startMin: number; endMin: number }[],
+): Set<number> {
+  const byRoom = new Map<number, typeof items>();
+  for (const item of items) {
+    const list = byRoom.get(item.session.roomId);
+    if (list) list.push(item);
+    else byRoom.set(item.session.roomId, [item]);
+  }
+  const out = new Set<number>();
+  for (const list of byRoom.values()) {
+    for (let i = 0; i < list.length; i += 1) {
+      for (let j = i + 1; j < list.length; j += 1) {
+        const a = list[i];
+        const b = list[j];
+        if (a.startMin < b.endMin && b.startMin < a.endMin) {
+          out.add(a.session.id);
+          out.add(b.session.id);
+        }
+      }
+    }
+  }
+  return out;
+}
+
 interface DragState {
   id: number;
   mode: 'move' | 'resize';
@@ -103,6 +133,7 @@ export function Calendar({
     [sessions, timezone, day],
   );
   const lanes = useMemo(() => laneLayout(placed), [placed]);
+  const overlaps = useMemo(() => overlappingIds(placed), [placed]);
   const tagColor = useMemo(() => new Map(tags.map((t) => [t.id, t.color])), [tags]);
 
   const height = (dayEndMin - dayStartMin) * PX_PER_MIN;
@@ -292,6 +323,7 @@ export function Calendar({
             const width = (COL_W - 8) / lane.lanes;
             const editable = arrange && canEdit(session);
             const live = nowMin !== null && nowMin >= startMin && nowMin < endMin;
+            const clash = overlaps.has(session.id);
             const dimmed = !matchedIds.has(session.id);
 
             return (
@@ -299,7 +331,9 @@ export function Calendar({
                 key={session.id}
                 role="button"
                 tabIndex={0}
-                aria-label={`${session.title}, ${fmtMin(startMin)} to ${fmtMin(endMin)}`}
+                aria-label={`${session.title}, ${fmtMin(startMin)} to ${fmtMin(endMin)}${
+                  clash ? ', overlaps another session' : ''
+                }`}
                 onPointerDown={(e) => startDrag(e, session, startMin, durMin, 'move')}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -328,8 +362,20 @@ export function Calendar({
                       style={{ background: tagColor.get(id) ?? '#6B7280' }}
                     />
                   ))}
+                  {clash && (
+                    <span
+                      title="Overlaps another session in this room"
+                      className="ml-auto rounded bg-amber-100 px-1 text-xs font-bold text-amber-800"
+                    >
+                      clash
+                    </span>
+                  )}
                   {live && (
-                    <span className="ml-auto rounded bg-accent px-1 text-xs font-bold">now</span>
+                    <span
+                      className={`${clash ? '' : 'ml-auto '}rounded bg-accent px-1 text-xs font-bold`}
+                    >
+                      now
+                    </span>
                   )}
                 </div>
                 <div className="mt-0.5 truncate text-xs font-semibold leading-tight">
