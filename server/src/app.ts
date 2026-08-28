@@ -20,6 +20,7 @@ import { peopleRoutes } from './routes/people.js';
 import { roomRoutes } from './routes/rooms.js';
 import { sessionRoutes } from './routes/sessions.js';
 import { settingsRoutes } from './routes/settings.js';
+import { trashRoutes } from './routes/trash.js';
 import { streamRoutes } from './routes/stream.js';
 import { tagRoutes } from './routes/tags.js';
 import { Broker } from './sse.js';
@@ -64,6 +65,7 @@ export function createApp(db: Db, config: Config): App {
   event.use(peopleRoutes(ctx));
   event.use(agendaRoutes(ctx));
   event.use(settingsRoutes(ctx));
+  event.use(trashRoutes(ctx));
   api.use('/e/:slug', event);
 
   api.use((_req, _res, next) => next(notFound('No such endpoint')));
