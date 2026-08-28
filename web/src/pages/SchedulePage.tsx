@@ -13,6 +13,7 @@ import { Gate } from '../components/Gate';
 import { IdentityPanel } from '../components/IdentityPanel';
 import { ListView } from '../components/ListView';
 import { SessionModal } from '../components/SessionModal';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { Tour, tourSeen, type TourStep } from '../components/Tour';
 import {
   Chip,
@@ -405,29 +406,30 @@ export function SchedulePage() {
   });
 
   return (
-    <div className="min-h-screen bg-stone-100 text-stone-900">
-      <header className="sticky top-0 z-30 border-b border-stone-200 bg-stone-50/95 backdrop-blur">
+    <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
+      <header className="sticky top-0 z-30 border-b border-stone-200 dark:border-stone-700 bg-stone-50/95 dark:bg-stone-900/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
           <Link
             to="/"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-stone-900 text-sm font-bold text-white"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-sm font-bold text-white"
             aria-label="All events"
           >
             {event.name.charAt(0).toUpperCase()}
           </Link>
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold tracking-tight">{event.name}</div>
-            <div data-tour="live" className="truncate text-xs text-stone-500">
+            <div data-tour="live" className="truncate text-xs text-stone-500 dark:text-stone-400">
               {days.length} day{days.length > 1 ? 's' : ''} ·{' '}
               {event.archived ? 'archived — read-only' : data.connected ? 'schedule is live' : 'reconnecting…'}
             </div>
           </div>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+            <ThemeToggle />
             {role === 'admin' && (
               <Link
                 data-tour="manage"
                 to={`/e/${slug}/admin`}
-                className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium text-stone-600 hover:border-stone-400"
+                className="rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500"
               >
                 Manage
               </Link>
@@ -437,7 +439,7 @@ export function SchedulePage() {
               onClick={() => setTourOpen(true)}
               aria-label="Take the tour"
               title="Take the tour"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-stone-300 bg-white text-xs font-medium text-stone-500 hover:border-stone-400"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 text-xs font-medium text-stone-500 dark:text-stone-400 hover:border-stone-400 dark:hover:border-stone-500"
             >
               ?
             </button>
@@ -445,7 +447,7 @@ export function SchedulePage() {
               type="button"
               data-tour="identity"
               onClick={() => setIdentityOpen(true)}
-              className="flex items-center gap-2 rounded-full border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium hover:border-stone-400"
+              className="flex items-center gap-2 rounded-full border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium hover:border-stone-400 dark:hover:border-stone-500"
             >
               <span className="max-w-24 truncate">{me?.displayName ?? '…'}</span>
               <RoleBadge role={role} userLabel={event.userRoleLabel} />
@@ -456,7 +458,7 @@ export function SchedulePage() {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 pb-3">
           <div
             data-tour="days"
-            className="flex overflow-x-auto rounded-lg border border-stone-300 bg-white p-0.5 no-scrollbar"
+            className="flex overflow-x-auto rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 p-0.5 no-scrollbar"
           >
             {days.map((d) => {
               const label = dayLabel(d, today);
@@ -467,11 +469,11 @@ export function SchedulePage() {
                   onClick={() => filters.set({ day: d })}
                   aria-pressed={day === d}
                   className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium ${
-                    day === d ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'
+                    day === d ? 'bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-white' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
                   }`}
                 >
                   {label.top}{' '}
-                  <span className={day === d ? 'text-stone-300' : 'text-stone-400'}>
+                  <span className={day === d ? 'text-stone-300 dark:text-stone-600' : 'text-stone-400 dark:text-stone-500'}>
                     {label.sub}
                   </span>
                 </button>
@@ -479,7 +481,7 @@ export function SchedulePage() {
             })}
           </div>
 
-          <div data-tour="view" className="flex rounded-lg border border-stone-300 bg-white p-0.5">
+          <div data-tour="view" className="flex rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 p-0.5">
             {(['cal', 'list'] as const).map((v) => (
               <button
                 key={v}
@@ -487,7 +489,7 @@ export function SchedulePage() {
                 onClick={() => filters.set({ view: v })}
                 aria-pressed={view === v}
                 className={`rounded-md px-3 py-1.5 text-xs font-medium ${
-                  view === v ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'
+                  view === v ? 'bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-white' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
                 }`}
               >
                 {v === 'cal' ? 'Grid' : 'List'}
@@ -508,7 +510,7 @@ export function SchedulePage() {
             <button
               type="button"
               onClick={() => setExportOpen(true)}
-              className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-medium text-stone-600 hover:border-stone-400"
+              className="rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2 text-xs font-medium text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500"
             >
               Calendar
             </button>
@@ -520,8 +522,8 @@ export function SchedulePage() {
                 aria-pressed={arrange}
                 className={`rounded-lg border px-3 py-2 text-xs font-medium ${
                   arrange
-                    ? 'border-stone-900 bg-stone-900 text-white'
-                    : 'border-stone-300 bg-white text-stone-600 hover:border-stone-400'
+                    ? 'border-stone-900 bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-white'
+                    : 'border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500'
                 }`}
               >
                 {arrange ? 'Done arranging' : 'Arrange'}
@@ -532,7 +534,7 @@ export function SchedulePage() {
                 type="button"
                 data-tour="add"
                 onClick={() => setEditing({})}
-                className="rounded-lg bg-stone-900 px-3 py-2 text-xs font-semibold text-white hover:bg-stone-700"
+                className="rounded-lg bg-stone-900 dark:bg-stone-100 dark:text-stone-900 px-3 py-2 text-xs font-semibold text-white hover:bg-stone-700 dark:hover:bg-stone-300"
               >
                 + Add session
               </button>
@@ -547,16 +549,16 @@ export function SchedulePage() {
               onChange={(e) => filters.set({ q: e.target.value })}
               placeholder="Search title, speaker…"
               aria-label="Search sessions"
-              className="w-40 shrink-0 rounded-full border border-stone-300 bg-white px-3 py-1 text-xs outline-none focus:border-stone-500"
+              className="w-40 shrink-0 rounded-full border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-1 text-xs outline-none focus:border-stone-500 dark:focus:border-stone-400"
             />
             <Chip active={filters.soon} onClick={() => filters.set({ soon: !filters.soon })}>
               Now / next
             </Chip>
             <Chip active={filters.mine} onClick={() => filters.set({ mine: !filters.mine })}>
-              <span className={filters.mine ? '' : 'text-amber-500'}>★</span> My agenda (
+              <span className={filters.mine ? '' : 'text-amber-500 dark:text-amber-400'}>★</span> My agenda (
               {starredIds.size})
             </Chip>
-            <span className="mx-1 h-4 w-px shrink-0 bg-stone-300" />
+            <span className="mx-1 h-4 w-px shrink-0 bg-stone-300 dark:bg-stone-600" />
             {bundle.rooms.map((r) => (
               <Chip
                 key={r.id}
@@ -566,7 +568,7 @@ export function SchedulePage() {
                 {r.name}
               </Chip>
             ))}
-            <span className="mx-1 h-4 w-px shrink-0 bg-stone-300" />
+            <span className="mx-1 h-4 w-px shrink-0 bg-stone-300 dark:bg-stone-600" />
             {bundle.tags.map((t) => (
               <Chip
                 key={t.id}
@@ -581,7 +583,7 @@ export function SchedulePage() {
               <button
                 type="button"
                 onClick={filters.clear}
-                className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-stone-500 underline hover:text-stone-800"
+                className="shrink-0 rounded-full px-2.5 py-1 text-xs font-medium text-stone-500 dark:text-stone-400 underline hover:text-stone-800 dark:hover:text-stone-200"
               >
                 Clear all
               </button>
@@ -723,7 +725,7 @@ export function SchedulePage() {
       )}
 
       {arrange && (
-        <div className="fixed bottom-4 right-4 z-40 rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs text-stone-600 shadow">
+        <div className="fixed bottom-4 right-4 z-40 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2 text-xs text-stone-600 dark:text-stone-300 shadow">
           Drag sessions you may edit · snaps to 5 min
         </div>
       )}
@@ -794,15 +796,15 @@ function CalendarExportModal({
     <Modal title="Calendar" onClose={onClose}>
       <div className="space-y-4 text-sm">
         <div>
-          <p className="font-medium text-stone-800">Download</p>
-          <p className="mb-2 text-xs text-stone-500">
+          <p className="font-medium text-stone-800 dark:text-stone-200">Download</p>
+          <p className="mb-2 text-xs text-stone-500 dark:text-stone-400">
             A one-off snapshot you can import into any calendar app.
           </p>
           <div className="flex flex-wrap gap-2">
             <a
               href={base}
               download
-              className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:border-stone-500"
+              className="rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2 text-xs font-semibold text-stone-700 dark:text-stone-300 hover:border-stone-500 dark:hover:border-stone-400"
             >
               Whole schedule
             </a>
@@ -810,21 +812,21 @@ function CalendarExportModal({
               <a
                 href={`${base}?mine=1`}
                 download
-                className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:border-stone-500"
+                className="rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2 text-xs font-semibold text-stone-700 dark:text-stone-300 hover:border-stone-500 dark:hover:border-stone-400"
               >
                 My agenda ({starredCount})
               </a>
             ) : (
-              <span className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs font-semibold text-stone-400">
+              <span className="rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 px-3 py-2 text-xs font-semibold text-stone-400 dark:text-stone-500">
                 My agenda — star some sessions first
               </span>
             )}
           </div>
         </div>
 
-        <div className="border-t border-stone-200 pt-4">
-          <p className="font-medium text-stone-800">Subscribe</p>
-          <p className="mb-2 text-xs text-stone-500">
+        <div className="border-t border-stone-200 dark:border-stone-700 pt-4">
+          <p className="font-medium text-stone-800 dark:text-stone-200">Subscribe</p>
+          <p className="mb-2 text-xs text-stone-500 dark:text-stone-400">
             A live link your calendar app refreshes on its own. It is personal to you —
             anyone who has it can read the schedule.
           </p>

@@ -3,11 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="color-scheme" content="light" />
+    <meta name="color-scheme" content="light dark" />
     <meta name="description" content="A live schedule for conferences and unconferences." />
     <title>LibreSesh</title>
+    <script>
+      // Apply the saved theme before first paint so dark mode never flashes
+      // white on load. Mirrors src/lib/useTheme.ts; a plain inline script in
+      // our own HTML is fine under the CSP. All storage access is guarded.
+      try {
+        var t = localStorage.getItem('libresesh.theme');
+        var dark =
+          t === 'dark' ||
+          ((!t || t === 'system') &&
+            window.matchMedia('(prefers-color-scheme: dark)').matches);
+        if (dark) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
   </head>
-  <body class="bg-stone-100">
+  <body class="bg-stone-100 dark:bg-stone-950">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

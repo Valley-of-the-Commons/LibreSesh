@@ -99,12 +99,12 @@ export function SessionModal({
   return (
     <Modal title={heading} onClose={onCancel}>
       {!isAdmin && (
-        <p className="-mt-2 mb-3 text-xs text-stone-500">
+        <p className="-mt-2 mb-3 text-xs text-stone-500 dark:text-stone-400">
           Open sessions live in open-track rooms and stay editable by you.
         </p>
       )}
       {allowedRooms.length === 0 && (
-        <p className="mb-3 rounded-lg bg-stone-50 px-3 py-2 text-xs text-stone-600">
+        <p className="mb-3 rounded-lg bg-stone-50 dark:bg-stone-800 px-3 py-2 text-xs text-stone-600 dark:text-stone-300">
           This event has no open-track rooms yet, so there is nowhere for you to add a session.
         </p>
       )}
@@ -211,7 +211,7 @@ export function SessionModal({
 
       <Field label="Tags">
         <div className="flex flex-wrap gap-1.5">
-          {tags.length === 0 && <span className="text-xs text-stone-400">No tags yet.</span>}
+          {tags.length === 0 && <span className="text-xs text-stone-400 dark:text-stone-500">No tags yet.</span>}
           {tags.map((t) => (
             <Chip
               key={t.id}
@@ -241,14 +241,14 @@ export function SessionModal({
         </Field>
       )}
 
-      {error && <p className="mb-2 text-xs text-red-600">{error}</p>}
+      {error && <p className="mb-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
 
       <div className="mt-4 flex gap-2">
         {onDelete && (
           <button
             type="button"
             onClick={onDelete}
-            className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+            className="rounded-lg border border-red-200 dark:border-red-900 px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
           >
             Delete
           </button>

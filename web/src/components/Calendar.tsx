@@ -238,25 +238,25 @@ export function Calendar({
   return (
     <div
       ref={scrollRef}
-      className="overflow-auto border-t border-stone-200 bg-white sm:mt-2 sm:rounded-xl sm:border"
+      className="overflow-auto border-t border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 sm:mt-2 sm:rounded-xl sm:border"
       style={{ maxHeight: 'calc(100vh - 200px)' }}
     >
       <div className="relative" style={{ width: GUTTER_W + rooms.length * COL_W }}>
-        <div className="sticky top-0 z-20 flex border-b border-stone-200 bg-white/95 backdrop-blur">
+        <div className="sticky top-0 z-20 flex border-b border-stone-200 dark:border-stone-700 bg-white/95 dark:bg-stone-900/95 backdrop-blur">
           <div className="shrink-0" style={{ width: GUTTER_W }} />
           {rooms.map((room) => (
             <div
               key={room.id}
-              className="border-l border-stone-100 px-3 py-2"
+              className="border-l border-stone-100 dark:border-stone-800 px-3 py-2"
               style={{ width: COL_W }}
             >
               <div className="truncate text-xs font-semibold">{room.name}</div>
-              <div className="truncate text-xs text-stone-400">
+              <div className="truncate text-xs text-stone-400 dark:text-stone-500">
                 {room.capacity ? `${room.capacity} seats` : 'no capacity set'}
                 {room.openTrack && (
                   <>
                     {' · '}
-                    <span className="font-medium text-emerald-700">open track</span>
+                    <span className="font-medium text-emerald-700 dark:text-emerald-400">open track</span>
                   </>
                 )}
               </div>
@@ -265,11 +265,11 @@ export function Calendar({
         </div>
 
         <div className="relative flex" style={{ height }}>
-          <div className="sticky left-0 z-10 shrink-0 bg-white" style={{ width: GUTTER_W }}>
+          <div className="sticky left-0 z-10 shrink-0 bg-white dark:bg-stone-900" style={{ width: GUTTER_W }}>
             {Array.from({ length: hourCount }, (_, i) => (
               <div
                 key={i}
-                className="absolute -translate-y-1/2 pr-1 text-right text-xs text-stone-400"
+                className="absolute -translate-y-1/2 pr-1 text-right text-xs text-stone-400 dark:text-stone-500"
                 style={{ top: i * 60 * PX_PER_MIN, width: GUTTER_W - 4 }}
               >
                 {fmtMin(dayStartMin + i * 60)}
@@ -281,7 +281,7 @@ export function Calendar({
             <div
               key={i}
               className={`pointer-events-none absolute right-0 border-t ${
-                i % 2 ? 'border-stone-100' : 'border-stone-200'
+                i % 2 ? 'border-stone-100 dark:border-stone-800' : 'border-stone-200 dark:border-stone-700'
               }`}
               style={{ top: i * 30 * PX_PER_MIN, left: GUTTER_W }}
             />
@@ -290,8 +290,8 @@ export function Calendar({
           {rooms.map((room, i) => (
             <div
               key={room.id}
-              className={`pointer-events-none absolute bottom-0 top-0 border-l border-stone-100 ${
-                room.openTrack ? 'bg-emerald-50/40' : ''
+              className={`pointer-events-none absolute bottom-0 top-0 border-l border-stone-100 dark:border-stone-800 ${
+                room.openTrack ? 'bg-emerald-50/40 dark:bg-emerald-950/40' : ''
               }`}
               style={{ left: GUTTER_W + i * COL_W, width: COL_W }}
             />
@@ -304,7 +304,7 @@ export function Calendar({
             >
               <div className="h-0.5 w-full bg-accent" />
               <span
-                className="absolute -top-2.5 rounded-r bg-stone-900 px-1.5 py-0.5 text-xs font-semibold text-white"
+                className="absolute -top-2.5 rounded-r bg-stone-900 dark:bg-stone-100 dark:text-stone-900 px-1.5 py-0.5 text-xs font-semibold text-white"
                 style={{ left: GUTTER_W }}
               >
                 {fmtMin(nowMin)}
@@ -352,9 +352,9 @@ export function Calendar({
                     onOpen(session.id);
                   }
                 }}
-                className={`absolute overflow-hidden rounded-lg border bg-white p-2 text-left shadow-sm transition-shadow
-                  ${session.type === 'open' ? 'border-dashed border-emerald-400' : 'border-stone-200'}
-                  ${editable ? 'cursor-grab ring-1 ring-stone-300' : 'cursor-pointer hover:shadow'}
+                className={`absolute overflow-hidden rounded-lg border bg-white dark:bg-stone-900 p-2 text-left shadow-sm transition-shadow
+                  ${session.type === 'open' ? 'border-dashed border-emerald-400 dark:border-emerald-500' : 'border-stone-200 dark:border-stone-700'}
+                  ${editable ? 'cursor-grab ring-1 ring-stone-300 dark:ring-stone-600' : 'cursor-pointer hover:shadow'}
                   ${active ? 'z-30 opacity-90 shadow-lg' : ''}
                   ${dimmed ? 'opacity-30' : ''}`}
                 style={{
@@ -376,21 +376,21 @@ export function Calendar({
                   {starred && (
                     // Display only — the block's own pointer handling is
                     // drag-sensitive, so starring happens from the detail sheet.
-                    <span className="ml-auto text-xs leading-none text-amber-500" aria-hidden="true">
+                    <span className="ml-auto text-xs leading-none text-amber-500 dark:text-amber-400" aria-hidden="true">
                       ★
                     </span>
                   )}
                   {clash && (
                     <span
                       title="Overlaps another session in this room"
-                      className="ml-auto rounded bg-amber-100 px-1 text-xs font-bold text-amber-800"
+                      className="ml-auto rounded bg-amber-100 dark:bg-amber-950/60 px-1 text-xs font-bold text-amber-800 dark:text-amber-300"
                     >
                       clash
                     </span>
                   )}
                   {live && (
                     <span
-                      className={`${clash ? '' : 'ml-auto '}rounded bg-accent px-1 text-xs font-bold`}
+                      className={`${clash ? '' : 'ml-auto '}rounded bg-accent px-1 text-xs font-bold text-stone-900`}
                     >
                       now
                     </span>
@@ -399,12 +399,12 @@ export function Calendar({
                 <div className="mt-0.5 truncate text-xs font-semibold leading-tight">
                   {session.title}
                 </div>
-                <div className="truncate text-xs text-stone-500">
+                <div className="truncate text-xs text-stone-500 dark:text-stone-400">
                   {fmtMin(effectiveStart)}–{fmtMin(effectiveStart + effectiveDur)}
                   {session.speaker && ` · ${session.speaker}`}
                 </div>
                 {session.type === 'open' && (
-                  <span className="text-xs font-medium text-emerald-700">open session</span>
+                  <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">open session</span>
                 )}
                 {editable && (
                   <div
@@ -413,7 +413,7 @@ export function Calendar({
                     className="absolute inset-x-0 bottom-0 cursor-ns-resize"
                     style={{ height: RESIZE_HANDLE_PX, touchAction: 'none' }}
                   >
-                    <div className="mx-auto mb-1 h-0.5 w-6 rounded-full bg-stone-300" />
+                    <div className="mx-auto mb-1 h-0.5 w-6 rounded-full bg-stone-300 dark:bg-stone-600" />
                   </div>
                 )}
               </div>

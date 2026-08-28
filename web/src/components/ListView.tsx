@@ -57,7 +57,7 @@ export function ListView({
     <div className="px-4 pb-24 pt-3">
       {groups.map((group, index) => (
         <div key={group.start} id={index === nowGroupIndex ? 'now-anchor' : undefined} className="mb-4">
-          <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-stone-500">
+          <div className="mb-1.5 flex items-center gap-2 text-xs font-semibold text-stone-500 dark:text-stone-400">
             {fmtMin(group.start)}
             {index === nowGroupIndex && (
               <span className="rounded bg-accent px-1.5 py-0.5 font-bold text-stone-900">
@@ -83,20 +83,20 @@ export function ListView({
                       onOpen(session.id);
                     }
                   }}
-                  className={`block w-full cursor-pointer rounded-xl border bg-white p-3 text-left shadow-sm hover:shadow ${
-                    session.type === 'open' ? 'border-dashed border-emerald-400' : 'border-stone-200'
-                  } ${live ? 'ring-2 ring-stone-900/10' : ''}`}
+                  className={`block w-full cursor-pointer rounded-xl border bg-white dark:bg-stone-900 p-3 text-left shadow-sm hover:shadow ${
+                    session.type === 'open' ? 'border-dashed border-emerald-400 dark:border-emerald-500' : 'border-stone-200 dark:border-stone-700'
+                  } ${live ? 'ring-2 ring-stone-900/10 dark:ring-stone-100/10' : ''}`}
                 >
                   <div className="flex items-start gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold">{session.title}</div>
-                      <div className="mt-0.5 truncate text-xs text-stone-500">
+                      <div className="mt-0.5 truncate text-xs text-stone-500 dark:text-stone-400">
                         {fmtMin(startMin)}–{fmtMin(endMin)} · {roomName.get(session.roomId) ?? '—'}
                         {session.speaker && ` · ${session.speaker}`}
                       </div>
                     </div>
                     {live && (
-                      <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-xs font-bold">
+                      <span className="shrink-0 rounded bg-accent px-1.5 py-0.5 text-xs font-bold text-stone-900">
                         now
                       </span>
                     )}
@@ -110,7 +110,7 @@ export function ListView({
                         onToggleStar(session);
                       }}
                       className={`-m-1 shrink-0 rounded-full p-1 text-base leading-none ${
-                        starred ? 'text-amber-500' : 'text-stone-300 hover:text-amber-500'
+                        starred ? 'text-amber-500 dark:text-amber-400' : 'text-stone-300 dark:text-stone-600 hover:text-amber-500'
                       }`}
                     >
                       <span aria-hidden="true">{starred ? '★' : '☆'}</span>
@@ -131,12 +131,12 @@ export function ListView({
                       );
                     })}
                     {session.type === 'open' && (
-                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                      <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:text-emerald-300">
                         open
                       </span>
                     )}
                     {count > 0 && (
-                      <span className="ml-auto text-xs text-stone-400">
+                      <span className="ml-auto text-xs text-stone-400 dark:text-stone-500">
                         {count} contribution{count > 1 ? 's' : ''}
                       </span>
                     )}

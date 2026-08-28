@@ -105,19 +105,19 @@ export function DetailSheet({
       <button
         type="button"
         aria-label="Close"
-        className="absolute inset-0 cursor-default bg-stone-900/30"
+        className="absolute inset-0 cursor-default bg-stone-900/30 dark:bg-black/60"
         onClick={onClose}
       />
-      <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-stone-200 bg-white p-5 shadow-xl sm:bottom-auto sm:left-auto sm:right-4 sm:top-4 sm:h-auto sm:max-h-[92vh] sm:w-96 sm:rounded-2xl">
+      <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-xl sm:bottom-auto sm:left-auto sm:right-4 sm:top-4 sm:h-auto sm:max-h-[92vh] sm:w-96 sm:rounded-2xl">
         <div className="mb-3 flex items-start gap-2">
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
               {session.type === 'open' ? (
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                <span className="rounded-full bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
                   open session
                 </span>
               ) : (
-                <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-600">
+                <span className="rounded-full bg-stone-100 dark:bg-stone-800 px-2 py-0.5 text-xs font-semibold text-stone-600 dark:text-stone-300">
                   official
                 </span>
               )}
@@ -138,10 +138,10 @@ export function DetailSheet({
             <h2 className="mt-1.5 text-lg font-semibold leading-snug tracking-tight">
               {session.title}
             </h2>
-            <p className="mt-1 text-sm text-stone-500">
+            <p className="mt-1 text-sm text-stone-500 dark:text-stone-400">
               {fmtMin(startMin)}–{fmtMin(endMin)} · {room?.name ?? 'unknown room'} ·{' '}
               {session.speakerId ? (
-                <Link to={`/e/${slug}/p/${session.speakerId}`} className="text-blue-700 underline">
+                <Link to={`/e/${slug}/p/${session.speakerId}`} className="text-blue-700 dark:text-blue-400 underline">
                   {session.speaker}
                 </Link>
               ) : (
@@ -153,7 +153,7 @@ export function DetailSheet({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-full p-1.5 text-stone-400 hover:bg-stone-100"
+            className="rounded-full p-1.5 text-stone-400 dark:text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800"
           >
             ✕
           </button>
@@ -168,8 +168,8 @@ export function DetailSheet({
           aria-pressed={starred}
           className={`mb-4 flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold ${
             starred
-              ? 'border-amber-300 bg-amber-50 text-amber-700'
-              : 'border-stone-300 bg-white text-stone-600 hover:border-stone-400'
+              ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
+              : 'border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500'
           }`}
         >
           <span aria-hidden="true">{starred ? '★' : '☆'}</span>
@@ -178,7 +178,7 @@ export function DetailSheet({
 
         {description && (
           <div
-            className="prose-sm mb-4 text-sm leading-relaxed text-stone-700 [&_a]:text-blue-700 [&_a]:underline [&_code]:rounded [&_code]:bg-stone-100 [&_code]:px-1 [&_li]:ml-4 [&_li]:list-disc [&_p]:mb-2"
+            className="prose-sm mb-4 text-sm leading-relaxed text-stone-700 dark:text-stone-300 [&_a]:text-blue-700 dark:[&_a]:text-blue-400 [&_a]:underline [&_code]:rounded [&_code]:bg-stone-100 dark:[&_code]:bg-stone-800 [&_code]:px-1 [&_li]:ml-4 [&_li]:list-disc [&_p]:mb-2"
             // Markdown is escaped before parsing, so no author markup survives.
             dangerouslySetInnerHTML={{ __html: description }}
           />
@@ -192,7 +192,7 @@ export function DetailSheet({
             <button
               type="button"
               onClick={onDelete}
-              className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+              className="rounded-lg border border-red-200 dark:border-red-900 px-3 py-1.5 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
             >
               Delete
             </button>
@@ -200,7 +200,7 @@ export function DetailSheet({
         )}
 
         {contributions === undefined ? (
-          <p className="mb-3 text-sm text-stone-400">Loading contributions…</p>
+          <p className="mb-3 text-sm text-stone-400 dark:text-stone-500">Loading contributions…</p>
         ) : (
           <>
             {KINDS.map((k) => {
@@ -208,7 +208,7 @@ export function DetailSheet({
               if (items.length === 0) return null;
               return (
                 <div key={k} className="mb-3">
-                  <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone-400">
+                  <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
                     {KIND_LABEL[k]}
                   </h3>
                   <ul className="space-y-1.5">
@@ -216,7 +216,7 @@ export function DetailSheet({
                       <li
                         key={c.id}
                         className={`group rounded-lg px-3 py-2 text-sm ${
-                          c.hidden ? 'bg-red-50' : 'bg-stone-50'
+                          c.hidden ? 'bg-red-50 dark:bg-red-950/40' : 'bg-stone-50 dark:bg-stone-800'
                         }`}
                       >
                         {c.kind === 'link' && c.url ? (
@@ -224,14 +224,14 @@ export function DetailSheet({
                             href={c.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-medium text-blue-700 underline"
+                            className="font-medium text-blue-700 dark:text-blue-400 underline"
                           >
                             {c.body} ↗
                           </a>
                         ) : (
-                          <span className="whitespace-pre-wrap text-stone-800">{c.body}</span>
+                          <span className="whitespace-pre-wrap text-stone-800 dark:text-stone-200">{c.body}</span>
                         )}
-                        <div className="mt-0.5 flex items-center gap-2 text-xs text-stone-400">
+                        <div className="mt-0.5 flex items-center gap-2 text-xs text-stone-400 dark:text-stone-500">
                           <span className="truncate">
                             {c.createdByName} · {relativeTime(c.createdAt)}
                             {c.hidden && ' · hidden'}
@@ -240,7 +240,7 @@ export function DetailSheet({
                             <button
                               type="button"
                               onClick={() => onToggleHidden(c)}
-                              className="ml-auto shrink-0 text-stone-500 underline hover:text-stone-800"
+                              className="ml-auto shrink-0 text-stone-500 dark:text-stone-400 underline hover:text-stone-800 dark:hover:text-stone-200"
                             >
                               {c.hidden ? 'unhide' : 'hide'}
                             </button>
@@ -249,7 +249,7 @@ export function DetailSheet({
                             <button
                               type="button"
                               onClick={() => onRemoveContribution(c.id)}
-                              className={`shrink-0 text-red-500 underline ${
+                              className={`shrink-0 text-red-500 dark:text-red-400 underline ${
                                 role === 'admin' ? '' : 'ml-auto'
                               }`}
                             >
@@ -264,22 +264,22 @@ export function DetailSheet({
               );
             })}
             {contributions.length === 0 && (
-              <p className="mb-3 text-sm text-stone-400">No notes, links or questions yet.</p>
+              <p className="mb-3 text-sm text-stone-400 dark:text-stone-500">No notes, links or questions yet.</p>
             )}
           </>
         )}
 
         {archived ? (
-          <p className="rounded-lg bg-stone-50 px-3 py-2 text-xs text-stone-500">
+          <p className="rounded-lg bg-stone-50 dark:bg-stone-800 px-3 py-2 text-xs text-stone-500 dark:text-stone-400">
             This event is archived — it is read-only now.
           </p>
         ) : !canContribute ? (
-          <p className="rounded-lg bg-stone-50 px-3 py-2 text-xs text-stone-500">
+          <p className="rounded-lg bg-stone-50 dark:bg-stone-800 px-3 py-2 text-xs text-stone-500 dark:text-stone-400">
             Enter the {userLabel} password (tap your name, top right) to add notes, links and
             questions.
           </p>
         ) : (
-          <div className="rounded-xl border border-stone-200 p-3">
+          <div className="rounded-xl border border-stone-200 dark:border-stone-700 p-3">
             <div className="mb-2 flex gap-1.5">
               {KINDS.map((k) => (
                 <button
@@ -288,7 +288,7 @@ export function DetailSheet({
                   onClick={() => setKind(k)}
                   aria-pressed={kind === k}
                   className={`rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
-                    kind === k ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600'
+                    kind === k ? 'bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-white' : 'bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300'
                   }`}
                 >
                   {k}

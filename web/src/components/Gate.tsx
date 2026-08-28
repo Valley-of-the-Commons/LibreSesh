@@ -42,15 +42,15 @@ export function Gate({ slug, eventName, me, onMe, onEntered }: GateProps) {
   const initial = (eventName ?? slug).trim().charAt(0).toUpperCase() || '?';
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-stone-100 px-4 py-10">
-      <div className="w-full max-w-sm rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-stone-100 dark:bg-stone-950 px-4 py-10">
+      <div className="w-full max-w-sm rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-6 shadow-sm">
         <div className="mb-1 flex items-center gap-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-stone-900 text-sm font-bold text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-sm font-bold text-white">
             {initial}
           </div>
           <h1 className="truncate text-lg font-semibold tracking-tight">{eventName ?? slug}</h1>
         </div>
-        <p className="mb-5 text-sm text-stone-500">This schedule needs the event password.</p>
+        <p className="mb-5 text-sm text-stone-500 dark:text-stone-400">This schedule needs the event password.</p>
 
         <Field label="Event password">
           <input
@@ -63,13 +63,13 @@ export function Gate({ slug, eventName, me, onMe, onEntered }: GateProps) {
             className={`${inputClass} ${error ? 'border-red-400' : ''}`}
           />
         </Field>
-        {error && <p className="-mt-2 mb-2 text-xs text-red-600">{error}</p>}
+        {error && <p className="-mt-2 mb-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
 
         <PrimaryButton className="w-full py-2 text-sm" onClick={() => void submit()} disabled={busy}>
           {busy ? 'Checking…' : 'Enter schedule'}
         </PrimaryButton>
 
-        <div className="mt-5 border-t border-stone-100 pt-4">
+        <div className="mt-5 border-t border-stone-100 dark:border-stone-800 pt-4">
           <Field label="You'll appear as" hint="Remembered on this device. No account needed.">
             <input
               value={name}

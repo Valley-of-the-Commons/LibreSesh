@@ -63,15 +63,15 @@ export function NewEventPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-10">
-      <Link to="/" className="text-xs text-stone-500 underline">
+      <Link to="/" className="text-xs text-stone-500 dark:text-stone-400 underline">
         ← All events
       </Link>
       <h1 className="mb-1 mt-3 text-lg font-semibold tracking-tight">Create an event</h1>
-      <p className="mb-5 text-sm text-stone-500">
+      <p className="mb-5 text-sm text-stone-500 dark:text-stone-400">
         You’ll need the instance password. The three event passwords are what attendees use.
       </p>
 
-      <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
         <Field label="Instance password">
           <input
             type="password"
@@ -143,7 +143,7 @@ export function NewEventPage() {
           />
         </Field>
 
-        <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-400">
+        <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
           Event passwords
         </p>
         <Field label="Viewer — read the schedule">
@@ -168,7 +168,7 @@ export function NewEventPage() {
           />
         </Field>
 
-        {error && <p className="mb-2 text-xs text-red-600">{error}</p>}
+        {error && <p className="mb-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
         <PrimaryButton className="w-full py-2 text-sm" onClick={() => void submit()} disabled={busy}>
           {busy ? 'Creating…' : 'Create event'}
         </PrimaryButton>

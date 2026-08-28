@@ -20,7 +20,7 @@ type Status = 'loading' | 'ok' | 'notfound' | 'error';
 
 // Same wrappers DetailSheet uses for session descriptions.
 const PROSE =
-  'prose-sm text-sm leading-relaxed text-stone-700 [&_a]:text-blue-700 [&_a]:underline [&_code]:rounded [&_code]:bg-stone-100 [&_code]:px-1 [&_li]:ml-4 [&_li]:list-disc [&_p]:mb-2';
+  'prose-sm text-sm leading-relaxed text-stone-700 dark:text-stone-300 [&_a]:text-blue-700 dark:[&_a]:text-blue-400 [&_a]:underline [&_code]:rounded [&_code]:bg-stone-100 dark:[&_code]:bg-stone-800 [&_code]:px-1 [&_li]:ml-4 [&_li]:list-disc [&_p]:mb-2';
 
 /** A speaker or host profile with their sessions (follow-up to SPEC §4). */
 export function ProfilePage() {
@@ -112,13 +112,13 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-stone-100 text-stone-900">
+    <div className="min-h-screen bg-stone-100 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <Link to={`/e/${slug}`} className="text-xs text-stone-500 underline">
+        <Link to={`/e/${slug}`} className="text-xs text-stone-500 dark:text-stone-400 underline">
           ← Schedule
         </Link>
 
-        <div className="mt-4 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+        <div className="mt-4 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
           <div className="flex items-start gap-3">
             <h1 className="flex-1 text-lg font-semibold tracking-tight">{person.name}</h1>
             {canEdit && (
@@ -144,7 +144,7 @@ export function ProfilePage() {
                     href={link.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-blue-700 underline"
+                    className="text-sm text-blue-700 dark:text-blue-400 underline"
                   >
                     {link.label || link.url}
                   </a>
@@ -156,7 +156,7 @@ export function ProfilePage() {
 
         <h2 className="mb-2 mt-6 text-sm font-semibold">Sessions</h2>
         {sessions.length === 0 ? (
-          <p className="text-sm text-stone-400">No sessions yet.</p>
+          <p className="text-sm text-stone-400 dark:text-stone-500">No sessions yet.</p>
         ) : (
           <ul className="space-y-2">
             {sessions.map((session) => {
@@ -167,9 +167,9 @@ export function ProfilePage() {
                 <li key={session.id}>
                   <Link
                     to={`/e/${slug}/s/${session.id}`}
-                    className="block rounded-xl border border-stone-200 bg-white px-3 py-2 shadow-sm hover:shadow"
+                    className="block rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 px-3 py-2 shadow-sm hover:shadow"
                   >
-                    <div className="text-xs text-stone-500">
+                    <div className="text-xs text-stone-500 dark:text-stone-400">
                       {label.top} {label.sub} · {fmtMin(startMin)}–{fmtMin(endMin)} ·{' '}
                       {room?.name ?? 'unknown room'}
                     </div>
@@ -290,18 +290,18 @@ function ProfileEditor({
                 type="button"
                 onClick={() => removeLink(i)}
                 aria-label="Remove link"
-                className="shrink-0 rounded-lg px-2 text-stone-400 hover:text-red-600"
+                className="shrink-0 rounded-lg px-2 text-stone-400 dark:text-stone-500 hover:text-red-600 dark:hover:text-red-400"
               >
                 ✕
               </button>
             </div>
           ))}
-          {links.length === 0 && <p className="text-xs text-stone-400">No links yet.</p>}
+          {links.length === 0 && <p className="text-xs text-stone-400 dark:text-stone-500">No links yet.</p>}
           {links.length < 10 && (
             <button
               type="button"
               onClick={addLink}
-              className="text-xs font-medium text-stone-600 underline hover:text-stone-900"
+              className="text-xs font-medium text-stone-600 dark:text-stone-300 underline hover:text-stone-900 dark:hover:text-stone-100"
             >
               Add a link
             </button>

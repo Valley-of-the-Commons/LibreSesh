@@ -47,6 +47,15 @@ All notable changes to this project are documented here.
   the list so rooms created before this existed sort themselves out.
 - **Overlap badge.** Admins may double-book a room, so clashing blocks are
   badged on the calendar rather than prevented.
+- **Personal agenda.** Star sessions to build your own agenda, filter the
+  schedule down to it, and share that filter as a link. Stars are private to
+  you and never broadcast.
+- **Calendar export.** Download the whole schedule or just your starred agenda
+  as an `.ics` file, or take a personal subscription link your calendar app
+  refreshes on its own. The link authenticates by capability token, since a
+  calendar app cannot present a session cookie, and only ever grants what your
+  role already allows.
+- **Dark mode.** Light, dark, or follow the system setting.
 - **Speaker and host profiles.** Speakers are per-event records rather than free
   text, each with a bio, links and a page listing their sessions. Organisers
   curate the roster; anyone with a role owns at most one profile and may edit

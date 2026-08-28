@@ -309,25 +309,25 @@ export function AdminPage() {
         <button
           type="button"
           onClick={() => navigate(`/e/${slug}`)}
-          className="text-xs text-stone-500 underline"
+          className="text-xs text-stone-500 dark:text-stone-400 underline"
         >
           ← Schedule
         </button>
         <h1 className="text-lg font-semibold tracking-tight">Manage {event.name}</h1>
       </div>
 
-      <section className="mb-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+      <section className="mb-6 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
         <h2 className="mb-3 text-sm font-semibold">Rooms</h2>
         <ul className="mb-4 space-y-2">
           {bundle.rooms.map((room, index) => (
-            <li key={room.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 px-3 py-2">
-              <div className="flex text-xs text-stone-500">
+            <li key={room.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 dark:bg-stone-800 px-3 py-2">
+              <div className="flex text-xs text-stone-500 dark:text-stone-400">
                 <button
                   type="button"
                   onClick={() => void moveRoom(index, -1)}
                   disabled={index === 0 || reordering}
                   aria-label={`Move ${room.name} up`}
-                  className="rounded px-1 hover:bg-stone-200 disabled:opacity-30 disabled:hover:bg-transparent"
+                  className="rounded px-1 hover:bg-stone-200 dark:hover:bg-stone-700 disabled:opacity-30 disabled:hover:bg-transparent"
                 >
                   ↑
                 </button>
@@ -336,7 +336,7 @@ export function AdminPage() {
                   onClick={() => void moveRoom(index, 1)}
                   disabled={index === bundle.rooms.length - 1 || reordering}
                   aria-label={`Move ${room.name} down`}
-                  className="rounded px-1 hover:bg-stone-200 disabled:opacity-30 disabled:hover:bg-transparent"
+                  className="rounded px-1 hover:bg-stone-200 dark:hover:bg-stone-700 disabled:opacity-30 disabled:hover:bg-transparent"
                 >
                   ↓
                 </button>
@@ -348,9 +348,9 @@ export function AdminPage() {
                   e.target.value !== room.name &&
                   void patchRoom(room, { name: e.target.value.trim() })
                 }
-                className="min-w-32 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-sm font-medium hover:border-stone-300 focus:border-stone-400 focus:bg-white"
+                className="min-w-32 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-sm font-medium hover:border-stone-300 focus:border-stone-400 dark:focus:border-stone-500 focus:bg-white dark:focus:bg-stone-900"
               />
-              <label className="flex items-center gap-1.5 text-xs text-stone-600">
+              <label className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-stone-300">
                 <input
                   type="checkbox"
                   checked={room.openTrack}
@@ -358,19 +358,19 @@ export function AdminPage() {
                 />
                 open track
               </label>
-              <span className="text-xs text-stone-400">
+              <span className="text-xs text-stone-400 dark:text-stone-500">
                 {room.capacity ? `${room.capacity} seats` : 'no capacity'}
               </span>
               <button
                 type="button"
                 onClick={() => void removeRoom(room)}
-                className="text-xs text-red-500 underline"
+                className="text-xs text-red-500 dark:text-red-400 underline"
               >
                 delete
               </button>
             </li>
           ))}
-          {bundle.rooms.length === 0 && <li className="text-sm text-stone-400">No rooms yet.</li>}
+          {bundle.rooms.length === 0 && <li className="text-sm text-stone-400 dark:text-stone-500">No rooms yet.</li>}
         </ul>
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-40 flex-1">
@@ -389,7 +389,7 @@ export function AdminPage() {
               />
             </Field>
           </div>
-          <label className="mb-3 flex items-center gap-1.5 text-xs text-stone-600">
+          <label className="mb-3 flex items-center gap-1.5 text-xs text-stone-600 dark:text-stone-300">
             <input type="checkbox" checked={roomOpen} onChange={(e) => setRoomOpen(e.target.checked)} />
             open track
           </label>
@@ -399,11 +399,11 @@ export function AdminPage() {
         </div>
       </section>
 
-      <section className="mb-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+      <section className="mb-6 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
         <h2 className="mb-3 text-sm font-semibold">Tags</h2>
         <ul className="mb-4 flex flex-wrap gap-2">
           {bundle.tags.map((tag) => (
-            <li key={tag.id} className="flex items-center gap-2 rounded-full bg-stone-50 py-1 pl-2 pr-3">
+            <li key={tag.id} className="flex items-center gap-2 rounded-full bg-stone-50 dark:bg-stone-800 py-1 pl-2 pr-3">
               <input
                 type="color"
                 value={tag.color}
@@ -415,14 +415,14 @@ export function AdminPage() {
               <button
                 type="button"
                 onClick={() => void removeTag(tag)}
-                className="text-xs text-red-500"
+                className="text-xs text-red-500 dark:text-red-400"
                 aria-label={`Delete ${tag.name}`}
               >
                 ✕
               </button>
             </li>
           ))}
-          {bundle.tags.length === 0 && <li className="text-sm text-stone-400">No tags yet.</li>}
+          {bundle.tags.length === 0 && <li className="text-sm text-stone-400 dark:text-stone-500">No tags yet.</li>}
         </ul>
         <div className="flex items-end gap-2">
           <div className="flex-1">
@@ -434,7 +434,7 @@ export function AdminPage() {
             type="color"
             value={tagColor}
             onChange={(e) => setTagColor(e.target.value)}
-            className="mb-3 h-9 w-12 cursor-pointer rounded border border-stone-300 bg-white p-1"
+            className="mb-3 h-9 w-12 cursor-pointer rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 p-1"
             aria-label="New tag colour"
           />
           <PrimaryButton className="mb-3" onClick={() => void addTag()}>
@@ -443,37 +443,37 @@ export function AdminPage() {
         </div>
       </section>
 
-      <section className="mb-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+      <section className="mb-6 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
         <h2 className="mb-1 text-sm font-semibold">People</h2>
-        <p className="mb-3 text-xs text-stone-500">
+        <p className="mb-3 text-xs text-stone-500 dark:text-stone-400">
           Speaker and host profiles. Anyone can claim their own from the schedule.
         </p>
         <ul className="mb-4 space-y-2">
           {bundle.people.map((person) => (
             <li
               key={person.id}
-              className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 px-3 py-2"
+              className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 dark:bg-stone-800 px-3 py-2"
             >
               <span className="min-w-32 flex-1 text-sm font-medium">{person.name}</span>
               {person.claimed && (
-                <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs text-stone-600">
+                <span className="rounded-full bg-stone-200 dark:bg-stone-700 px-2 py-0.5 text-xs text-stone-600 dark:text-stone-300">
                   claimed
                 </span>
               )}
-              <Link to={`/e/${slug}/p/${person.id}`} className="text-xs text-stone-500 underline">
+              <Link to={`/e/${slug}/p/${person.id}`} className="text-xs text-stone-500 dark:text-stone-400 underline">
                 edit
               </Link>
               <button
                 type="button"
                 onClick={() => void removePerson(person)}
-                className="text-xs text-red-500 underline"
+                className="text-xs text-red-500 dark:text-red-400 underline"
               >
                 delete
               </button>
             </li>
           ))}
           {bundle.people.length === 0 && (
-            <li className="text-sm text-stone-400">No people yet.</li>
+            <li className="text-sm text-stone-400 dark:text-stone-500">No people yet.</li>
           )}
         </ul>
         <div className="flex items-end gap-2">
@@ -493,7 +493,7 @@ export function AdminPage() {
         </div>
       </section>
 
-      <section className="mb-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+      <section className="mb-6 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
         <h2 className="mb-3 text-sm font-semibold">Event settings</h2>
         <Field label="Name">
           <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
@@ -524,10 +524,10 @@ export function AdminPage() {
           />
         </Field>
 
-        <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-400">
+        <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
           Change passwords
         </p>
-        <p className="mb-3 text-xs text-stone-500">Leave blank to keep the current one.</p>
+        <p className="mb-3 text-xs text-stone-500 dark:text-stone-400">Leave blank to keep the current one.</p>
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Viewer">
             <input value={viewerPassword} onChange={(e) => setViewerPassword(e.target.value)} className={inputClass} />
@@ -542,9 +542,9 @@ export function AdminPage() {
         <PrimaryButton onClick={() => void saveSettings()}>Save settings</PrimaryButton>
       </section>
 
-      <section className="mb-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+      <section className="mb-6 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
         <h2 className="mb-1 text-sm font-semibold">Duplicate event</h2>
-        <p className="mb-3 text-xs text-stone-500">
+        <p className="mb-3 text-xs text-stone-500 dark:text-stone-400">
           Rooms and tags carry over to the new event; sessions and contributions do not.
         </p>
         <Field label="New name">
@@ -583,10 +583,10 @@ export function AdminPage() {
             />
           </Field>
         </div>
-        <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-400">
+        <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
           New passwords
         </p>
-        <p className="mb-3 text-xs text-stone-500">At least 6 characters each.</p>
+        <p className="mb-3 text-xs text-stone-500 dark:text-stone-400">At least 6 characters each.</p>
         <div className="grid gap-3 sm:grid-cols-3">
           <Field label="Viewer">
             <input value={cloneViewer} onChange={(e) => setCloneViewer(e.target.value)} className={inputClass} />
@@ -603,9 +603,9 @@ export function AdminPage() {
         </PrimaryButton>
       </section>
 
-      <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+      <section className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
         <h2 className="mb-1 text-sm font-semibold">Archive</h2>
-        <p className="mb-3 text-xs text-stone-500">
+        <p className="mb-3 text-xs text-stone-500 dark:text-stone-400">
           An archived event stays readable with the viewer password, but nobody can change anything.
         </p>
         {event.archived ? (

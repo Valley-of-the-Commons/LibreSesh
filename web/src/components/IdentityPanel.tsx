@@ -90,7 +90,7 @@ export function IdentityPanel({
   return (
     <Modal title="Your identity" onClose={onClose}>
       <div className="-mt-2 mb-4 flex items-center justify-between">
-        <span className="text-xs text-stone-500">Role for this event</span>
+        <span className="text-xs text-stone-500 dark:text-stone-400">Role for this event</span>
         <RoleBadge role={role} userLabel={userLabel} />
       </div>
 
@@ -124,7 +124,7 @@ export function IdentityPanel({
             Apply
           </PrimaryButton>
         </div>
-        {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+        {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
       </Field>
 
       <div className="mt-2">
@@ -132,7 +132,7 @@ export function IdentityPanel({
           type="button"
           onClick={() => void editProfile()}
           disabled={profileBusy}
-          className="text-xs font-medium text-stone-600 underline hover:text-stone-900 disabled:opacity-40"
+          className="text-xs font-medium text-stone-600 dark:text-stone-300 underline hover:text-stone-900 dark:hover:text-stone-100 disabled:opacity-40"
         >
           Edit your profile for this event
         </button>
@@ -142,7 +142,7 @@ export function IdentityPanel({
         <button
           type="button"
           onClick={onSignOut}
-          className="text-xs font-medium text-stone-500 underline hover:text-stone-800"
+          className="text-xs font-medium text-stone-500 dark:text-stone-400 underline hover:text-stone-800 dark:hover:text-stone-200"
         >
           Sign out of event
         </button>

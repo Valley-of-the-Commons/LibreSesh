@@ -198,19 +198,19 @@ export function Tour({
           {/* Four overlay panels around the target rather than an SVG mask —
               simpler, and the target still looks live. */}
           <div
-            className="pointer-events-auto absolute bg-stone-900/50"
+            className="pointer-events-auto absolute bg-stone-900/50 dark:bg-black/70"
             style={{ left: 0, top: 0, width: '100%', height: Math.max(0, rect.top) }}
           />
           <div
-            className="pointer-events-auto absolute bg-stone-900/50"
+            className="pointer-events-auto absolute bg-stone-900/50 dark:bg-black/70"
             style={{ left: 0, top: rect.bottom, width: '100%', bottom: 0 }}
           />
           <div
-            className="pointer-events-auto absolute bg-stone-900/50"
+            className="pointer-events-auto absolute bg-stone-900/50 dark:bg-black/70"
             style={{ left: 0, top: rect.top, width: Math.max(0, rect.left), height: rect.height }}
           />
           <div
-            className="pointer-events-auto absolute bg-stone-900/50"
+            className="pointer-events-auto absolute bg-stone-900/50 dark:bg-black/70"
             style={{ left: rect.right, top: rect.top, right: 0, height: rect.height }}
           />
           <div
@@ -231,27 +231,27 @@ export function Tour({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="pointer-events-auto fixed rounded-2xl border border-stone-200 bg-white p-4 shadow-lg outline-none"
+        className="pointer-events-auto fixed rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-4 shadow-lg outline-none"
         style={
           placement
             ? { top: placement.top, left: placement.left, width: placement.width }
             : { top: 0, left: 0, opacity: 0 }
         }
       >
-        <div id={titleId} className="text-sm font-semibold text-stone-900">
+        <div id={titleId} className="text-sm font-semibold text-stone-900 dark:text-stone-100">
           {step.title}
         </div>
-        <p className="mt-1 text-xs leading-relaxed text-stone-600">{step.body}</p>
+        <p className="mt-1 text-xs leading-relaxed text-stone-600 dark:text-stone-300">{step.body}</p>
         <div className="mt-3 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={finish}
-            className="text-xs font-medium text-stone-500 underline hover:text-stone-800"
+            className="text-xs font-medium text-stone-500 dark:text-stone-400 underline hover:text-stone-800 dark:hover:text-stone-200"
           >
             Skip tour
           </button>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-stone-400">
+            <span className="text-xs text-stone-400 dark:text-stone-500">
               Step {index + 1} of {resolved.length}
             </span>
             {index > 0 && <SecondaryButton onClick={back}>Back</SecondaryButton>}

@@ -7,17 +7,23 @@
     color-scheme: light;
   }
 
+  /* Set by useTheme / the pre-paint script in index.html. */
+  .dark {
+    color-scheme: dark;
+  }
+
   html {
     -webkit-text-size-adjust: 100%;
   }
 
   body {
-    @apply bg-stone-100 text-stone-900 antialiased;
+    @apply bg-stone-100 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100;
   }
 
-  /* Visible focus everywhere, but only for keyboard users (SPEC §7.6). */
+  /* Visible focus everywhere, but only for keyboard users (SPEC §7.6). The
+     offset colour must track the page background or the ring looks broken. */
   :focus-visible {
-    @apply outline-none ring-2 ring-stone-900 ring-offset-2 ring-offset-stone-100;
+    @apply outline-none ring-2 ring-stone-900 ring-offset-2 ring-offset-stone-100 dark:ring-stone-100 dark:ring-offset-stone-950;
   }
 }
 

@@ -7,6 +7,8 @@ const here = fileURLToPath(new URL('.', import.meta.url));
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [`${here}index.html`, `${here}src/**/*.{ts,tsx}`],
+  // Theme is opt-in via a `dark` class on <html> (see src/lib/useTheme.ts).
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
