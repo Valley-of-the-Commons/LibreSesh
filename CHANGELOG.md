@@ -2,16 +2,9 @@
 
 All notable changes to this project are documented here.
 
-## [Unreleased]
+## [0.1.0] — 2026-08-28
 
-### Changed
-
-- Renamed the project to **LibreSesh**.
-
-### Fixed
-
-- Clicking a session block on the calendar opens it. Outside Arrange mode no
-  role could open a session by pointer — only the keyboard worked.
+First release. Everything below is new.
 
 ### Added
 
@@ -47,6 +40,18 @@ All notable changes to this project are documented here.
   the list so rooms created before this existed sort themselves out.
 - **Overlap badge.** Admins may double-book a room, so clashing blocks are
   badged on the calendar rather than prevented.
+- **Proposal board.** Pitch a session with no room or time, register interest in
+  other people's pitches, and let organisers place the popular ones on the grid.
+  Placing carries the pitch's tags, speaker and interested people across.
+- **Undo for deletions.** Organisers can list and restore soft-deleted sessions
+  and contributions. Restoring a session whose room has since been deleted is
+  refused rather than resurrecting a dangling reference.
+- **Star counts.** How many people have a session on their agenda, flagged when
+  it exceeds the room's capacity.
+- **Agenda clash warnings.** Two starred sessions that overlap are called out,
+  in the banner and on the row.
+- **Cross-day search.** Text search reaches every day of the event, not only the
+  one on screen.
 - **Personal agenda.** Star sessions to build your own agenda, filter the
   schedule down to it, and share that filter as a link. Stars are private to
   you and never broadcast.
@@ -71,6 +76,8 @@ All notable changes to this project are documented here.
   capped at 5 attempts per 15 minutes, refunding the token on success.
 - **Deployment.** Docker Compose and systemd run modes behind Caddy, a nightly
   `VACUUM INTO` backup script with retention, and a VPS runbook in the README.
-- **Tests.** 111 Vitest cases covering the role matrix, session write rules,
-  overlap and stale-edit handling, contribution moderation, the rate limiter,
-  timezone maths and the SSE stream.
+- **Tests.** 171 Vitest cases covering the role matrix, session and proposal
+  write rules, overlap and stale-edit handling, contribution moderation, undo,
+  the rate limiter, timezone maths, iCal generation and the SSE stream.
+- **Documentation.** `ARCHITECTURE.md` describes the design and the threat
+  model — including what is deliberately *not* defended against.

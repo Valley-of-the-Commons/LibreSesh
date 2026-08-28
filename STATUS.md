@@ -7,8 +7,7 @@ Last updated: 2026-08-28
 
 ## In Progress
 
-- **Proposal board UI.** Server, migration and tests are done and committed; the
-  board, place-on-grid modal and trash UI are being wired up.
+_None — 0.1.0 is tagged._
 
 ## Blockers
 
