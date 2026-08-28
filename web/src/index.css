@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-stone-100 text-stone-900 antialiased;
+  }
+
+  /* Visible focus everywhere, but only for keyboard users (SPEC §7.6). */
+  :focus-visible {
+    @apply outline-none ring-2 ring-stone-900 ring-offset-2 ring-offset-stone-100;
+  }
+}
+
+@layer utilities {
+  /* Horizontal scrollers hide their bar; the sticky headers carry the affordance. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

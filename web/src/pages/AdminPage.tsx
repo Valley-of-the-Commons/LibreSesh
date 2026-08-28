@@ -1,0 +1,356 @@
+import { useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import type { RoomDto, TagDto } from '@shared/types';
+import { api } from '../lib/api';
+import { fmtMin } from '../lib/format';
+import { useEventData } from '../lib/useEventData';
+import {
+  EmptyState,
+  Field,
+  PrimaryButton,
+  SecondaryButton,
+  Spinner,
+  inputClass,
+  useToast,
+} from '../components/ui';
+
+const DEFAULT_TAG_COLOR = '#6B7280';
+
+/** Rooms, tags, passwords and event settings — admin only (SPEC §7.1). */
+export function AdminPage() {
+  const { slug = '' } = useParams();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const data = useEventData(slug);
+
+  const [roomName, setRoomName] = useState('');
+  const [roomCapacity, setRoomCapacity] = useState('');
+  const [roomOpen, setRoomOpen] = useState(false);
+  const [tagName, setTagName] = useState('');
+  const [tagColor, setTagColor] = useState(DEFAULT_TAG_COLOR);
+
+  const bundle = data.bundle;
+  const event = bundle?.event;
+
+  const [name, setName] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [dayStart, setDayStart] = useState('');
+  const [dayEnd, setDayEnd] = useState('');
+  const [viewerPassword, setViewerPassword] = useState('');
+  const [userPassword, setUserPassword] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+
+  if (event && !settingsLoaded) {
+    setSettingsLoaded(true);
+    setName(event.name);
+    setStartDate(event.startDate);
+    setEndDate(event.endDate);
+    setDayStart(fmtMin(event.dayStartMin));
+    setDayEnd(fmtMin(event.dayEndMin));
+  }
+
+  const fail = (err: unknown) => toast.show((err as Error).message);
+
+  if (data.status === 'loading') return <Spinner label="Loading…" />;
+  if (!bundle || !event) {
+    return (
+      <EmptyState>
+        You need the admin password for this event.{' '}
+        <Link to={`/e/${slug}`} className="underline">
+          Go to the schedule
+        </Link>
+      </EmptyState>
+    );
+  }
+  if (bundle.role !== 'admin') {
+    return (
+      <EmptyState>
+        Only organisers can manage this event.{' '}
+        <Link to={`/e/${slug}`} className="underline">
+          Back to the schedule
+        </Link>
+      </EmptyState>
+    );
+  }
+
+  const addRoom = async () => {
+    if (!roomName.trim()) return;
+    try {
+      const created = await api.createRoom(slug, {
+        name: roomName.trim(),
+        capacity: roomCapacity ? Number(roomCapacity) : null,
+        openTrack: roomOpen,
+        sortOrder: bundle.rooms.length,
+      });
+      data.apply({ type: 'room.created', entity: created });
+      setRoomName('');
+      setRoomCapacity('');
+      setRoomOpen(false);
+    } catch (err) {
+      fail(err);
+    }
+  };
+
+  const patchRoom = async (room: RoomDto, patch: Partial<RoomDto>) => {
+    try {
+      data.apply({ type: 'room.updated', entity: await api.updateRoom(slug, room.id, patch) });
+    } catch (err) {
+      fail(err);
+    }
+  };
+
+  const removeRoom = async (room: RoomDto) => {
+    if (!window.confirm(`Delete “${room.name}”?`)) return;
+    try {
+      await api.deleteRoom(slug, room.id);
+      data.apply({ type: 'room.deleted', entity: { id: room.id } });
+    } catch (err) {
+      fail(err);
+    }
+  };
+
+  const addTag = async () => {
+    if (!tagName.trim()) return;
+    try {
+      const created = await api.createTag(slug, { name: tagName.trim(), color: tagColor });
+      data.apply({ type: 'tag.created', entity: created });
+      setTagName('');
+      setTagColor(DEFAULT_TAG_COLOR);
+    } catch (err) {
+      fail(err);
+    }
+  };
+
+  const patchTag = async (tag: TagDto, patch: Partial<TagDto>) => {
+    try {
+      data.apply({ type: 'tag.updated', entity: await api.updateTag(slug, tag.id, patch) });
+    } catch (err) {
+      fail(err);
+    }
+  };
+
+  const removeTag = async (tag: TagDto) => {
+    if (!window.confirm(`Delete the “${tag.name}” tag? It will be removed from every session.`)) {
+      return;
+    }
+    try {
+      await api.deleteTag(slug, tag.id);
+      data.apply({ type: 'tag.deleted', entity: { id: tag.id } });
+    } catch (err) {
+      fail(err);
+    }
+  };
+
+  const toMinutes = (hhmm: string): number => {
+    const [h, m] = hhmm.split(':').map(Number);
+    return (h ?? 0) * 60 + (m ?? 0);
+  };
+
+  const saveSettings = async () => {
+    try {
+      const updated = await api.updateSettings(slug, {
+        name: name.trim(),
+        startDate,
+        endDate,
+        dayStartMin: toMinutes(dayStart),
+        dayEndMin: toMinutes(dayEnd),
+        ...(viewerPassword ? { viewerPassword } : {}),
+        ...(userPassword ? { userPassword } : {}),
+        ...(adminPassword ? { adminPassword } : {}),
+      });
+      data.apply({ type: 'event.updated', entity: updated });
+      setViewerPassword('');
+      setUserPassword('');
+      setAdminPassword('');
+      toast.show('Settings saved');
+    } catch (err) {
+      fail(err);
+    }
+  };
+
+  const setArchived = async (archived: boolean) => {
+    if (archived && !window.confirm('Archive this event? It becomes read-only for everyone.')) {
+      return;
+    }
+    try {
+      const updated = await api.updateSettings(slug, { archived });
+      data.apply({ type: 'event.updated', entity: updated });
+      toast.show(archived ? 'Event archived' : 'Event un-archived');
+    } catch (err) {
+      fail(err);
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-3xl px-4 py-8">
+      <div className="mb-6 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => navigate(`/e/${slug}`)}
+          className="text-xs text-stone-500 underline"
+        >
+          ← Schedule
+        </button>
+        <h1 className="text-lg font-semibold tracking-tight">Manage {event.name}</h1>
+      </div>
+
+      <section className="mb-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-3 text-sm font-semibold">Rooms</h2>
+        <ul className="mb-4 space-y-2">
+          {bundle.rooms.map((room) => (
+            <li key={room.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 px-3 py-2">
+              <input
+                defaultValue={room.name}
+                onBlur={(e) =>
+                  e.target.value.trim() &&
+                  e.target.value !== room.name &&
+                  void patchRoom(room, { name: e.target.value.trim() })
+                }
+                className="min-w-32 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-sm font-medium hover:border-stone-300 focus:border-stone-400 focus:bg-white"
+              />
+              <label className="flex items-center gap-1.5 text-xs text-stone-600">
+                <input
+                  type="checkbox"
+                  checked={room.openTrack}
+                  onChange={(e) => void patchRoom(room, { openTrack: e.target.checked })}
+                />
+                open track
+              </label>
+              <span className="text-xs text-stone-400">
+                {room.capacity ? `${room.capacity} seats` : 'no capacity'}
+              </span>
+              <button
+                type="button"
+                onClick={() => void removeRoom(room)}
+                className="text-xs text-red-500 underline"
+              >
+                delete
+              </button>
+            </li>
+          ))}
+          {bundle.rooms.length === 0 && <li className="text-sm text-stone-400">No rooms yet.</li>}
+        </ul>
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-40 flex-1">
+            <Field label="New room">
+              <input value={roomName} onChange={(e) => setRoomName(e.target.value)} className={inputClass} />
+            </Field>
+          </div>
+          <div className="w-24">
+            <Field label="Capacity">
+              <input
+                type="number"
+                min={0}
+                value={roomCapacity}
+                onChange={(e) => setRoomCapacity(e.target.value)}
+                className={inputClass}
+              />
+            </Field>
+          </div>
+          <label className="mb-3 flex items-center gap-1.5 text-xs text-stone-600">
+            <input type="checkbox" checked={roomOpen} onChange={(e) => setRoomOpen(e.target.checked)} />
+            open track
+          </label>
+          <PrimaryButton className="mb-3" onClick={() => void addRoom()}>
+            Add room
+          </PrimaryButton>
+        </div>
+      </section>
+
+      <section className="mb-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-3 text-sm font-semibold">Tags</h2>
+        <ul className="mb-4 flex flex-wrap gap-2">
+          {bundle.tags.map((tag) => (
+            <li key={tag.id} className="flex items-center gap-2 rounded-full bg-stone-50 py-1 pl-2 pr-3">
+              <input
+                type="color"
+                value={tag.color}
+                onChange={(e) => void patchTag(tag, { color: e.target.value })}
+                className="h-5 w-5 cursor-pointer rounded border-none bg-transparent p-0"
+                aria-label={`Colour for ${tag.name}`}
+              />
+              <span className="text-xs font-medium">{tag.name}</span>
+              <button
+                type="button"
+                onClick={() => void removeTag(tag)}
+                className="text-xs text-red-500"
+                aria-label={`Delete ${tag.name}`}
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+          {bundle.tags.length === 0 && <li className="text-sm text-stone-400">No tags yet.</li>}
+        </ul>
+        <div className="flex items-end gap-2">
+          <div className="flex-1">
+            <Field label="New tag">
+              <input value={tagName} onChange={(e) => setTagName(e.target.value)} className={inputClass} />
+            </Field>
+          </div>
+          <input
+            type="color"
+            value={tagColor}
+            onChange={(e) => setTagColor(e.target.value)}
+            className="mb-3 h-9 w-12 cursor-pointer rounded border border-stone-300 bg-white p-1"
+            aria-label="New tag colour"
+          />
+          <PrimaryButton className="mb-3" onClick={() => void addTag()}>
+            Add tag
+          </PrimaryButton>
+        </div>
+      </section>
+
+      <section className="mb-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-3 text-sm font-semibold">Event settings</h2>
+        <Field label="Name">
+          <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Start date">
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
+          </Field>
+          <Field label="End date">
+            <input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} className={inputClass} />
+          </Field>
+          <Field label="Day starts">
+            <input type="time" step={300} value={dayStart} onChange={(e) => setDayStart(e.target.value)} className={inputClass} />
+          </Field>
+          <Field label="Day ends">
+            <input type="time" step={300} value={dayEnd} onChange={(e) => setDayEnd(e.target.value)} className={inputClass} />
+          </Field>
+        </div>
+        <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-400">
+          Change passwords
+        </p>
+        <p className="mb-3 text-xs text-stone-500">Leave blank to keep the current one.</p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Field label="Viewer">
+            <input value={viewerPassword} onChange={(e) => setViewerPassword(e.target.value)} className={inputClass} />
+          </Field>
+          <Field label="User">
+            <input value={userPassword} onChange={(e) => setUserPassword(e.target.value)} className={inputClass} />
+          </Field>
+          <Field label="Admin">
+            <input value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className={inputClass} />
+          </Field>
+        </div>
+        <PrimaryButton onClick={() => void saveSettings()}>Save settings</PrimaryButton>
+      </section>
+
+      <section className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-1 text-sm font-semibold">Archive</h2>
+        <p className="mb-3 text-xs text-stone-500">
+          An archived event stays readable with the viewer password, but nobody can change anything.
+        </p>
+        {event.archived ? (
+          <SecondaryButton onClick={() => void setArchived(false)}>Un-archive event</SecondaryButton>
+        ) : (
+          <SecondaryButton onClick={() => void setArchived(true)}>Archive event</SecondaryButton>
+        )}
+      </section>
+    </div>
+  );
+}

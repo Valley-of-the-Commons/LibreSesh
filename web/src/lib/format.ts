@@ -1,0 +1,58 @@
+import type { SessionDto } from '@shared/types';
+import { localDate, localMinuteOfDay } from '@shared/time';
+
+const pad = (n: number): string => String(n).padStart(2, '0');
+
+/** 'HH:MM' from minutes since local midnight. */
+export const fmtMin = (minute: number): string =>
+  `${pad(Math.floor(minute / 60) % 24)}:${pad(minute % 60)}`;
+
+export interface Placed {
+  date: string;
+  startMin: number;
+  endMin: number;
+  durMin: number;
+}
+
+/** Where a session sits on the grid, in the event's timezone. */
+export function place(session: SessionDto, timezone: string): Placed {
+  const startsAt = new Date(session.startsAt);
+  const endsAt = new Date(session.endsAt);
+  const date = localDate(startsAt, timezone);
+  const startMin = localMinuteOfDay(startsAt, timezone);
+  const durMin = Math.round((endsAt.getTime() - startsAt.getTime()) / 60000);
+  return { date, startMin, endMin: startMin + durMin, durMin };
+}
+
+/** Day-tab label: "Today"/"Tomorrow"/weekday, plus a short date. `date` and
+ *  `today` are already local to the event, so this is pure string work. */
+export function dayLabel(date: string, today: string): { top: string; sub: string } {
+  const d = new Date(`${date}T12:00:00Z`);
+  const sub = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  if (date === today) return { top: 'Today', sub };
+  const tomorrow = new Date(`${today}T12:00:00Z`);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  if (date === tomorrow.toISOString().slice(0, 10)) return { top: 'Tomorrow', sub };
+  return {
+    top: d.toLocaleDateString(undefined, { weekday: 'short', timeZone: 'UTC' }),
+    sub,
+  };
+}
+
+/** "just now" / "5m ago" / "2h ago" / a date, for contribution timestamps. */
+export function relativeTime(iso: string, now: number = Date.now()): string {
+  const minutes = Math.round((now - new Date(iso).getTime()) / 60000);
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/** Minutes since midnight in the event's timezone, at `instant`. */
+export const nowMinuteOfDay = (timezone: string, instant: Date = new Date()): number =>
+  localMinuteOfDay(instant, timezone);
+
+/** The date `instant` falls on in the event's timezone. */
+export const todayInZone = (timezone: string, instant: Date = new Date()): string =>
+  localDate(instant, timezone);
