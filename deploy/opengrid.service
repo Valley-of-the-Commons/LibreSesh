@@ -1,0 +1,34 @@
+# systemd-native run mode (SPEC §10.4 A).
+#
+#   sudo cp deploy/opengrid.service /etc/systemd/system/
+#   sudo cp deploy/opengrid.env.example /etc/opengrid.env   # then edit it
+#   sudo systemctl enable --now opengrid
+#
+[Unit]
+Description=OpenGrid — (un)conference scheduler
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=opengrid
+Group=opengrid
+WorkingDirectory=/srv/opengrid
+EnvironmentFile=/etc/opengrid.env
+ExecStart=/usr/bin/node server/dist/index.js
+Restart=always
+RestartSec=3
+
+# The SQLite file and its -wal/-shm sidecars live here.
+ReadWritePaths=/srv/opengrid/data
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

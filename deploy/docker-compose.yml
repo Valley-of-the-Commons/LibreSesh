@@ -1,0 +1,45 @@
+# Local prod simulation and the VPS deployment — identical apart from the
+# domain in SITE_ADDRESS (SPEC §10.4).
+#
+#   cd deploy && cp opengrid.env.example .env && $EDITOR .env
+#   docker compose up --build
+#
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_PATH: /data/app.db
+      SERVE_STATIC: 1
+      TRUST_PROXY: 1
+      COOKIE_SECRET: ${COOKIE_SECRET:?set COOKIE_SECRET in deploy/.env}
+      INSTANCE_ADMIN_PASSWORD: ${INSTANCE_ADMIN_PASSWORD:?set INSTANCE_ADMIN_PASSWORD in deploy/.env}
+    volumes:
+      # Exactly one process owns this file. Never scale this service past 1.
+      - ./data:/data
+    expose:
+      - '3000'
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      # Your domain on the VPS; http://localhost keeps it on plain HTTP locally.
+      SITE_ADDRESS: ${SITE_ADDRESS:-http://localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

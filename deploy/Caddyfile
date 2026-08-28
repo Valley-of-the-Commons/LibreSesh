@@ -1,0 +1,20 @@
+# Automatic HTTPS from Let's Encrypt once SITE_ADDRESS is a real domain.
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	reverse_proxy app:3000 {
+		# SSE needs no special config, but the idle/read timeouts must sit well
+		# above the 25s heartbeat or streams get cut (SPEC §10.5).
+		transport http {
+			read_timeout 300s
+			write_timeout 300s
+		}
+		# Stream responses straight through instead of buffering them.
+		flush_interval -1
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
