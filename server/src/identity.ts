@@ -62,6 +62,7 @@ export function identityMiddleware(db: Db, isProd: boolean) {
         display_name: displayName,
         created_at: now,
         last_seen_at: now,
+        ics_token: null,
       };
       res.cookie(COOKIE_NAME, token, {
         httpOnly: true,

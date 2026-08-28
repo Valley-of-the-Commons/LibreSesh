@@ -2,6 +2,7 @@
 
 A simple, open-source scheduling tool for (un)conferences.
 
+Dev port: 3000
 Commit policy: milestones
 Testing policy: tests-with-features
 

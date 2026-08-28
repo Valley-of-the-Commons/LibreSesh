@@ -31,6 +31,8 @@ export interface IdentityRow {
   display_name: string;
   created_at: string;
   last_seen_at: string;
+  /** Capability token for calendar subscription URLs; null until first asked for. */
+  ics_token: string | null;
 }
 
 export interface RoleRow {

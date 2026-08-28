@@ -10,6 +10,7 @@ import type { Db } from './db.js';
 import { errorHandler, notFound } from './errors.js';
 import { identityMiddleware } from './identity.js';
 import { RateLimiter } from './ratelimit.js';
+import { agendaRoutes, calendarRoutes } from './routes/agenda.js';
 import { bundleRoutes } from './routes/bundle.js';
 import { contributionRoutes } from './routes/contributions.js';
 import { eventAuthRoutes } from './routes/eventAuth.js';
@@ -51,6 +52,8 @@ export function createApp(db: Db, config: Config): App {
   event.use(loadEvent(db));
   // Earning a role has to come before requiring one.
   event.use(eventAuthRoutes(ctx));
+  // The calendar feed authenticates by capability token instead of a cookie.
+  event.use(calendarRoutes(ctx));
   event.use(requireRole(db, 'viewer'));
   event.use(bundleRoutes(ctx));
   event.use(streamRoutes(ctx));
@@ -59,6 +62,7 @@ export function createApp(db: Db, config: Config): App {
   event.use(sessionRoutes(ctx));
   event.use(contributionRoutes(ctx));
   event.use(peopleRoutes(ctx));
+  event.use(agendaRoutes(ctx));
   event.use(settingsRoutes(ctx));
   api.use('/e/:slug', event);
 

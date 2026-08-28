@@ -103,6 +103,8 @@ export interface BundleDto {
   tags: TagDto[];
   sessions: SessionDto[];
   people: PersonDto[];
+  /** Sessions this identity has starred for their personal agenda. */
+  starredSessionIds: number[];
   /** sessionId -> count of visible contributions. */
   contributionCounts: Record<number, number>;
 }

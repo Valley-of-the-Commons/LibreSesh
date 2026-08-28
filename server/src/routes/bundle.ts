@@ -79,6 +79,14 @@ export function bundleRoutes(ctx: Ctx): Router {
         ),
       ),
       people: people.map((p) => toPersonDto(p, req.identity.id)),
+      starredSessionIds: ctx.db
+        .prepare<[number, number], { session_id: number }>(
+          `SELECT st.session_id FROM stars st
+             JOIN sessions s ON s.id = st.session_id
+            WHERE st.identity_id = ? AND s.event_id = ? AND s.deleted_at IS NULL`,
+        )
+        .all(req.identity.id, eventId)
+        .map((r) => r.session_id),
       contributionCounts: Object.fromEntries(counts.map((c) => [c.session_id, c.n])),
     };
     res.json(bundle);
