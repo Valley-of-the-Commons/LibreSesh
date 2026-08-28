@@ -164,11 +164,10 @@ For continuous replication instead of nightly snapshots, add
 [Litestream](https://litestream.io) — one extra binary streaming the WAL to
 S3-compatible storage, no code changes.
 
-## Not in v1
+## Roadmap
 
-Dark mode, iCal export, personal "my agenda" starring, session voting, per-room
-QR codes, email, multi-language, image uploads, WebSockets, and per-user
-accounts are all deliberately out of scope.
+Current work and the backlog live in [STATUS.md](STATUS.md); shipped work is in
+[CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

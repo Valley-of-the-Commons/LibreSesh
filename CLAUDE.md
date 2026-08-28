@@ -21,4 +21,4 @@ Testing policy: tests-with-features
 
 ## Current Status
 
-See `_planning/STATUS.md` for current work and `CHANGELOG.md` for completed milestones.
+See `STATUS.md` for current work and `CHANGELOG.md` for completed milestones.

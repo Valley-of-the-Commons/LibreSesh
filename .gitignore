@@ -8,8 +8,6 @@ Thumbs.db
 # Raw session transcripts — host-disk backup only, may contain tool output/secrets
 _planning/transcripts-backup/
 
-# Working status + backlog — private by default
-_planning/STATUS.md
 
 # Claude Code harness + dev container — local only, not shared/published
 .claude/
