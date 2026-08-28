@@ -153,6 +153,16 @@ export const api = {
 
   updateSettings: (slug: string, body: SettingsWrite) =>
     request<EventDto>('PATCH', `/e/${encode(slug)}/settings`, body),
+
+  // Personal agenda. Both calls are idempotent server-side and stay allowed on
+  // archived events — a bookmark is not event content — so there is no SSE echo.
+  starSession: (slug: string, id: number) =>
+    request<void>('PUT', `/e/${encode(slug)}/sessions/${id}/star`),
+  unstarSession: (slug: string, id: number) =>
+    request<void>('DELETE', `/e/${encode(slug)}/sessions/${id}/star`),
+  /** Mints once, then returns the same token on every later call. */
+  calendarToken: (slug: string) =>
+    request<{ token: string }>('POST', `/e/${encode(slug)}/calendar-token`),
 };
 
 export interface SessionWrite {

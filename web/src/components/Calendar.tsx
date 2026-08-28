@@ -95,6 +95,8 @@ export interface CalendarProps {
   sessions: SessionDto[];
   /** Sessions filtered out are dimmed rather than removed (SPEC §7.3). */
   matchedIds: Set<number>;
+  /** Sessions on the current identity's personal agenda — shown, not clickable. */
+  starredIds: Set<number>;
   timezone: string;
   day: string;
   dayStartMin: number;
@@ -112,6 +114,7 @@ export function Calendar({
   tags,
   sessions,
   matchedIds,
+  starredIds,
   timezone,
   day,
   dayStartMin,
@@ -325,6 +328,7 @@ export function Calendar({
             const live = nowMin !== null && nowMin >= startMin && nowMin < endMin;
             const clash = overlaps.has(session.id);
             const dimmed = !matchedIds.has(session.id);
+            const starred = starredIds.has(session.id);
 
             return (
               <div
@@ -335,7 +339,7 @@ export function Calendar({
                 tabIndex={0}
                 aria-label={`${session.title}, ${fmtMin(startMin)} to ${fmtMin(endMin)}${
                   clash ? ', overlaps another session' : ''
-                }`}
+                }${starred ? ', on your agenda' : ''}`}
                 onPointerDown={(e) => startDrag(e, session, startMin, durMin, 'move')}
                 // Draggable blocks open from the drag's mouse-up (so a drag is
                 // not mistaken for a tap); everything else opens on plain click.
@@ -369,6 +373,13 @@ export function Calendar({
                       style={{ background: tagColor.get(id) ?? '#6B7280' }}
                     />
                   ))}
+                  {starred && (
+                    // Display only — the block's own pointer handling is
+                    // drag-sensitive, so starring happens from the detail sheet.
+                    <span className="ml-auto text-xs leading-none text-amber-500" aria-hidden="true">
+                      ★
+                    </span>
+                  )}
                   {clash && (
                     <span
                       title="Overlaps another session in this room"

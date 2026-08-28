@@ -7,10 +7,13 @@ export interface ListViewProps {
   tags: TagDto[];
   sessions: SessionDto[];
   contributionCounts: Record<number, number>;
+  /** Sessions on the current identity's personal agenda. */
+  starredIds: Set<number>;
   timezone: string;
   day: string;
   nowMin: number | null;
   onOpen: (id: number) => void;
+  onToggleStar: (session: SessionDto) => void;
 }
 
 /** Chronological agenda for one day, grouped by start time (SPEC §7.2). */
@@ -19,10 +22,12 @@ export function ListView({
   tags,
   sessions,
   contributionCounts,
+  starredIds,
   timezone,
   day,
   nowMin,
   onOpen,
+  onToggleStar,
 }: ListViewProps) {
   const roomName = useMemo(() => new Map(rooms.map((r) => [r.id, r.name])), [rooms]);
   const tagById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
@@ -64,12 +69,21 @@ export function ListView({
             {group.items.map(({ session, startMin, endMin }) => {
               const live = nowMin !== null && nowMin >= startMin && nowMin < endMin;
               const count = contributionCounts[session.id] ?? 0;
+              const starred = starredIds.has(session.id);
               return (
-                <button
+                // A div, not a button, so the star can be a real nested button.
+                <div
                   key={session.id}
-                  type="button"
+                  role="button"
+                  tabIndex={0}
                   onClick={() => onOpen(session.id)}
-                  className={`block w-full rounded-xl border bg-white p-3 text-left shadow-sm hover:shadow ${
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onOpen(session.id);
+                    }
+                  }}
+                  className={`block w-full cursor-pointer rounded-xl border bg-white p-3 text-left shadow-sm hover:shadow ${
                     session.type === 'open' ? 'border-dashed border-emerald-400' : 'border-stone-200'
                   } ${live ? 'ring-2 ring-stone-900/10' : ''}`}
                 >
@@ -86,6 +100,21 @@ export function ListView({
                         now
                       </span>
                     )}
+                    <button
+                      type="button"
+                      aria-label={starred ? `Unstar ${session.title}` : `Star ${session.title}`}
+                      aria-pressed={starred}
+                      onClick={(e) => {
+                        // Do not let the tap fall through and open the session.
+                        e.stopPropagation();
+                        onToggleStar(session);
+                      }}
+                      className={`-m-1 shrink-0 rounded-full p-1 text-base leading-none ${
+                        starred ? 'text-amber-500' : 'text-stone-300 hover:text-amber-500'
+                      }`}
+                    >
+                      <span aria-hidden="true">{starred ? '★' : '☆'}</span>
+                    </button>
                   </div>
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     {session.tagIds.map((id) => {
@@ -112,7 +141,7 @@ export function ListView({
                       </span>
                     )}
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>

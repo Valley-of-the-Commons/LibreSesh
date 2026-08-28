@@ -29,6 +29,7 @@ type Action =
   | { kind: 'error'; message: string }
   | { kind: 'connected'; connected: boolean }
   | { kind: 'contributions'; sessionId: number; items: ContributionDto[] }
+  | { kind: 'setStarred'; sessionId: number; starred: boolean }
   | { kind: 'change'; change: ChangeEvent };
 
 const initial: State = {
@@ -213,6 +214,22 @@ function reducer(state: State, action: Action): State {
         ...state,
         contributions: { ...state.contributions, [action.sessionId]: action.items },
       };
+    // Stars are private, so there is no server change event — local state is the
+    // source of truth and callers flip it optimistically.
+    case 'setStarred': {
+      if (!state.bundle) return state;
+      const has = state.bundle.starredSessionIds.includes(action.sessionId);
+      if (has === action.starred) return state;
+      return {
+        ...state,
+        bundle: {
+          ...state.bundle,
+          starredSessionIds: action.starred
+            ? [...state.bundle.starredSessionIds, action.sessionId]
+            : state.bundle.starredSessionIds.filter((id) => id !== action.sessionId),
+        },
+      };
+    }
     case 'change':
       return applyChange(state, action.change);
     default:
@@ -224,6 +241,8 @@ export interface EventData extends State {
   reload: () => Promise<void>;
   loadContributions: (sessionId: number) => Promise<void>;
   apply: (change: ChangeEvent) => void;
+  /** Optimistically set a session's starred state in local bundle state. */
+  setStarred: (sessionId: number, starred: boolean) => void;
 }
 
 /**
@@ -289,8 +308,14 @@ export function useEventData(slug: string): EventData {
 
   const apply = useCallback((change: ChangeEvent) => dispatch({ kind: 'change', change }), []);
 
+  const setStarred = useCallback(
+    (sessionId: number, starred: boolean) =>
+      dispatch({ kind: 'setStarred', sessionId, starred }),
+    [],
+  );
+
   return useMemo(
-    () => ({ ...state, reload, loadContributions, apply }),
-    [state, reload, loadContributions, apply],
+    () => ({ ...state, reload, loadContributions, apply, setStarred }),
+    [state, reload, loadContributions, apply, setStarred],
   );
 }

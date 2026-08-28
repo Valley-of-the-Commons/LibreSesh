@@ -31,9 +31,12 @@ export interface DetailSheetProps {
   timezone: string;
   canEdit: boolean;
   archived: boolean;
+  /** Whether this session is on the current identity's personal agenda. */
+  starred: boolean;
   /** The event's word for the middle role, used in the upgrade prompt. */
   userLabel: string;
   onClose: () => void;
+  onToggleStar: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onAdd: (kind: ContributionKind, body: string, url?: string) => Promise<void>;
@@ -53,8 +56,10 @@ export function DetailSheet({
   timezone,
   canEdit,
   archived,
+  starred,
   userLabel,
   onClose,
+  onToggleStar,
   onEdit,
   onDelete,
   onAdd,
@@ -153,6 +158,23 @@ export function DetailSheet({
             ✕
           </button>
         </div>
+
+        {/* The primary way to star from the grid — the calendar blocks stay
+            display-only because their pointer handling is drag-sensitive. */}
+        <button
+          type="button"
+          onClick={onToggleStar}
+          aria-label={starred ? `Unstar ${session.title}` : `Star ${session.title}`}
+          aria-pressed={starred}
+          className={`mb-4 flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+            starred
+              ? 'border-amber-300 bg-amber-50 text-amber-700'
+              : 'border-stone-300 bg-white text-stone-600 hover:border-stone-400'
+          }`}
+        >
+          <span aria-hidden="true">{starred ? '★' : '☆'}</span>
+          {starred ? 'On my agenda' : 'Add to my agenda'}
+        </button>
 
         {description && (
           <div

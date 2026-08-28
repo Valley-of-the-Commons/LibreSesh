@@ -11,6 +11,8 @@ export interface Filters {
   q: string;
   /** "happening now or next" quick filter. */
   soon: boolean;
+  /** Show only sessions the current identity has starred. */
+  mine: boolean;
 }
 
 export interface FilterApi extends Filters {
@@ -46,6 +48,7 @@ export function useFilters(): FilterApi {
       tags: parseIds(params.get('tag')),
       q: params.get('q') ?? '',
       soon: params.get('soon') === '1',
+      mine: params.get('mine') === '1',
     };
   }, [params]);
 
@@ -64,6 +67,7 @@ export function useFilters(): FilterApi {
           if ('tags' in patch) write('tag', (patch.tags ?? []).join(','));
           if ('q' in patch) write('q', patch.q ?? null);
           if ('soon' in patch) write('soon', patch.soon ? '1' : null);
+          if ('mine' in patch) write('mine', patch.mine ? '1' : null);
           return next;
         },
         { replace: true },
@@ -76,11 +80,15 @@ export function useFilters(): FilterApi {
     () => ({
       ...filters,
       active:
-        filters.rooms.length > 0 || filters.tags.length > 0 || filters.q !== '' || filters.soon,
+        filters.rooms.length > 0 ||
+        filters.tags.length > 0 ||
+        filters.q !== '' ||
+        filters.soon ||
+        filters.mine,
       set,
       toggleRoom: (id: number) => set({ rooms: toggle(filters.rooms, id) }),
       toggleTag: (id: number) => set({ tags: toggle(filters.tags, id) }),
-      clear: () => set({ rooms: [], tags: [], q: '', soon: false }),
+      clear: () => set({ rooms: [], tags: [], q: '', soon: false, mine: false }),
     }),
     [filters, set],
   );

@@ -14,7 +14,17 @@ import { IdentityPanel } from '../components/IdentityPanel';
 import { ListView } from '../components/ListView';
 import { SessionModal } from '../components/SessionModal';
 import { Tour, tourSeen, type TourStep } from '../components/Tour';
-import { Chip, EmptyState, RoleBadge, Spinner, useToast } from '../components/ui';
+import {
+  Chip,
+  EmptyState,
+  Modal,
+  PrimaryButton,
+  RoleBadge,
+  SecondaryButton,
+  Spinner,
+  inputClass,
+  useToast,
+} from '../components/ui';
 
 const NOW_TICK_MS = 30_000;
 
@@ -29,6 +39,7 @@ export function SchedulePage() {
   const [identityOpen, setIdentityOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   const [arrange, setArrange] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [editing, setEditing] = useState<{ session?: SessionDto } | null>(null);
   const [saving, setSaving] = useState(false);
   // The wall clock is state, not a counter, so everything derived from "now"
@@ -85,6 +96,12 @@ export function SchedulePage() {
     [days, today],
   );
 
+  /** The identity's starred session ids, as a set for cheap lookups. */
+  const starredIds = useMemo(
+    () => new Set(bundle?.starredSessionIds ?? []),
+    [bundle?.starredSessionIds],
+  );
+
   /** Sessions on the current day that pass the filter chips (SPEC §7.3). */
   const matchedIds = useMemo(() => {
     if (!bundle) return new Set<number>();
@@ -95,6 +112,7 @@ export function SchedulePage() {
         .filter((s) => {
           if (filters.rooms.length && !filters.rooms.includes(s.roomId)) return false;
           if (filters.tags.length && !s.tagIds.some((t) => filters.tags.includes(t))) return false;
+          if (filters.mine && !starredIds.has(s.id)) return false;
           if (q && !`${s.title} ${s.speaker} ${s.description}`.toLowerCase().includes(q)) {
             return false;
           }
@@ -107,7 +125,17 @@ export function SchedulePage() {
         })
         .map((s) => s.id),
     );
-  }, [bundle, filters.rooms, filters.tags, filters.q, filters.soon, nowMin, timezone]);
+  }, [
+    bundle,
+    filters.rooms,
+    filters.tags,
+    filters.q,
+    filters.soon,
+    filters.mine,
+    starredIds,
+    nowMin,
+    timezone,
+  ]);
 
   const daySessions = useMemo(
     () => (bundle ? bundle.sessions.filter((s) => place(s, timezone).date === day) : []),
@@ -150,6 +178,23 @@ export function SchedulePage() {
       toast.show(message);
     },
     [toast],
+  );
+
+  /** Optimistic star toggle; stars are private so there is no SSE echo to wait
+   *  for. Revert and toast if the server rejects it. */
+  const toggleStar = useCallback(
+    async (session: SessionDto) => {
+      const wasStarred = bundle?.starredSessionIds.includes(session.id) ?? false;
+      data.setStarred(session.id, !wasStarred);
+      try {
+        if (wasStarred) await api.unstarSession(slug, session.id);
+        else await api.starSession(slug, session.id);
+      } catch (err) {
+        data.setStarred(session.id, wasStarred);
+        reportError(err);
+      }
+    },
+    [bundle, data, reportError, slug],
   );
 
   const jumpToNow = useCallback(() => {
@@ -460,6 +505,13 @@ export function SchedulePage() {
           </button>
 
           <div className="ml-auto flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setExportOpen(true)}
+              className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-medium text-stone-600 hover:border-stone-400"
+            >
+              Calendar
+            </button>
             {canArrange && (
               <button
                 type="button"
@@ -499,6 +551,10 @@ export function SchedulePage() {
             />
             <Chip active={filters.soon} onClick={() => filters.set({ soon: !filters.soon })}>
               Now / next
+            </Chip>
+            <Chip active={filters.mine} onClick={() => filters.set({ mine: !filters.mine })}>
+              <span className={filters.mine ? '' : 'text-amber-500'}>★</span> My agenda (
+              {starredIds.size})
             </Chip>
             <span className="mx-1 h-4 w-px shrink-0 bg-stone-300" />
             {bundle.rooms.map((r) => (
@@ -553,6 +609,7 @@ export function SchedulePage() {
             tags={bundle.tags}
             sessions={daySessions}
             matchedIds={matchedIds}
+            starredIds={starredIds}
             timezone={timezone}
             day={day}
             dayStartMin={event.dayStartMin}
@@ -569,10 +626,12 @@ export function SchedulePage() {
             tags={bundle.tags}
             sessions={visibleSessions}
             contributionCounts={bundle.contributionCounts}
+            starredIds={starredIds}
             timezone={timezone}
             day={day}
             nowMin={nowMin}
             onOpen={openSession}
+            onToggleStar={(s) => void toggleStar(s)}
           />
         )}
 
@@ -604,8 +663,10 @@ export function SchedulePage() {
           timezone={timezone}
           canEdit={canEdit(selected)}
           archived={event.archived}
+          starred={starredIds.has(selected.id)}
           userLabel={event.userRoleLabel}
           onClose={closeSession}
+          onToggleStar={() => void toggleStar(selected)}
           onEdit={() => setEditing({ session: selected })}
           onDelete={() => void deleteSession(selected)}
           onAdd={addContribution}
@@ -667,7 +728,135 @@ export function SchedulePage() {
         </div>
       )}
 
+      {exportOpen && (
+        <CalendarExportModal
+          slug={slug}
+          starredCount={starredIds.size}
+          onClose={() => setExportOpen(false)}
+        />
+      )}
+
       {tourOpen && <Tour steps={tourSteps} eventKey={slug} onClose={closeTour} />}
     </div>
+  );
+}
+
+/** Download a one-off .ics, or mint a personal subscription link for the feed
+ *  that follows your starred agenda. */
+function CalendarExportModal({
+  slug,
+  starredCount,
+  onClose,
+}: {
+  slug: string;
+  starredCount: number;
+  onClose: () => void;
+}) {
+  const toast = useToast();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [subUrl, setSubUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const base = `/api/e/${encodeURIComponent(slug)}/calendar.ics`;
+
+  // Both scopes are worth subscribing to: the whole programme, or only what
+  // you starred. The token is the same either way.
+  const subscribe = useCallback(async (mine: boolean) => {
+    setLoading(true);
+    try {
+      const { token } = await api.calendarToken(slug);
+      setSubUrl(
+        `${window.location.origin}${base}?token=${encodeURIComponent(token)}${
+          mine ? '&mine=1' : ''
+        }`,
+      );
+    } catch (err) {
+      toast.show(
+        err instanceof ApiError ? err.message : 'Could not create a subscription link',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [base, slug, toast]);
+
+  const copy = useCallback(async () => {
+    if (!subUrl) return;
+    try {
+      // Rejects on insecure origins — fall back to a manual selection.
+      await navigator.clipboard.writeText(subUrl);
+      toast.show('Link copied');
+    } catch {
+      inputRef.current?.select();
+      toast.show('Press Ctrl/Cmd+C to copy the selected link');
+    }
+  }, [subUrl, toast]);
+
+  return (
+    <Modal title="Calendar" onClose={onClose}>
+      <div className="space-y-4 text-sm">
+        <div>
+          <p className="font-medium text-stone-800">Download</p>
+          <p className="mb-2 text-xs text-stone-500">
+            A one-off snapshot you can import into any calendar app.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={base}
+              download
+              className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:border-stone-500"
+            >
+              Whole schedule
+            </a>
+            {starredCount > 0 ? (
+              <a
+                href={`${base}?mine=1`}
+                download
+                className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-semibold text-stone-700 hover:border-stone-500"
+              >
+                My agenda ({starredCount})
+              </a>
+            ) : (
+              <span className="rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-xs font-semibold text-stone-400">
+                My agenda — star some sessions first
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="border-t border-stone-200 pt-4">
+          <p className="font-medium text-stone-800">Subscribe</p>
+          <p className="mb-2 text-xs text-stone-500">
+            A live link your calendar app refreshes on its own. It is personal to you —
+            anyone who has it can read the schedule.
+          </p>
+          {subUrl ? (
+            <div className="flex gap-2">
+              <input
+                ref={inputRef}
+                readOnly
+                value={subUrl}
+                aria-label="Personal calendar subscription link"
+                onFocus={(e) => e.currentTarget.select()}
+                className={inputClass}
+              />
+              <SecondaryButton className="shrink-0" onClick={() => void copy()}>
+                Copy
+              </SecondaryButton>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              <PrimaryButton onClick={() => void subscribe(false)} disabled={loading}>
+                {loading ? 'Creating…' : 'Link to the whole schedule'}
+              </PrimaryButton>
+              <SecondaryButton
+                onClick={() => void subscribe(true)}
+                disabled={loading || starredCount === 0}
+              >
+                Link to my agenda
+              </SecondaryButton>
+            </div>
+          )}
+        </div>
+      </div>
+    </Modal>
   );
 }
