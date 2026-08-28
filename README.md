@@ -37,6 +37,8 @@ scripts/           seed.ts, create-event.ts
 tests/             Vitest suites
 deploy/            Dockerfile, compose, Caddyfile, systemd unit, backup script
 design/mockup.jsx  approved UI reference — never imported
+ARCHITECTURE.md    how it fits together, and the threat model
+STATUS.md          current work and the backlog
 ```
 
 ## Setup
@@ -44,11 +46,15 @@ design/mockup.jsx  approved UI reference — never imported
 ```sh
 npm install
 npm run seed     # creates the "DemoConf 2026" demo event
-npm run dev      # API on :3000, Vite on :5173 (proxying /api)
+npm run dev      # app on :3000, API behind it on :3001
 ```
 
-Open <http://localhost:5173>. The demo passwords are `viewer2026`, `user2026`
+Open <http://localhost:3000>. The demo passwords are `viewer2026`, `user2026`
 and `admin2026`; the instance password defaults to `dev-instance-password`.
+
+In development the Vite dev server owns port 3000 and proxies `/api` to the API
+on 3001, so the port you open is the same in dev and in production — where a
+single process serves both.
 
 ### Native module note
 
@@ -84,9 +90,14 @@ entering a lower one downgrades it.
 | ------------------------------------------------- | :----: | :--: | :---: |
 | View the schedule and contributions                |   ✓    |  ✓   |   ✓   |
 | Rename yourself                                    |   ✓    |  ✓   |   ✓   |
+| Star sessions, build a personal agenda             |   ✓    |  ✓   |   ✓   |
+| Edit your own speaker profile                      |   ✓    |  ✓   |   ✓   |
+| Register interest in a pitched session             |   ✓    |  ✓   |   ✓   |
 | Add notes, links, questions                        |        |  ✓   |   ✓   |
 | Create and edit your own sessions in open tracks   |        |  ✓   |   ✓   |
+| Pitch a session to the proposal board              |        |  ✓   |   ✓   |
 | Full CRUD on sessions, rooms, tags; moderation     |        |      |   ✓   |
+| Place a pitch on the grid; restore deleted items   |        |      |   ✓   |
 | Change passwords, edit settings, archive           |        |      |   ✓   |
 
 Viewing an event requires the viewer password — schedules are never public.
