@@ -46,6 +46,17 @@ const upsert = <T extends { id: number }>(list: T[], item: T): T[] => {
   return next;
 };
 
+/**
+ * The bundle endpoint returns rooms by sort order and tags by name. Patching an
+ * entity in place would quietly break that ordering — and room order *is* the
+ * calendar's column order — so re-sort after every upsert.
+ */
+const byRoomOrder = (rooms: RoomDto[]): RoomDto[] =>
+  rooms.slice().sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+
+const byTagName = (tags: TagDto[]): TagDto[] =>
+  tags.slice().sort((a, b) => a.name.localeCompare(b.name));
+
 const bumpCount = (counts: Record<number, number>, sessionId: number, by: number) => ({
   ...counts,
   [sessionId]: Math.max(0, (counts[sessionId] ?? 0) + by),
@@ -125,7 +136,10 @@ function applyChange(state: State, change: ChangeEvent): State {
     case 'room.updated':
       return {
         ...state,
-        bundle: { ...bundle, rooms: upsert(bundle.rooms, change.entity as RoomDto) },
+        bundle: {
+          ...bundle,
+          rooms: byRoomOrder(upsert(bundle.rooms, change.entity as RoomDto)),
+        },
       };
     case 'room.deleted': {
       const { id } = change.entity as { id: number };
@@ -133,7 +147,10 @@ function applyChange(state: State, change: ChangeEvent): State {
     }
     case 'tag.created':
     case 'tag.updated':
-      return { ...state, bundle: { ...bundle, tags: upsert(bundle.tags, change.entity as TagDto) } };
+      return {
+        ...state,
+        bundle: { ...bundle, tags: byTagName(upsert(bundle.tags, change.entity as TagDto)) },
+      };
     case 'tag.deleted': {
       const { id } = change.entity as { id: number };
       return {

@@ -33,6 +33,7 @@ export function AdminPage() {
   const [roomName, setRoomName] = useState('');
   const [roomCapacity, setRoomCapacity] = useState('');
   const [roomOpen, setRoomOpen] = useState(false);
+  const [reordering, setReordering] = useState(false);
   const [tagName, setTagName] = useState('');
   const [tagColor, setTagColor] = useState(DEFAULT_TAG_COLOR);
 
@@ -127,6 +128,33 @@ export function AdminPage() {
       data.apply({ type: 'room.updated', entity: await api.updateRoom(slug, room.id, patch) });
     } catch (err) {
       fail(err);
+    }
+  };
+
+  // Rooms arrive already sorted, so reordering is a matter of array position.
+  // Historic rows can share a sort_order (everything seeded before this feature
+  // is 0), so swapping the two numbers would be a no-op — instead renumber the
+  // whole list and PATCH only the rooms whose number actually moved, which
+  // makes the first reorder self-healing.
+  const moveRoom = async (index: number, direction: -1 | 1) => {
+    const target = index + direction;
+    if (reordering || target < 0 || target >= bundle.rooms.length) return;
+    const ordered = bundle.rooms.slice();
+    [ordered[index], ordered[target]] = [ordered[target], ordered[index]];
+    setReordering(true);
+    try {
+      for (let i = 0; i < ordered.length; i += 1) {
+        const room = ordered[i];
+        if (room.sortOrder === i) continue;
+        data.apply({
+          type: 'room.updated',
+          entity: await api.updateRoom(slug, room.id, { sortOrder: i }),
+        });
+      }
+    } catch (err) {
+      fail(err);
+    } finally {
+      setReordering(false);
     }
   };
 
@@ -260,8 +288,28 @@ export function AdminPage() {
       <section className="mb-6 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
         <h2 className="mb-3 text-sm font-semibold">Rooms</h2>
         <ul className="mb-4 space-y-2">
-          {bundle.rooms.map((room) => (
+          {bundle.rooms.map((room, index) => (
             <li key={room.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 px-3 py-2">
+              <div className="flex text-xs text-stone-500">
+                <button
+                  type="button"
+                  onClick={() => void moveRoom(index, -1)}
+                  disabled={index === 0 || reordering}
+                  aria-label={`Move ${room.name} up`}
+                  className="rounded px-1 hover:bg-stone-200 disabled:opacity-30 disabled:hover:bg-transparent"
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void moveRoom(index, 1)}
+                  disabled={index === bundle.rooms.length - 1 || reordering}
+                  aria-label={`Move ${room.name} down`}
+                  className="rounded px-1 hover:bg-stone-200 disabled:opacity-30 disabled:hover:bg-transparent"
+                >
+                  ↓
+                </button>
+              </div>
               <input
                 defaultValue={room.name}
                 onBlur={(e) =>
