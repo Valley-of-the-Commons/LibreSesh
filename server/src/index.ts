@@ -8,7 +8,7 @@ const { express: app, ctx } = createApp(db, config);
 
 // 0.0.0.0 so the port is reachable from outside a container.
 const server = app.listen(config.port, '0.0.0.0', () => {
-  console.log(`commons-schedule listening on http://0.0.0.0:${config.port}`);
+  console.log(`libresesh listening on http://0.0.0.0:${config.port}`);
   console.log(`database: ${config.databasePath}`);
 });
 

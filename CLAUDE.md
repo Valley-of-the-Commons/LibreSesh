@@ -1,4 +1,4 @@
-# commons-schedule
+# LibreSesh
 
 A simple, open-source scheduling tool for (un)conferences.
 

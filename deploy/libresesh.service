@@ -1,26 +1,26 @@
 # systemd-native run mode (SPEC §10.4 A).
 #
-#   sudo cp deploy/opengrid.service /etc/systemd/system/
-#   sudo cp deploy/opengrid.env.example /etc/opengrid.env   # then edit it
-#   sudo systemctl enable --now opengrid
+#   sudo cp deploy/libresesh.service /etc/systemd/system/
+#   sudo cp deploy/libresesh.env.example /etc/libresesh.env   # then edit it
+#   sudo systemctl enable --now libresesh
 #
 [Unit]
-Description=OpenGrid — (un)conference scheduler
+Description=LibreSesh — (un)conference scheduler
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=opengrid
-Group=opengrid
-WorkingDirectory=/srv/opengrid
-EnvironmentFile=/etc/opengrid.env
+User=libresesh
+Group=libresesh
+WorkingDirectory=/srv/libresesh
+EnvironmentFile=/etc/libresesh.env
 ExecStart=/usr/bin/node server/dist/index.js
 Restart=always
 RestartSec=3
 
 # The SQLite file and its -wal/-shm sidecars live here.
-ReadWritePaths=/srv/opengrid/data
+ReadWritePaths=/srv/libresesh/data
 
 NoNewPrivileges=true
 PrivateTmp=true

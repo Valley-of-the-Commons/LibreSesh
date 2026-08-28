@@ -20,7 +20,7 @@ export interface Harness {
 }
 
 export function makeHarness(overrides: Partial<Config> = {}): Harness {
-  const dir = mkdtempSync(join(tmpdir(), 'opengrid-test-'));
+  const dir = mkdtempSync(join(tmpdir(), 'libresesh-test-'));
   const databasePath = join(dir, 'test.db');
   const db = openDb(databasePath);
   const config: Config = {

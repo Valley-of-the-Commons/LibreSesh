@@ -1,7 +1,7 @@
 # Local prod simulation and the VPS deployment — identical apart from the
 # domain in SITE_ADDRESS (SPEC §10.4).
 #
-#   cd deploy && cp opengrid.env.example .env && $EDITOR .env
+#   cd deploy && cp libresesh.env.example .env && $EDITOR .env
 #   docker compose up --build
 #
 services:

@@ -15,7 +15,7 @@ export interface TourStep {
   body: string;
 }
 
-const STORAGE_KEY = 'opengrid.tour.v1';
+const STORAGE_KEY = 'libresesh.tour.v1';
 
 const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v));
 

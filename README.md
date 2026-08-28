@@ -1,4 +1,4 @@
-# commons-schedule — OpenGrid
+# LibreSesh
 
 A simple, open-source scheduling tool for conferences and unconferences.
 
@@ -123,7 +123,7 @@ swap as a safety net and keep a few GB of disk free.
 
 ```sh
 cd deploy
-cp opengrid.env.example .env    # set COOKIE_SECRET, INSTANCE_ADMIN_PASSWORD, SITE_ADDRESS
+cp libresesh.env.example .env    # set COOKIE_SECRET, INSTANCE_ADMIN_PASSWORD, SITE_ADDRESS
 docker compose up --build
 ```
 
@@ -133,13 +133,13 @@ rebuilds. On the VPS the only change is `SITE_ADDRESS`.
 ### systemd
 
 ```sh
-sudo useradd --system --home /srv/opengrid opengrid
-sudo rsync -a --exclude node_modules ./ /srv/opengrid/
-cd /srv/opengrid && sudo -u opengrid npm ci --ignore-scripts=false && sudo -u opengrid npm run build
+sudo useradd --system --home /srv/libresesh libresesh
+sudo rsync -a --exclude node_modules ./ /srv/libresesh/
+cd /srv/libresesh && sudo -u libresesh npm ci --ignore-scripts=false && sudo -u libresesh npm run build
 
-sudo cp deploy/opengrid.service /etc/systemd/system/
-sudo cp deploy/opengrid.env.example /etc/opengrid.env   # then edit it
-sudo systemctl enable --now opengrid
+sudo cp deploy/libresesh.service /etc/systemd/system/
+sudo cp deploy/libresesh.env.example /etc/libresesh.env   # then edit it
+sudo systemctl enable --now libresesh
 ```
 
 Install Caddy from its own package and point it at `localhost:3000`. Keep the
@@ -157,7 +157,7 @@ sqlite3 "$DATABASE_PATH" "VACUUM INTO '/backups/app-$(date +%F).db'"
 `deploy/backup.sh` wraps that with 14-day retention — run it nightly from cron:
 
 ```
-0 3 * * *  /srv/opengrid/deploy/backup.sh >> /var/log/opengrid-backup.log 2>&1
+0 3 * * *  /srv/libresesh/deploy/backup.sh >> /var/log/libresesh-backup.log 2>&1
 ```
 
 For continuous replication instead of nightly snapshots, add

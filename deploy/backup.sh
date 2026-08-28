@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Nightly backup. VACUUM INTO is safe against a live WAL database.
 #
-#   0 3 * * *  /srv/opengrid/deploy/backup.sh >> /var/log/opengrid-backup.log 2>&1
+#   0 3 * * *  /srv/libresesh/deploy/backup.sh >> /var/log/libresesh-backup.log 2>&1
 #
 set -euo pipefail
 
-DATABASE_PATH="${DATABASE_PATH:-/srv/opengrid/data/app.db}"
-BACKUP_DIR="${BACKUP_DIR:-/srv/opengrid/backups}"
+DATABASE_PATH="${DATABASE_PATH:-/srv/libresesh/data/app.db}"
+BACKUP_DIR="${BACKUP_DIR:-/srv/libresesh/backups}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
 
 mkdir -p "$BACKUP_DIR"

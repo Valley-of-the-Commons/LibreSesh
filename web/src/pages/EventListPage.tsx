@@ -30,10 +30,10 @@ export function EventListPage() {
     <div className="mx-auto max-w-2xl px-4 py-10">
       <header className="mb-6 flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-md bg-stone-900 text-sm font-bold text-white">
-          O
+          L
         </div>
         <div>
-          <h1 className="text-lg font-semibold tracking-tight">OpenGrid</h1>
+          <h1 className="text-lg font-semibold tracking-tight">LibreSesh</h1>
           <p className="text-xs text-stone-500">Live schedules for conferences and unconferences.</p>
         </div>
         <Link

@@ -1,8 +1,8 @@
 {
-  "name": "commons-schedule",
+  "name": "libresesh",
   "version": "0.1.0",
   "private": true,
-  "description": "OpenGrid \u2014 a lightweight (un)conference scheduler",
+  "description": "LibreSesh \u2014 a lightweight (un)conference scheduler",
   "license": "MIT",
   "type": "module",
   "engines": {
