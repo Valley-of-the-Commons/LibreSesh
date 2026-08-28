@@ -80,6 +80,29 @@ export function overlappingIds(
   return out;
 }
 
+/**
+ * Pairs of sessions that overlap in time, room ignored — the signal that a
+ * person cannot attend both. Strict overlap, so back-to-back is fine. Separate
+ * from `overlappingIds`, which is a per-room double-booking check.
+ */
+export function timeClashPairs(
+  items: { session: SessionDto; startMin: number; endMin: number; date: string }[],
+): [SessionDto, SessionDto][] {
+  const sorted = items
+    .slice()
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.startMin - b.startMin));
+  const out: [SessionDto, SessionDto][] = [];
+  for (let i = 0; i < sorted.length; i += 1) {
+    for (let j = i + 1; j < sorted.length; j += 1) {
+      const a = sorted[i];
+      const b = sorted[j];
+      if (a.date !== b.date || b.startMin >= a.endMin) break;
+      if (a.startMin < b.endMin && b.startMin < a.endMin) out.push([a.session, b.session]);
+    }
+  }
+  return out;
+}
+
 interface DragState {
   id: number;
   mode: 'move' | 'resize';
@@ -97,6 +120,8 @@ export interface CalendarProps {
   matchedIds: Set<number>;
   /** Sessions on the current identity's personal agenda — shown, not clickable. */
   starredIds: Set<number>;
+  /** sessionId -> how many people starred it, across everyone. */
+  starCounts: Record<number, number>;
   timezone: string;
   day: string;
   dayStartMin: number;
@@ -115,6 +140,7 @@ export function Calendar({
   sessions,
   matchedIds,
   starredIds,
+  starCounts,
   timezone,
   day,
   dayStartMin,
@@ -329,6 +355,7 @@ export function Calendar({
             const clash = overlaps.has(session.id);
             const dimmed = !matchedIds.has(session.id);
             const starred = starredIds.has(session.id);
+            const starCount = starCounts[session.id] ?? 0;
 
             return (
               <div
@@ -339,7 +366,9 @@ export function Calendar({
                 tabIndex={0}
                 aria-label={`${session.title}, ${fmtMin(startMin)} to ${fmtMin(endMin)}${
                   clash ? ', overlaps another session' : ''
-                }${starred ? ', on your agenda' : ''}`}
+                }${starred ? ', on your agenda' : ''}${
+                  starCount > 0 ? `, starred by ${starCount}` : ''
+                }`}
                 onPointerDown={(e) => startDrag(e, session, startMin, durMin, 'move')}
                 // Draggable blocks open from the drag's mouse-up (so a drag is
                 // not mistaken for a tap); everything else opens on plain click.
@@ -378,6 +407,16 @@ export function Calendar({
                     // drag-sensitive, so starring happens from the detail sheet.
                     <span className="ml-auto text-xs leading-none text-amber-500 dark:text-amber-400" aria-hidden="true">
                       ★
+                    </span>
+                  )}
+                  {starCount > 0 && (
+                    // Global interest count; announced via the block's aria-label.
+                    <span
+                      className={`${starred ? '' : 'ml-auto '}text-xs leading-none text-stone-400 dark:text-stone-500`}
+                      aria-hidden="true"
+                    >
+                      {starred ? '' : '★ '}
+                      {starCount}
                     </span>
                   )}
                   {clash && (

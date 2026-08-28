@@ -9,6 +9,10 @@ export interface ListViewProps {
   contributionCounts: Record<number, number>;
   /** Sessions on the current identity's personal agenda. */
   starredIds: Set<number>;
+  /** sessionId -> how many people starred it, across everyone. */
+  starCounts: Record<number, number>;
+  /** Starred sessions that overlap another starred session in time. */
+  clashingIds: Set<number>;
   timezone: string;
   day: string;
   nowMin: number | null;
@@ -23,13 +27,15 @@ export function ListView({
   sessions,
   contributionCounts,
   starredIds,
+  starCounts,
+  clashingIds,
   timezone,
   day,
   nowMin,
   onOpen,
   onToggleStar,
 }: ListViewProps) {
-  const roomName = useMemo(() => new Map(rooms.map((r) => [r.id, r.name])), [rooms]);
+  const roomById = useMemo(() => new Map(rooms.map((r) => [r.id, r])), [rooms]);
   const tagById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
 
   const groups = useMemo(() => {
@@ -70,6 +76,11 @@ export function ListView({
               const live = nowMin !== null && nowMin >= startMin && nowMin < endMin;
               const count = contributionCounts[session.id] ?? 0;
               const starred = starredIds.has(session.id);
+              const stars = starCounts[session.id] ?? 0;
+              const room = roomById.get(session.roomId);
+              // The signal an organiser acts on: more interest than seats.
+              const overCapacity = room?.capacity != null && stars > room.capacity;
+              const clashes = clashingIds.has(session.id);
               return (
                 // A div, not a button, so the star can be a real nested button.
                 <div
@@ -91,7 +102,7 @@ export function ListView({
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold">{session.title}</div>
                       <div className="mt-0.5 truncate text-xs text-stone-500 dark:text-stone-400">
-                        {fmtMin(startMin)}–{fmtMin(endMin)} · {roomName.get(session.roomId) ?? '—'}
+                        {fmtMin(startMin)}–{fmtMin(endMin)} · {room?.name ?? '—'}
                         {session.speaker && ` · ${session.speaker}`}
                       </div>
                     </div>
@@ -135,9 +146,32 @@ export function ListView({
                         open
                       </span>
                     )}
-                    {count > 0 && (
-                      <span className="ml-auto text-xs text-stone-400 dark:text-stone-500">
-                        {count} contribution{count > 1 ? 's' : ''}
+                    {clashes && (
+                      <span className="rounded-full bg-amber-100 dark:bg-amber-950/60 px-2 py-0.5 text-xs font-medium text-amber-800 dark:text-amber-300">
+                        clashes
+                      </span>
+                    )}
+                    {(stars > 0 || count > 0) && (
+                      <span className="ml-auto flex items-center gap-2 text-xs">
+                        {stars > 0 && (
+                          <span
+                            className={
+                              overCapacity
+                                ? 'font-medium text-amber-700 dark:text-amber-400'
+                                : 'text-stone-400 dark:text-stone-500'
+                            }
+                            aria-label={`Starred by ${stars}${
+                              overCapacity ? ', more than the room holds' : ''
+                            }`}
+                          >
+                            <span aria-hidden="true">★</span> {stars}
+                          </span>
+                        )}
+                        {count > 0 && (
+                          <span className="text-stone-400 dark:text-stone-500">
+                            {count} contribution{count > 1 ? 's' : ''}
+                          </span>
+                        )}
                       </span>
                     )}
                   </div>

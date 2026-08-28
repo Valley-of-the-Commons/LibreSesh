@@ -7,7 +7,7 @@ import { dayLabel, fmtMin, nowMinuteOfDay, place, todayInZone } from '../lib/for
 import { useEventData } from '../lib/useEventData';
 import { useFilters } from '../lib/useFilters';
 import { useMe } from '../lib/useMe';
-import { Calendar, PX_PER_MIN } from '../components/Calendar';
+import { Calendar, PX_PER_MIN, timeClashPairs } from '../components/Calendar';
 import { DetailSheet } from '../components/DetailSheet';
 import { Gate } from '../components/Gate';
 import { IdentityPanel } from '../components/IdentityPanel';
@@ -41,6 +41,7 @@ export function SchedulePage() {
   const [tourOpen, setTourOpen] = useState(false);
   const [arrange, setArrange] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [clashDismissed, setClashDismissed] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ session?: SessionDto } | null>(null);
   const [saving, setSaving] = useState(false);
   // The wall clock is state, not a counter, so everything derived from "now"
@@ -145,6 +146,44 @@ export function SchedulePage() {
   const visibleSessions = useMemo(
     () => daySessions.filter((s) => matchedIds.has(s.id)),
     [daySessions, matchedIds],
+  );
+
+  /** Text-search hits that fall on a day other than the one on screen. Room,
+   *  tag and "soon" scoping is unchanged — only a free-text query reaches
+   *  across days, because that is the case that looks broken otherwise. */
+  const otherDayMatches = useMemo(() => {
+    if (!bundle || !filters.q.trim()) return [];
+    return bundle.sessions
+      .filter((s) => matchedIds.has(s.id) && place(s, timezone).date !== day)
+      .map((s) => ({ session: s, ...place(s, timezone) }))
+      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.startMin - b.startMin));
+  }, [bundle, filters.q, matchedIds, timezone, day]);
+
+  /** Starred pairs that overlap in time (any room) — you cannot attend both. */
+  const clashPairs = useMemo(() => {
+    if (!bundle) return [] as [SessionDto, SessionDto][];
+    const placed = bundle.sessions
+      .filter((s) => starredIds.has(s.id))
+      .map((s) => ({ session: s, ...place(s, timezone) }));
+    return timeClashPairs(placed);
+  }, [bundle, starredIds, timezone]);
+  const clashIds = useMemo(
+    () => new Set(clashPairs.flatMap(([a, b]) => [a.id, b.id])),
+    [clashPairs],
+  );
+  // Dismissal is keyed to the clashing set, so starring into a fresh clash
+  // brings the warning back.
+  const clashKey = clashPairs.map(([a, b]) => `${a.id}-${b.id}`).join(',');
+  const showClashBanner = clashKey !== '' && clashDismissed !== clashKey;
+
+  /** Jump to a search result on another day: switch day and open it in one nav. */
+  const openResult = useCallback(
+    (session: SessionDto) => {
+      const params = new URLSearchParams(window.location.search);
+      params.set('day', place(session, timezone).date);
+      navigate(`/e/${slug}/s/${session.id}?${params.toString()}`);
+    },
+    [navigate, slug, timezone],
   );
 
   const openSession = useCallback(
@@ -593,6 +632,37 @@ export function SchedulePage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-0 sm:px-4">
+        {showClashBanner && (
+          <div className="mx-4 mt-2 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-100 dark:bg-amber-950/60 p-3 text-amber-900 dark:text-amber-200 sm:mx-0">
+            <div className="flex items-start gap-2">
+              <div className="min-w-0 flex-1 text-sm">
+                <p className="font-medium">
+                  {clashIds.size} sessions on your agenda clash.
+                </p>
+                <ul className="mt-1 space-y-0.5 text-xs">
+                  {clashPairs.map(([a, b]) => {
+                    const pa = place(a, timezone);
+                    const pb = place(b, timezone);
+                    return (
+                      <li key={`${a.id}-${b.id}`}>
+                        {a.title} ({fmtMin(pa.startMin)}–{fmtMin(pa.endMin)}) overlaps {b.title} (
+                        {fmtMin(pb.startMin)}–{fmtMin(pb.endMin)})
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+              <button
+                type="button"
+                onClick={() => setClashDismissed(clashKey)}
+                aria-label="Dismiss agenda clash warning"
+                className="-m-1 shrink-0 rounded p-1 text-lg leading-none hover:text-amber-950 dark:hover:text-amber-100"
+              >
+                <span aria-hidden="true">×</span>
+              </button>
+            </div>
+          </div>
+        )}
         {bundle.rooms.length === 0 ? (
           <EmptyState>
             No rooms yet.{' '}
@@ -612,6 +682,7 @@ export function SchedulePage() {
             sessions={daySessions}
             matchedIds={matchedIds}
             starredIds={starredIds}
+            starCounts={bundle.starCounts}
             timezone={timezone}
             day={day}
             dayStartMin={event.dayStartMin}
@@ -629,6 +700,8 @@ export function SchedulePage() {
             sessions={visibleSessions}
             contributionCounts={bundle.contributionCounts}
             starredIds={starredIds}
+            starCounts={bundle.starCounts}
+            clashingIds={clashIds}
             timezone={timezone}
             day={day}
             nowMin={nowMin}
@@ -637,7 +710,7 @@ export function SchedulePage() {
           />
         )}
 
-        {bundle.rooms.length > 0 && visibleSessions.length === 0 && (
+        {bundle.rooms.length > 0 && visibleSessions.length === 0 && otherDayMatches.length === 0 && (
           <EmptyState>
             {filters.active ? (
               <>
@@ -650,6 +723,38 @@ export function SchedulePage() {
               'Nothing scheduled on this day yet.'
             )}
           </EmptyState>
+        )}
+
+        {otherDayMatches.length > 0 && (
+          <section className="px-4 pb-24 pt-2 sm:px-0">
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">
+              {visibleSessions.length === 0
+                ? `${otherDayMatches.length} match${
+                    otherDayMatches.length > 1 ? 'es' : ''
+                  } on other days`
+                : `${otherDayMatches.length} more on other days`}
+            </h2>
+            <ul className="space-y-2">
+              {otherDayMatches.map(({ session, startMin, endMin, date }) => {
+                const label = dayLabel(date, today);
+                return (
+                  <li key={session.id}>
+                    <button
+                      type="button"
+                      onClick={() => openResult(session)}
+                      className="block w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-3 text-left shadow-sm hover:shadow"
+                    >
+                      <div className="truncate text-sm font-semibold">{session.title}</div>
+                      <div className="mt-0.5 truncate text-xs text-stone-500 dark:text-stone-400">
+                        {label.top} {label.sub} · {fmtMin(startMin)}–{fmtMin(endMin)}
+                        {session.speaker && ` · ${session.speaker}`}
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         )}
       </main>
 
