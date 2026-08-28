@@ -80,6 +80,31 @@ describe('personal agenda', () => {
       expect(theirs.body.starredSessionIds).toEqual([]);
     });
 
+    it('counts stars across everyone as an interest signal', async () => {
+      await viewer.put(`/api/e/testconf/sessions/${sessionA}/star`).expect(204);
+      await other.put(`/api/e/testconf/sessions/${sessionA}/star`).expect(204);
+      await other.put(`/api/e/testconf/sessions/${sessionB}/star`).expect(204);
+
+      const bundle = await viewer.get('/api/e/testconf/bundle').expect(200);
+      expect(bundle.body.starCounts[sessionA]).toBe(2);
+      expect(bundle.body.starCounts[sessionB]).toBe(1);
+      // Everyone sees the same totals, not just their own.
+      const asOther = await other.get('/api/e/testconf/bundle').expect(200);
+      expect(asOther.body.starCounts).toEqual(bundle.body.starCounts);
+    });
+
+    it('omits a session nobody starred from the counts', async () => {
+      const bundle = await viewer.get('/api/e/testconf/bundle').expect(200);
+      expect(bundle.body.starCounts[sessionA]).toBeUndefined();
+    });
+
+    it('drops the count when the session is deleted', async () => {
+      await viewer.put(`/api/e/testconf/sessions/${sessionA}/star`).expect(204);
+      await admin.delete(`/api/e/testconf/sessions/${sessionA}`).expect(204);
+      const bundle = await viewer.get('/api/e/testconf/bundle').expect(200);
+      expect(bundle.body.starCounts[sessionA]).toBeUndefined();
+    });
+
     it('needs a role', async () => {
       await agentFor(harness).put(`/api/e/testconf/sessions/${sessionA}/star`).expect(401);
     });

@@ -105,6 +105,9 @@ export interface BundleDto {
   people: PersonDto[];
   /** Sessions this identity has starred for their personal agenda. */
   starredSessionIds: number[];
+  /** sessionId -> how many people starred it. An interest signal for
+   *  organisers deciding which room a session deserves. */
+  starCounts: Record<number, number>;
   /** sessionId -> count of visible contributions. */
   contributionCounts: Record<number, number>;
 }

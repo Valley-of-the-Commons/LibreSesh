@@ -87,6 +87,17 @@ export function bundleRoutes(ctx: Ctx): Router {
         )
         .all(req.identity.id, eventId)
         .map((r) => r.session_id),
+      starCounts: Object.fromEntries(
+        ctx.db
+          .prepare<[number], { session_id: number; n: number }>(
+            `SELECT st.session_id AS session_id, COUNT(*) AS n
+               FROM stars st JOIN sessions s ON s.id = st.session_id
+              WHERE s.event_id = ? AND s.deleted_at IS NULL
+              GROUP BY st.session_id`,
+          )
+          .all(eventId)
+          .map((r) => [r.session_id, r.n]),
+      ),
       contributionCounts: Object.fromEntries(counts.map((c) => [c.session_id, c.n])),
     };
     res.json(bundle);
