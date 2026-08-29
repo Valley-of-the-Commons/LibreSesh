@@ -182,6 +182,59 @@ describe('rooms and tags', () => {
     expect(bundle.body.rooms).toHaveLength(0);
   });
 
+  it('edits a room’s capacity and description together', async () => {
+    const created = await admin
+      .post('/api/e/testconf/rooms')
+      .send({ name: 'Hall' })
+      .expect(201);
+    expect(created.body).toMatchObject({ capacity: null, description: '' });
+
+    const patched = await admin
+      .patch(`/api/e/testconf/rooms/${created.body.id}`)
+      .send({ name: 'Main Hall', capacity: 250, description: 'Ground floor, past the desk' })
+      .expect(200);
+    expect(patched.body).toMatchObject({
+      name: 'Main Hall',
+      capacity: 250,
+      description: 'Ground floor, past the desk',
+    });
+  });
+
+  it('clears a room’s capacity back to null', async () => {
+    // The admin form sends null for a blank capacity box. `null` is a real
+    // value here — "no capacity set" — and must not be read as "unchanged",
+    // which is what an `??` on the server would do.
+    const created = await admin
+      .post('/api/e/testconf/rooms')
+      .send({ name: 'Hall', capacity: 80 })
+      .expect(201);
+
+    const cleared = await admin
+      .patch(`/api/e/testconf/rooms/${created.body.id}`)
+      .send({ capacity: null })
+      .expect(200);
+    expect(cleared.body.capacity).toBeNull();
+    expect(cleared.body.name).toBe('Hall');
+  });
+
+  it('leaves fields the patch omits untouched', async () => {
+    const created = await admin
+      .post('/api/e/testconf/rooms')
+      .send({ name: 'Hall', capacity: 80, description: 'Upstairs', openTrack: true })
+      .expect(201);
+
+    const patched = await admin
+      .patch(`/api/e/testconf/rooms/${created.body.id}`)
+      .send({ name: 'Hall B' })
+      .expect(200);
+    expect(patched.body).toMatchObject({
+      name: 'Hall B',
+      capacity: 80,
+      description: 'Upstairs',
+      openTrack: true,
+    });
+  });
+
   it('refuses to delete a room that still has sessions', async () => {
     const roomId = seedRoom(harness.db, eventId, { openTrack: 1 });
     await admin

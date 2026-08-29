@@ -4,6 +4,7 @@ import type { PersonDto, RoomDto, TagDto } from '@shared/types';
 import { ApiError, api, type TrashDto } from '../lib/api';
 import { fmtMin, relativeTime } from '../lib/format';
 import { useEventData } from '../lib/useEventData';
+import { AdminRooms, type RoomDraft } from './AdminRooms';
 import {
   EmptyState,
   Field,
@@ -30,9 +31,6 @@ export function AdminPage() {
   const toast = useToast();
   const data = useEventData(slug);
 
-  const [roomName, setRoomName] = useState('');
-  const [roomCapacity, setRoomCapacity] = useState('');
-  const [roomOpen, setRoomOpen] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [tagName, setTagName] = useState('');
   const [tagColor, setTagColor] = useState(DEFAULT_TAG_COLOR);
@@ -123,19 +121,13 @@ export function AdminPage() {
     );
   }
 
-  const addRoom = async () => {
-    if (!roomName.trim()) return;
+  const addRoom = async (draft: RoomDraft) => {
     try {
       const created = await api.createRoom(slug, {
-        name: roomName.trim(),
-        capacity: roomCapacity ? Number(roomCapacity) : null,
-        openTrack: roomOpen,
+        ...draft,
         sortOrder: bundle.rooms.length,
       });
       data.apply({ type: 'room.created', entity: created });
-      setRoomName('');
-      setRoomCapacity('');
-      setRoomOpen(false);
     } catch (err) {
       fail(err);
     }
@@ -364,88 +356,14 @@ export function AdminPage() {
         </Link>
       </div>
 
-      <section className="mb-6 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold">Rooms</h2>
-        <ul className="mb-4 space-y-2">
-          {bundle.rooms.map((room, index) => (
-            <li key={room.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 dark:bg-stone-800 px-3 py-2">
-              <div className="flex text-xs text-stone-500 dark:text-stone-400">
-                <button
-                  type="button"
-                  onClick={() => void moveRoom(index, -1)}
-                  disabled={index === 0 || reordering}
-                  aria-label={`Move ${room.name} up`}
-                  className="rounded px-1 hover:bg-stone-200 dark:hover:bg-stone-700 disabled:opacity-30 disabled:hover:bg-transparent"
-                >
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void moveRoom(index, 1)}
-                  disabled={index === bundle.rooms.length - 1 || reordering}
-                  aria-label={`Move ${room.name} down`}
-                  className="rounded px-1 hover:bg-stone-200 dark:hover:bg-stone-700 disabled:opacity-30 disabled:hover:bg-transparent"
-                >
-                  ↓
-                </button>
-              </div>
-              <input
-                defaultValue={room.name}
-                onBlur={(e) =>
-                  e.target.value.trim() &&
-                  e.target.value !== room.name &&
-                  void patchRoom(room, { name: e.target.value.trim() })
-                }
-                className="min-w-32 flex-1 rounded border border-transparent bg-transparent px-1 py-0.5 text-sm font-medium hover:border-stone-300 focus:border-stone-400 dark:focus:border-stone-500 focus:bg-white dark:focus:bg-stone-900"
-              />
-              <label className="flex items-center gap-1.5 text-xs text-stone-600 dark:text-stone-300">
-                <input
-                  type="checkbox"
-                  checked={room.openTrack}
-                  onChange={(e) => void patchRoom(room, { openTrack: e.target.checked })}
-                />
-                open track
-              </label>
-              <span className="text-xs text-stone-400 dark:text-stone-500">
-                {room.capacity ? `${room.capacity} seats` : 'no capacity'}
-              </span>
-              <button
-                type="button"
-                onClick={() => void removeRoom(room)}
-                className="text-xs text-red-500 dark:text-red-400 underline"
-              >
-                delete
-              </button>
-            </li>
-          ))}
-          {bundle.rooms.length === 0 && <li className="text-sm text-stone-400 dark:text-stone-500">No rooms yet.</li>}
-        </ul>
-        <div className="flex flex-wrap items-end gap-2">
-          <div className="min-w-40 flex-1">
-            <Field label="New room">
-              <input value={roomName} onChange={(e) => setRoomName(e.target.value)} className={inputClass} />
-            </Field>
-          </div>
-          <div className="w-24">
-            <Field label="Capacity">
-              <input
-                type="number"
-                min={0}
-                value={roomCapacity}
-                onChange={(e) => setRoomCapacity(e.target.value)}
-                className={inputClass}
-              />
-            </Field>
-          </div>
-          <label className="mb-3 flex items-center gap-1.5 text-xs text-stone-600 dark:text-stone-300">
-            <input type="checkbox" checked={roomOpen} onChange={(e) => setRoomOpen(e.target.checked)} />
-            open track
-          </label>
-          <PrimaryButton className="mb-3" onClick={() => void addRoom()}>
-            Add room
-          </PrimaryButton>
-        </div>
-      </section>
+      <AdminRooms
+        rooms={bundle.rooms}
+        reordering={reordering}
+        onCreate={addRoom}
+        onPatch={patchRoom}
+        onMove={moveRoom}
+        onDelete={removeRoom}
+      />
 
       <section className="mb-6 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
         <h2 className="mb-3 text-sm font-semibold">Tags</h2>
