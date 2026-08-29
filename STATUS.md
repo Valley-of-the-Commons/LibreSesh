@@ -3,7 +3,7 @@
 The shared queue: what is in flight, what is blocked, and what is planned.
 Shipped work moves to [CHANGELOG.md](CHANGELOG.md) and is not repeated here.
 
-Last updated: 2026-08-28
+Last updated: 2026-08-29
 
 ## In Progress
 
@@ -26,6 +26,16 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
   coexist. Right for an unconference, but there is no merge tool.
 
 ## Medium Priority
+
+- **No write path under flaky connectivity.** Reads recover well — `EventSource`
+  auto-reconnects and `useEventData` refetches the whole bundle on reopen, and
+  the header shows "reconnecting…". Writes do not: every mutation is a bare
+  `fetch` with no queue or retry, so a star/note/edit attempted while offline
+  fails with a toast and is lost. There is also no service worker, so a cold
+  load with no connectivity renders nothing. Full offline editing is an explicit
+  v1 non-goal (SPEC §Non-goals — no CRDT), but a small outbox that retries
+  queued writes on reconnect would cover the hallway-wifi case without one.
+
 
 - **Dependency bumps — all need major upgrades, none currently exploitable here.**
   Assessed 2026-08-28:
