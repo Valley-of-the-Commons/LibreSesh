@@ -63,9 +63,9 @@ export function Gate({ slug, eventName, me, onMe, onEntered }: GateProps) {
             className={`${inputClass} ${error ? 'border-red-400' : ''}`}
           />
         </Field>
-        {error && <p className="-mt-2 mb-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+        {error && <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{error}</p>}
 
-        <PrimaryButton className="w-full py-2 text-sm" onClick={() => void submit()} disabled={busy}>
+        <PrimaryButton className="mt-4 w-full py-2 text-sm" onClick={() => void submit()} disabled={busy}>
           {busy ? 'Checking…' : 'Enter schedule'}
         </PrimaryButton>
 

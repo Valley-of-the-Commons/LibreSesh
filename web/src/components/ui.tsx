@@ -14,22 +14,62 @@ export const inputClass =
   'w-full rounded-lg border border-stone-300 bg-white dark:bg-stone-900 px-3 py-2 text-sm outline-none ' +
   'focus:border-stone-500 dark:border-stone-600 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-stone-400';
 
+/**
+ * A labelled control. Deliberately carries **no** outer margin: spacing is the
+ * parent's job via `FormStack`/`FormRow`/`FormGrid`. An earlier version owned a
+ * `mb-3`, which forced every adjacent button to hardcode a matching `mb-3` to
+ * line up — and that broke the moment a field grew a `hint` and got taller.
+ */
 export function Field({
   label,
   hint,
+  htmlFor,
   children,
 }: {
   label: string;
   hint?: string;
+  htmlFor?: string;
   children: ReactNode;
 }) {
   return (
-    <div className="mb-3">
-      <label className="mb-1 block text-xs font-medium text-stone-600 dark:text-stone-300">{label}</label>
+    <div className="min-w-0">
+      <label
+        htmlFor={htmlFor}
+        className="mb-1 block text-xs font-medium text-stone-600 dark:text-stone-300"
+      >
+        {label}
+      </label>
       {children}
       {hint && <p className="mt-1 text-xs text-stone-400 dark:text-stone-500">{hint}</p>}
     </div>
   );
+}
+
+/** Vertically stacked form controls, evenly spaced. */
+export function FormStack({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <div className={`flex flex-col gap-3 ${className}`}>{children}</div>;
+}
+
+/**
+ * Controls on one line, bottom-aligned so inputs and buttons share a baseline
+ * regardless of label or hint height. This is what replaces the `mb-3` hack.
+ */
+export function FormRow({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <div className={`flex flex-wrap items-end gap-2 ${className}`}>{children}</div>;
+}
+
+/** Responsive grid of fields; `items-end` keeps the controls aligned. */
+export function FormGrid({
+  children,
+  cols = 2,
+  className = '',
+}: {
+  children: ReactNode;
+  cols?: 2 | 3;
+  className?: string;
+}) {
+  const at = cols === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2';
+  return <div className={`grid items-end gap-3 ${at} ${className}`}>{children}</div>;
 }
 
 /** `userLabel` is the event's own word for the middle role, e.g. "attendee". */
@@ -106,6 +146,139 @@ export function SecondaryButton({
     >
       {children}
     </button>
+  );
+}
+
+/**
+ * Destructive action. Previously these were red *underlined text links*, which
+ * read as navigation rather than as a button and gave no hit target.
+ */
+export function DangerButton({
+  children,
+  className = '',
+  ...rest
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      {...rest}
+      className={`rounded-lg border border-red-300 bg-white px-4 py-2 text-xs font-semibold text-red-600 hover:border-red-500 hover:bg-red-50 disabled:opacity-40 dark:border-red-900 dark:bg-stone-900 dark:text-red-400 dark:hover:border-red-700 dark:hover:bg-red-950/40 ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Square button for a single glyph — reorder arrows, close, etc. Always needs
+ *  an `aria-label`, since the glyph is not a name. */
+export function IconButton({
+  children,
+  className = '',
+  ...rest
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  return (
+    <button
+      type="button"
+      {...rest}
+      className={`flex h-7 w-7 items-center justify-center rounded-lg border border-transparent text-sm text-stone-500 hover:border-stone-300 hover:bg-stone-100 disabled:opacity-30 disabled:hover:border-transparent disabled:hover:bg-transparent dark:text-stone-400 dark:hover:border-stone-600 dark:hover:bg-stone-800 ${className}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Inline navigation. Underline appears on hover/focus rather than at rest —
+ * permanently underlined links made dense admin screens look noisy, and were
+ * being used for actions (delete) that are not navigation at all.
+ */
+export function TextLink({
+  children,
+  className = '',
+  ...rest
+}: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
+  return (
+    <a
+      {...rest}
+      className={`rounded text-stone-600 underline-offset-2 hover:text-stone-900 hover:underline focus-visible:underline dark:text-stone-400 dark:hover:text-stone-100 ${className}`}
+    >
+      {children}
+    </a>
+  );
+}
+
+/** The class `TextLink` applies, for react-router `<Link>`, which needs to own
+ *  its own element. Keeps one definition of what a link looks like. */
+export const linkClass =
+  'rounded text-stone-600 underline-offset-2 hover:text-stone-900 hover:underline ' +
+  'focus-visible:underline dark:text-stone-400 dark:hover:text-stone-100';
+
+/** A titled card. Replaces the `rounded-2xl border … p-5 shadow-sm` string that
+ *  was repeated at every section on the admin page. */
+export function Section({
+  title,
+  description,
+  actions,
+  children,
+  className = '',
+}: {
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={`rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-700 dark:bg-stone-900 ${className}`}
+    >
+      <div className="mb-3 flex flex-wrap items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-sm font-semibold">{title}</h2>
+          {description && (
+            <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">{description}</p>
+          )}
+        </div>
+        {actions}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** Checkbox with its label as one hit target, aligned to the same baseline as
+ *  the inputs beside it. */
+export function Toggle({
+  checked,
+  onChange,
+  label,
+  disabled,
+  title,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  label: ReactNode;
+  disabled?: boolean;
+  title?: string;
+}) {
+  return (
+    <label
+      title={title}
+      className={`flex items-center gap-1.5 text-xs ${
+        disabled
+          ? 'cursor-not-allowed text-stone-400 dark:text-stone-600'
+          : 'cursor-pointer text-stone-600 dark:text-stone-300'
+      }`}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+        className="h-3.5 w-3.5 accent-stone-900 disabled:opacity-50 dark:accent-stone-100"
+      />
+      {label}
+    </label>
   );
 }
 

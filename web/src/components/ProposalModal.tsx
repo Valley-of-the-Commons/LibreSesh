@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import type { PersonDto, ProposalDto, TagDto } from '@shared/types';
 import type { ProposalWrite } from '../lib/api';
-import { Chip, Field, Modal, PrimaryButton, SecondaryButton, inputClass } from './ui';
+import {
+  Chip,
+  DangerButton,
+  Field,
+  FormStack,
+  Modal,
+  PrimaryButton,
+  SecondaryButton,
+  inputClass,
+} from './ui';
 
 export interface ProposalModalProps {
   proposal?: ProposalDto;
@@ -52,6 +61,7 @@ export function ProposalModal({
         Pitches have no room or time. An organiser places the popular ones on the grid.
       </p>
 
+      <FormStack>
       <Field label="Title">
         <input
           value={title}
@@ -125,18 +135,13 @@ export function ProposalModal({
           ))}
         </div>
       </Field>
+      </FormStack>
 
-      {error && <p className="mb-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="mt-3 text-xs text-red-600 dark:text-red-400">{error}</p>}
 
       <div className="mt-4 flex gap-2">
         {onDelete && (
-          <button
-            type="button"
-            onClick={onDelete}
-            className="rounded-lg border border-red-200 dark:border-red-900 px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40"
-          >
-            Withdraw
-          </button>
+          <DangerButton onClick={onDelete}>Withdraw</DangerButton>
         )}
         <SecondaryButton className="ml-auto" onClick={onCancel}>
           Cancel

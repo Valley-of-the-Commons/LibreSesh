@@ -3,7 +3,7 @@ import type { ProposalDto, RoomDto } from '@shared/types';
 import type { PlaceWrite } from '../lib/api';
 import { fmtMin } from '../lib/format';
 import { zonedTimeToUtc } from '@shared/time';
-import { Field, Modal, PrimaryButton, SecondaryButton, inputClass } from './ui';
+import { Field, FormGrid, Modal, PrimaryButton, SecondaryButton, inputClass } from './ui';
 
 const DURATIONS = [15, 30, 45, 60, 90, 120, 180];
 
@@ -60,7 +60,7 @@ export function PlaceProposalModal({
         “{proposal.title}” becomes a session. Its tags and speaker carry over.
       </p>
 
-      <div className="grid grid-cols-2 gap-3">
+      <FormGrid>
         <Field label="Room">
           <select
             value={roomId}
@@ -106,9 +106,9 @@ export function PlaceProposalModal({
             ))}
           </select>
         </Field>
-      </div>
+      </FormGrid>
 
-      {error && <p className="mb-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="mt-3 text-xs text-red-600 dark:text-red-400">{error}</p>}
 
       <div className="mt-4 flex gap-2">
         <SecondaryButton className="ml-auto" onClick={onCancel}>

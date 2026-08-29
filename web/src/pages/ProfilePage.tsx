@@ -8,6 +8,7 @@ import { useEventData } from '../lib/useEventData';
 import {
   EmptyState,
   Field,
+  FormStack,
   Modal,
   PrimaryButton,
   SecondaryButton,
@@ -250,6 +251,7 @@ function ProfileEditor({
 
   return (
     <Modal title="Edit profile" onClose={onClose}>
+      <FormStack>
       <Field label="Name">
         <input
           value={name}
@@ -308,6 +310,7 @@ function ProfileEditor({
           )}
         </div>
       </Field>
+      </FormStack>
 
       <div className="mt-4 flex justify-end gap-2">
         <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>

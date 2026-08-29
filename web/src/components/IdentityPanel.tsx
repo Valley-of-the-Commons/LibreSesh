@@ -2,7 +2,15 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Me, PersonDto, Role } from '@shared/types';
 import { ApiError, api } from '../lib/api';
-import { Field, Modal, PrimaryButton, RoleBadge, SecondaryButton, inputClass } from './ui';
+import {
+  Field,
+  FormStack,
+  Modal,
+  PrimaryButton,
+  RoleBadge,
+  SecondaryButton,
+  inputClass,
+} from './ui';
 
 export interface IdentityPanelProps {
   me: Me | null;
@@ -94,6 +102,7 @@ export function IdentityPanel({
         <RoleBadge role={role} userLabel={userLabel} />
       </div>
 
+      <FormStack>
       <Field label="Display name" hint="Saved on this device. No account needed.">
         <div className="flex gap-2">
           <input
@@ -126,8 +135,9 @@ export function IdentityPanel({
         </div>
         {error && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{error}</p>}
       </Field>
+      </FormStack>
 
-      <div className="mt-2">
+      <div className="mt-3">
         <button
           type="button"
           onClick={() => void editProfile()}

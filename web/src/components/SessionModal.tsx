@@ -3,7 +3,16 @@ import type { PersonDto, RoomDto, Role, SessionDto, TagDto } from '@shared/types
 import type { SessionWrite } from '../lib/api';
 import { fmtMin, place } from '../lib/format';
 import { zonedTimeToUtc } from '@shared/time';
-import { Chip, Field, Modal, PrimaryButton, SecondaryButton, inputClass } from './ui';
+import {
+  Chip,
+  Field,
+  FormGrid,
+  FormStack,
+  Modal,
+  PrimaryButton,
+  SecondaryButton,
+  inputClass,
+} from './ui';
 
 const DURATIONS = [15, 30, 45, 60, 90, 120, 180];
 
@@ -109,6 +118,7 @@ export function SessionModal({
         </p>
       )}
 
+      <FormStack>
       <Field label="Title">
         <input
           value={title}
@@ -161,7 +171,7 @@ export function SessionModal({
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-3">
+      <FormGrid>
         <Field label="Room">
           <select
             value={roomId}
@@ -207,7 +217,7 @@ export function SessionModal({
             ))}
           </select>
         </Field>
-      </div>
+      </FormGrid>
 
       <Field label="Tags">
         <div className="flex flex-wrap gap-1.5">
@@ -240,8 +250,9 @@ export function SessionModal({
           </div>
         </Field>
       )}
+      </FormStack>
 
-      {error && <p className="mb-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p className="mt-3 text-xs text-red-600 dark:text-red-400">{error}</p>}
 
       <div className="mt-4 flex gap-2">
         {onDelete && (

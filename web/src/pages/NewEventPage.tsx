@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Field, PrimaryButton, inputClass } from '../components/ui';
+import { Field, FormGrid, FormStack, PrimaryButton, inputClass } from '../components/ui';
 import { useToast } from '../components/ui';
 
 const browserTimezone = (): string => {
@@ -72,6 +72,7 @@ export function NewEventPage() {
       </p>
 
       <div className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
+        <FormStack>
         <Field label="Instance password">
           <input
             type="password"
@@ -108,7 +109,7 @@ export function NewEventPage() {
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
+        <FormGrid>
           <Field label="Start date">
             <input
               type="date"
@@ -129,7 +130,7 @@ export function NewEventPage() {
               className={inputClass}
             />
           </Field>
-        </div>
+        </FormGrid>
 
         <Field
           label="What you call your participants"
@@ -143,7 +144,7 @@ export function NewEventPage() {
           />
         </Field>
 
-        <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
+        <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
           Event passwords
         </p>
         <Field label="Viewer — read the schedule">
@@ -167,9 +168,10 @@ export function NewEventPage() {
             className={inputClass}
           />
         </Field>
+        </FormStack>
 
-        {error && <p className="mb-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
-        <PrimaryButton className="w-full py-2 text-sm" onClick={() => void submit()} disabled={busy}>
+        {error && <p className="mt-3 text-xs text-red-600 dark:text-red-400">{error}</p>}
+        <PrimaryButton className="mt-4 w-full py-2 text-sm" onClick={() => void submit()} disabled={busy}>
           {busy ? 'Creating…' : 'Create event'}
         </PrimaryButton>
       </div>
