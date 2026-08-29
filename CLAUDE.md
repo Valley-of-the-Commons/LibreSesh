@@ -3,7 +3,7 @@
 A simple, open-source scheduling tool for (un)conferences.
 
 Dev port: 3000
-Commit policy: milestones
+Commit policy: atomic — one commit per feature or improvement
 Testing policy: tests-with-features
 
 ## Commands
