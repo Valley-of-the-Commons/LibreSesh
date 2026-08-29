@@ -2,15 +2,7 @@
 
 All notable changes to this project are documented here.
 
-## [Unreleased]
-
-### Fixed
-
-- Naming yourself as a session's speaker no longer locks you out of your own
-  profile. The auto-created speaker record is adopted rather than treated as a
-  name collision.
-
-## [0.1.0] — 2026-08-28
+## [0.1.0] — 2026-08-29
 
 First release. Everything below is new.
 
