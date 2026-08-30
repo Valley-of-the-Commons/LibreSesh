@@ -19,6 +19,7 @@ import {
   SecondaryButton,
   Section,
   Spinner,
+  controlHeightClass,
   inputClass,
   linkClass,
   useToast,
@@ -677,7 +678,7 @@ export function AdminPage() {
                 type="color"
                 value={tagColor}
                 onChange={(e) => setTagColor(e.target.value)}
-                className="h-9 w-12 cursor-pointer rounded border border-stone-300 bg-white p-1 dark:border-stone-600 dark:bg-stone-900"
+                className={`${controlHeightClass} w-12 cursor-pointer rounded border border-stone-300 bg-white p-1 dark:border-stone-600 dark:bg-stone-900`}
                 aria-label="New tag colour"
               />
               <PrimaryButton onClick={() => void addTag()} disabled={!tagName.trim()}>
@@ -1072,7 +1073,7 @@ function TagEditor({
             type="color"
             value={color}
             onChange={(e) => setColor(e.target.value)}
-            className="h-9 w-16 cursor-pointer rounded border border-stone-300 bg-white p-1 dark:border-stone-600 dark:bg-stone-900"
+            className={`${controlHeightClass} w-16 cursor-pointer rounded border border-stone-300 bg-white p-1 dark:border-stone-600 dark:bg-stone-900`}
           />
         </Field>
       </FormStack>
@@ -1161,7 +1162,7 @@ function TrackEditor({
             type="color"
             value={color}
             onChange={(e) => setColor(e.target.value)}
-            className="h-9 w-16 cursor-pointer rounded border border-stone-300 bg-white p-1 dark:border-stone-600 dark:bg-stone-900"
+            className={`${controlHeightClass} w-16 cursor-pointer rounded border border-stone-300 bg-white p-1 dark:border-stone-600 dark:bg-stone-900`}
           />
         </Field>
       </FormStack>

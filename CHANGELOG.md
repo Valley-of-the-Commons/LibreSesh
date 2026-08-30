@@ -35,6 +35,14 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- **Buttons line up with the inputs beside them.** A `text-sm` input with
+  `py-2` stands 38px tall; a `text-xs` button with `py-2` stands 32. `FormRow`
+  bottom-aligns its children, so the mismatch showed as a step along the top
+  edge — "New track" against "Add track", and every other add-row in Manage
+  Event. The three button primitives are `py-2.5` with a border (transparent on
+  the primary) now, which is the same 38px, and the colour swatches take a
+  shared `controlHeightClass` rather than their own `h-9`.
+
 - **Organisers no longer get the tour uninvited.** The first visit to an event
   auto-started the coach-marks for everyone, including the person who had just
   created it — so the walkthrough of how to read a schedule stood between an

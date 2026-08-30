@@ -10,6 +10,15 @@ import {
 } from 'react';
 import type { Role } from '@shared/types';
 
+/**
+ * Inline controls all stand 38px tall — a `text-sm` input with `py-2` and a
+ * border, a `text-xs` button with `py-2.5` and a border (transparent on the
+ * primary). `FormRow` bottom-aligns them; matching the height lines up their
+ * tops too, which is what "New track" and "Add track" were missing. Bare
+ * controls that can't be padded into it (a colour swatch) take this class.
+ */
+export const controlHeightClass = 'h-[2.375rem]';
+
 export const inputClass =
   'w-full rounded-lg border border-stone-300 bg-white dark:bg-stone-900 px-3 py-2 text-sm outline-none ' +
   'focus:border-stone-500 dark:border-stone-600 dark:text-stone-100 dark:placeholder:text-stone-500 dark:focus:border-stone-400';
@@ -133,7 +142,7 @@ export function PrimaryButton({
     <button
       type="button"
       {...rest}
-      className={`rounded-lg bg-stone-900 px-4 py-2 text-xs font-semibold text-white hover:bg-stone-700 disabled:opacity-40 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300 ${className}`}
+      className={`rounded-lg border border-transparent bg-stone-900 px-4 py-2.5 text-xs font-semibold text-white hover:bg-stone-700 disabled:opacity-40 dark:bg-stone-100 dark:text-stone-900 dark:hover:bg-stone-300 ${className}`}
     >
       {children}
     </button>
@@ -149,7 +158,7 @@ export function SecondaryButton({
     <button
       type="button"
       {...rest}
-      className={`rounded-lg border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-stone-700 hover:border-stone-500 disabled:opacity-40 dark:border-stone-600 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-stone-400 ${className}`}
+      className={`rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-xs font-semibold text-stone-700 hover:border-stone-500 disabled:opacity-40 dark:border-stone-600 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-stone-400 ${className}`}
     >
       {children}
     </button>
@@ -169,7 +178,7 @@ export function DangerButton({
     <button
       type="button"
       {...rest}
-      className={`rounded-lg border border-red-300 bg-white px-4 py-2 text-xs font-semibold text-red-600 hover:border-red-500 hover:bg-red-50 disabled:opacity-40 dark:border-red-900 dark:bg-stone-900 dark:text-red-400 dark:hover:border-red-700 dark:hover:bg-red-950/40 ${className}`}
+      className={`rounded-lg border border-red-300 bg-white px-4 py-2.5 text-xs font-semibold text-red-600 hover:border-red-500 hover:bg-red-50 disabled:opacity-40 dark:border-red-900 dark:bg-stone-900 dark:text-red-400 dark:hover:border-red-700 dark:hover:bg-red-950/40 ${className}`}
     >
       {children}
     </button>
