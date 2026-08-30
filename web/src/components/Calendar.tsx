@@ -268,12 +268,22 @@ export function Calendar({
       style={{ maxHeight: 'calc(100vh - 200px)' }}
     >
       <div className="relative" style={{ width: GUTTER_W + rooms.length * COL_W }}>
-        <div className="sticky top-0 z-20 flex border-b border-stone-200 dark:border-stone-700 bg-white/95 dark:bg-stone-900/95 backdrop-blur">
-          <div className="shrink-0" style={{ width: GUTTER_W }} />
+        {/* The room band is deliberately a different surface from the grid
+            below, with its own axis label. Unlabelled columns over a time grid
+            read as weekdays — this is a room axis, and has to say so. */}
+        <div className="sticky top-0 z-20 flex border-b-2 border-stone-300 bg-stone-100/95 shadow-sm backdrop-blur dark:border-stone-600 dark:bg-stone-800/95">
+          <div
+            className="flex shrink-0 items-end justify-end pb-2 pr-2"
+            style={{ width: GUTTER_W }}
+          >
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">
+              Room
+            </span>
+          </div>
           {rooms.map((room) => (
             <div
               key={room.id}
-              className="border-l border-stone-100 dark:border-stone-800 px-3 py-2"
+              className="border-l border-stone-200 px-3 py-2 dark:border-stone-700"
               style={{ width: COL_W }}
             >
               <div className="truncate text-xs font-semibold">{room.name}</div>
