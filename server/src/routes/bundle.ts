@@ -16,6 +16,7 @@ import {
   loadSessionDto,
   loadProposalDtos,
 } from '../mappers.js';
+import { getPermissions } from '../permissions.js';
 import { limit } from '../ratelimit.js';
 import { getSession } from '../sessionRules.js';
 
@@ -101,6 +102,7 @@ export function bundleRoutes(ctx: Ctx): Router {
           .map((r) => [r.session_id, r.n]),
       ),
       contributionCounts: Object.fromEntries(counts.map((c) => [c.session_id, c.n])),
+      permissions: getPermissions(ctx.db, eventId),
     };
     res.json(bundle);
   });

@@ -5,6 +5,7 @@ import type { Ctx } from '../context.js';
 import type { EventRow, IdentityRow, RoomRow, SessionRow } from '../db.js';
 import { unauthorized } from '../errors.js';
 import { buildCalendar, type IcsEvent } from '../ical.js';
+import { requireCapability } from '../permissions.js';
 import { limit } from '../ratelimit.js';
 import { getSession } from '../sessionRules.js';
 
@@ -18,7 +19,7 @@ export function agendaRoutes(ctx: Ctx): Router {
 
   // Starring is a personal bookmark, not event content, so it stays available
   // even after an event is archived.
-  const star = [requireRole(ctx.db, 'viewer'), limit(ctx.limiter, 'write')];
+  const star = [requireCapability(ctx.db, 'session.star'), limit(ctx.limiter, 'write')];
 
   router.put('/sessions/:id/star', ...star, (req, res) => {
     const session = getSession(ctx.db, req.event.id, Number(req.params.id));

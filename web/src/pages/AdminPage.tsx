@@ -5,6 +5,7 @@ import { ApiError, api, type TrashDto } from '../lib/api';
 import { fmtMin, relativeTime } from '../lib/format';
 import { useEventData } from '../lib/useEventData';
 import { AdminRooms, type RoomDraft } from './AdminRooms';
+import { AdminPermissions } from './AdminPermissions';
 import {
   DangerButton,
   EmptyState,
@@ -303,6 +304,16 @@ export function AdminPage() {
     }
   };
 
+  const savePermissions = async (next: Record<string, string[]>) => {
+    try {
+      const updated = await api.updatePermissions(slug, next as never);
+      data.apply({ type: 'permissions.updated', entity: updated });
+      toast.show('Permissions saved');
+    } catch (err) {
+      fail(err);
+    }
+  };
+
   const setArchived = async (archived: boolean) => {
     if (archived && !window.confirm('Archive this event? It becomes read-only for everyone.')) {
       return;
@@ -469,6 +480,12 @@ export function AdminPage() {
           </PrimaryButton>
         </FormRow>
       </Section>
+
+      <AdminPermissions
+        permissions={bundle.permissions as never}
+        userRoleLabel={event.userRoleLabel}
+        onChange={savePermissions}
+      />
 
       <Section title="Event settings" className="mb-6">
         <FormStack>

@@ -1,0 +1,75 @@
+import type { Role } from './types.js';
+
+/**
+ * The things an organiser can hand out or withhold, and what they are called
+ * in the admin UI. Shared so the client can render the matrix and gate its own
+ * controls from the same list the server enforces.
+ *
+ * Everything not listed is fixed: managing rooms, tags, people, settings and
+ * the trash is always admin-only, because those are how an event is
+ * administered at all.
+ */
+export const CAPABILITIES = [
+  {
+    id: 'contribution.create',
+    label: 'Add notes, links and questions',
+    defaults: ['user', 'admin'],
+  },
+  {
+    id: 'contribution.delete_own',
+    label: 'Delete their own contributions',
+    defaults: ['user', 'admin'],
+  },
+  {
+    id: 'contribution.moderate',
+    label: 'Hide anyone’s contribution',
+    defaults: ['admin'],
+  },
+  {
+    id: 'session.create_open',
+    label: 'Create sessions in open-track rooms',
+    defaults: ['user', 'admin'],
+  },
+  {
+    id: 'session.edit_own',
+    label: 'Edit and delete their own sessions',
+    defaults: ['user', 'admin'],
+  },
+  {
+    id: 'proposal.create',
+    label: 'Pitch a session to the proposal board',
+    defaults: ['user', 'admin'],
+  },
+  {
+    id: 'proposal.vote',
+    label: 'Register interest in a pitch',
+    defaults: ['viewer', 'user', 'admin'],
+  },
+  {
+    id: 'session.star',
+    label: 'Star sessions and build a personal agenda',
+    defaults: ['viewer', 'user', 'admin'],
+  },
+  {
+    id: 'person.edit_own',
+    label: 'Edit their own speaker profile',
+    defaults: ['viewer', 'user', 'admin'],
+  },
+] as const satisfies readonly { id: string; label: string; defaults: readonly Role[] }[];
+
+export type Capability = (typeof CAPABILITIES)[number]['id'];
+
+export const CAPABILITY_IDS = CAPABILITIES.map((c) => c.id) as Capability[];
+
+/** capability -> the roles allowed to use it. */
+export type PermissionMatrix = Record<Capability, Role[]>;
+
+export const isCapability = (value: string): value is Capability =>
+  (CAPABILITY_IDS as string[]).includes(value);
+
+/** Admin can always do everything, whatever the matrix says. */
+export const can = (
+  matrix: Partial<PermissionMatrix>,
+  role: Role,
+  capability: Capability,
+): boolean => role === 'admin' || (matrix[capability]?.includes(role) ?? false);

@@ -160,6 +160,12 @@ export const contributionSchema = z
 
 export const hiddenSchema = z.object({ hidden: z.boolean() });
 
+/** A partial permission matrix: capability -> the roles allowed to use it. */
+export const permissionsSchema = z.record(
+  z.string().max(64),
+  z.array(z.enum(['viewer', 'user', 'admin'])).max(3),
+);
+
 /** A pitch: everything a session has except a room and a time. */
 export const proposalSchema = z.object({
   title: trimmed(120),

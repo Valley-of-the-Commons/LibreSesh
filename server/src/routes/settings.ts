@@ -6,7 +6,8 @@ import type { EventRow } from '../db.js';
 import { badRequest } from '../errors.js';
 import { toEventDto } from '../mappers.js';
 import { limit } from '../ratelimit.js';
-import { parse, settingsSchema } from '../validation.js';
+import { getPermissions, setPermissions } from '../permissions.js';
+import { parse, permissionsSchema, settingsSchema } from '../validation.js';
 
 export function settingsRoutes(ctx: Ctx): Router {
   const router = Router({ mergeParams: true });
@@ -62,6 +63,31 @@ export function settingsRoutes(ctx: Ctx): Router {
       const dto = toEventDto(updated);
       ctx.broker.publish(updated.slug, 'event.updated', dto);
       res.json(dto);
+    },
+  );
+
+  /**
+   * Replace this event's permission overrides. Admin-only, and admin is forced
+   * back on for every capability inside `setPermissions` — an event nobody can
+   * moderate would have no way back.
+   */
+  router.patch(
+    '/permissions',
+    requireRole(ctx.db, 'admin'),
+    limit(ctx.limiter, 'write'),
+    (req, res) => {
+      const body = parse(permissionsSchema, req.body);
+      setPermissions(ctx.db, req.event.id, body);
+      const matrix = getPermissions(ctx.db, req.event.id);
+      audit(ctx.db, {
+        identityId: req.identity.id,
+        eventId: req.event.id,
+        action: 'update',
+        entity: 'permissions',
+        entityId: req.event.id,
+      });
+      ctx.broker.publish(req.event.slug, 'permissions.updated', matrix);
+      res.json(matrix);
     },
   );
 

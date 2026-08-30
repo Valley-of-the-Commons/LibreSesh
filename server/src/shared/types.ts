@@ -136,6 +136,8 @@ export interface BundleDto {
   starCounts: Record<number, number>;
   /** sessionId -> count of visible contributions. */
   contributionCounts: Record<number, number>;
+  /** capability -> roles allowed to use it. Admin is always present. */
+  permissions: Record<string, Role[]>;
 }
 
 export interface SessionDetailDto {
@@ -163,7 +165,8 @@ export type ChangeType =
   | 'person.created'
   | 'person.updated'
   | 'person.deleted'
-  | 'event.updated';
+  | 'event.updated'
+  | 'permissions.updated';
 
 export interface ChangeEvent {
   type: ChangeType;

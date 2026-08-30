@@ -5,6 +5,7 @@ import type { Ctx } from '../context.js';
 import type { PersonRow, SessionRow } from '../db.js';
 import { conflict, forbidden, notFound } from '../errors.js';
 import { loadSessionDto, toPersonDto } from '../mappers.js';
+import { requireCapability } from '../permissions.js';
 import { limit } from '../ratelimit.js';
 import { myProfileSchema, parse, personPatchSchema, personSchema } from '../validation.js';
 import type { PersonDetailDto } from '../shared/types.js';
@@ -64,7 +65,7 @@ export function peopleRoutes(ctx: Ctx): Router {
   /** Your own profile for this event, created on first edit. */
   router.patch(
     '/me/profile',
-    requireRole(ctx.db, 'viewer'),
+    requireCapability(ctx.db, 'person.edit_own'),
     requireWritable,
     limit(ctx.limiter, 'write'),
     (req, res) => {

@@ -110,6 +110,8 @@ export const api = {
   logout: (slug: string) => request<void>('POST', `/e/${encode(slug)}/logout`),
 
   bundle: (slug: string) => request<BundleDto>('GET', `/e/${encode(slug)}/bundle`),
+  updatePermissions: (slug: string, body: Record<string, Role[]>) =>
+    request<Record<string, Role[]>>('PATCH', `/e/${encode(slug)}/permissions`, body),
   session: (slug: string, id: number) =>
     request<SessionDetailDto>('GET', `/e/${encode(slug)}/sessions/${id}`),
 

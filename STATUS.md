@@ -21,6 +21,8 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 
 ## High Priority
 
+- Demo mode: Open Track rename to "Open Room". It should be possible to login w/o password, just click the roles.
+- It should not be possible to enter a username that is already taken.
 - **People dedupe/merge.** Anyone who can create a session or a pitch can create
   a person by typing a new speaker name, so "A. Lovelace" and "Ada Lovelace" can
   coexist. Right for an unconference, but there is no merge tool.
@@ -36,17 +38,16 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
   v1 non-goal (SPEC §Non-goals — no CRDT), but a small outbox that retries
   queued writes on reconnect would cover the hallway-wifi case without one.
 
-
 - **Dependency bumps — all need major upgrades, none currently exploitable here.**
   Assessed 2026-08-28:
-  - `vitest` 2.x, *critical* — only reachable when the Vitest **UI server** is
+  - `vitest` 2.x, _critical_ — only reachable when the Vitest **UI server** is
     listening. We never run `vitest --ui`. Fix is vitest@4 (breaking).
-  - `vite` 5.x, *high* — `server.fs.deny` bypass **on Windows**. Dev-only, and
+  - `vite` 5.x, _high_ — `server.fs.deny` bypass **on Windows**. Dev-only, and
     this project builds on Linux. Fix is vite@8 (breaking).
-  - `esbuild` (via Vite), *moderate* — any website can call the dev server and
+  - `esbuild` (via Vite), _moderate_ — any website can call the dev server and
     read the response. Worth knowing because our dev server binds `0.0.0.0`
     for the container; does not affect production, which serves static files.
-  - `react-router-dom` 6.x, *moderate* — the one advisory that ships. Open
+  - `react-router-dom` 6.x, _moderate_ — the one advisory that ships. Open
     redirect via a backslash in `<Link>`/`useNavigate`; the companion SSR
     `deserializeErrors` issue does not apply (no SSR). Every navigation we
     build is prefixed with a literal `/e/`, so a path cannot start `//` or

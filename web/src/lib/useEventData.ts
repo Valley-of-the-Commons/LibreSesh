@@ -192,6 +192,11 @@ function applyChange(state: State, change: ChangeEvent): State {
     }
     case 'event.updated':
       return { ...state, bundle: { ...bundle, event: change.entity as EventDto } };
+    case 'permissions.updated':
+      return {
+        ...state,
+        bundle: { ...bundle, permissions: change.entity as BundleDto['permissions'] },
+      };
     default:
       return state;
   }

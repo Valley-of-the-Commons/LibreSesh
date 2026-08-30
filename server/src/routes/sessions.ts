@@ -1,10 +1,11 @@
 import { Router } from 'express';
-import { requireRole, requireWritable } from '../auth.js';
+import { requireWritable } from '../auth.js';
 import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
 import type { SessionRow } from '../db.js';
 import { badRequest } from '../errors.js';
 import { loadSessionDto } from '../mappers.js';
+import { getPermissions, requireCapability } from '../permissions.js';
 import { limit } from '../ratelimit.js';
 import {
   assertMayMutate,
@@ -73,14 +74,18 @@ function setTags(ctx: Ctx, sessionId: number, tagIds: number[]): void {
 
 export function sessionRoutes(ctx: Ctx): Router {
   const router = Router({ mergeParams: true });
-  const userWrite = [requireRole(ctx.db, 'user'), requireWritable, limit(ctx.limiter, 'session')];
+  const userWrite = [
+    requireCapability(ctx.db, 'session.create_open'),
+    requireWritable,
+    limit(ctx.limiter, 'session'),
+  ];
 
   router.post('/sessions', ...userWrite, (req, res) => {
     const body = parse(sessionSchema, req.body);
     const room = getRoom(ctx.db, req.event.id, body.roomId);
     // Only admins choose the type; anyone else is placing an open session.
     const type = req.role === 'admin' ? (body.type ?? 'official') : 'open';
-    assertMayPlace(req.role, room, type);
+    assertMayPlace(getPermissions(ctx.db, req.event.id), req.role, room, type);
 
     const window = { startsAt: new Date(body.startsAt), endsAt: new Date(body.endsAt) };
     assertValidTimes(req.event, window);
@@ -134,7 +139,7 @@ export function sessionRoutes(ctx: Ctx): Router {
 
   router.patch('/sessions/:id', ...userWrite, (req, res) => {
     const existing = getSession(ctx.db, req.event.id, Number(req.params.id));
-    assertMayMutate(req.role, req.identity.id, existing);
+    assertMayMutate(getPermissions(ctx.db, req.event.id), req.role, req.identity.id, existing);
 
     const body = parse(sessionPatchSchema, req.body);
     assertNotStale(existing, body.expectedUpdatedAt);
@@ -142,7 +147,7 @@ export function sessionRoutes(ctx: Ctx): Router {
     const room = getRoom(ctx.db, req.event.id, body.roomId ?? existing.room_id);
     const type = req.role === 'admin' ? (body.type ?? existing.type) : existing.type;
     if (body.roomId !== undefined || body.type !== undefined) {
-      assertMayPlace(req.role, room, type);
+      assertMayPlace(getPermissions(ctx.db, req.event.id), req.role, room, type);
     }
 
     const window = {
@@ -194,7 +199,7 @@ export function sessionRoutes(ctx: Ctx): Router {
 
   router.delete('/sessions/:id', ...userWrite, (req, res) => {
     const existing: SessionRow = getSession(ctx.db, req.event.id, Number(req.params.id));
-    assertMayMutate(req.role, req.identity.id, existing);
+    assertMayMutate(getPermissions(ctx.db, req.event.id), req.role, req.identity.id, existing);
     ctx.db
       .prepare('UPDATE sessions SET deleted_at = ?, updated_at = ? WHERE id = ?')
       .run(new Date().toISOString(), new Date().toISOString(), existing.id);

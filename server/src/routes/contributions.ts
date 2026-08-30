@@ -1,5 +1,6 @@
 import { Router } from 'express';
-import { atLeast, requireRole, requireWritable } from '../auth.js';
+import { atLeast, requireWritable } from '../auth.js';
+import { requireCapability } from '../permissions.js';
 import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
 import type { ContributionRow } from '../db.js';
@@ -31,7 +32,7 @@ export function contributionRoutes(ctx: Ctx): Router {
 
   router.post(
     '/sessions/:id/contributions',
-    requireRole(ctx.db, 'user'),
+    requireCapability(ctx.db, 'contribution.create'),
     requireWritable,
     limit(ctx.limiter, 'contribution'),
     (req, res) => {
@@ -65,7 +66,7 @@ export function contributionRoutes(ctx: Ctx): Router {
 
   router.delete(
     '/contributions/:id',
-    requireRole(ctx.db, 'user'),
+    requireCapability(ctx.db, 'contribution.delete_own'),
     requireWritable,
     limit(ctx.limiter, 'write'),
     (req, res) => {
@@ -93,7 +94,7 @@ export function contributionRoutes(ctx: Ctx): Router {
 
   router.patch(
     '/contributions/:id/hidden',
-    requireRole(ctx.db, 'admin'),
+    requireCapability(ctx.db, 'contribution.moderate'),
     requireWritable,
     limit(ctx.limiter, 'write'),
     (req, res) => {

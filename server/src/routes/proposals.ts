@@ -10,6 +10,7 @@ import {
   speakerNames,
   toProposalDto,
 } from '../mappers.js';
+import { getPermissions, requireCapability } from '../permissions.js';
 import { limit } from '../ratelimit.js';
 import {
   assertMayPlace,
@@ -105,7 +106,7 @@ export function proposalRoutes(ctx: Ctx): Router {
 
   router.post(
     '/proposals',
-    requireRole(ctx.db, 'user'),
+    requireCapability(ctx.db, 'proposal.create'),
     requireWritable,
     limit(ctx.limiter, 'session'),
     (req, res) => {
@@ -152,7 +153,7 @@ export function proposalRoutes(ctx: Ctx): Router {
 
   router.patch(
     '/proposals/:id',
-    requireRole(ctx.db, 'user'),
+    requireCapability(ctx.db, 'proposal.create'),
     requireWritable,
     limit(ctx.limiter, 'session'),
     (req, res) => {
@@ -192,7 +193,7 @@ export function proposalRoutes(ctx: Ctx): Router {
 
   router.delete(
     '/proposals/:id',
-    requireRole(ctx.db, 'user'),
+    requireCapability(ctx.db, 'proposal.create'),
     requireWritable,
     limit(ctx.limiter, 'write'),
     (req, res) => {
@@ -217,7 +218,7 @@ export function proposalRoutes(ctx: Ctx): Router {
 
   /** "I would come to this." Viewers included — interest is not a write to the
    *  programme, and it is the whole point of a pitch board. */
-  const interest = [requireRole(ctx.db, 'viewer'), limit(ctx.limiter, 'write')];
+  const interest = [requireCapability(ctx.db, 'proposal.vote'), limit(ctx.limiter, 'write')];
 
   router.put('/proposals/:id/interest', ...interest, (req, res) => {
     const row = load(req.event.id, Number(req.params.id));
@@ -255,7 +256,7 @@ export function proposalRoutes(ctx: Ctx): Router {
       const body = parse(placeSchema, req.body);
       const room = getRoom(ctx.db, req.event.id, body.roomId);
       const type = body.type ?? (room.open_track === 1 ? 'open' : 'official');
-      assertMayPlace(req.role, room, type);
+      assertMayPlace(getPermissions(ctx.db, req.event.id), req.role, room, type);
 
       const window = { startsAt: new Date(body.startsAt), endsAt: new Date(body.endsAt) };
       assertValidTimes(req.event, window);

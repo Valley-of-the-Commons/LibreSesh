@@ -1,4 +1,5 @@
 import type { Role } from './shared/types.js';
+import { can, type PermissionMatrix } from './permissions.js';
 import type { Db, EventRow, RoomRow, SessionRow } from './db.js';
 import { badRequest, conflict, forbidden, notFound } from './errors.js';
 import { durationMinutes, localDate, localMinuteOfDay } from './shared/time.js';
@@ -123,18 +124,33 @@ export function assertNoOverlap(
   if (clash) throw conflict('That slot is already taken in this room', 'overlap');
 }
 
-/** Who may create a session of this type in this room (SPEC §3.2, §5.1). */
-export function assertMayPlace(role: Role, room: RoomRow, type: 'official' | 'open'): void {
+/**
+ * Who may create a session of this type in this room (SPEC §3.2, §5.1).
+ * Which roles hold `session.create_open` is per-event policy; the rest —
+ * official sessions are organiser-only, open sessions need an open-track room
+ * — is structural and not configurable.
+ */
+export function assertMayPlace(
+  matrix: PermissionMatrix,
+  role: Role,
+  room: RoomRow,
+  type: 'official' | 'open',
+): void {
   if (role === 'admin') return;
-  if (role !== 'user') throw forbidden('Viewers cannot add sessions');
+  if (!can(matrix, role, 'session.create_open')) throw forbidden('You cannot add sessions');
   if (type !== 'open') throw forbidden('Only organisers can add official sessions');
   if (room.open_track !== 1) throw forbidden('That room is not an open track');
 }
 
 /** Who may edit or delete an existing session. */
-export function assertMayMutate(role: Role, identityId: number, session: SessionRow): void {
+export function assertMayMutate(
+  matrix: PermissionMatrix,
+  role: Role,
+  identityId: number,
+  session: SessionRow,
+): void {
   if (role === 'admin') return;
-  if (role !== 'user') throw forbidden('Viewers cannot change sessions');
+  if (!can(matrix, role, 'session.edit_own')) throw forbidden('You cannot change sessions');
   if (session.created_by !== identityId) throw forbidden('That is not your session');
   if (session.type !== 'open') throw forbidden('Only organisers can change official sessions');
 }
