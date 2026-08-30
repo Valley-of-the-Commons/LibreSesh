@@ -49,7 +49,9 @@ export function SchedulePage() {
 
   const [tourOpen, setTourOpen] = useState(false);
   const [arrange, setArrange] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
+  const [calendar, setCalendar] = useState<"download" | "subscribe" | null>(
+    null,
+  );
   const [clashDismissed, setClashDismissed] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ session?: SessionDto } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -451,7 +453,7 @@ export function SchedulePage() {
     {
       target: "identity",
       title: "This is you",
-      body: `You're known by a name on this device, not an account — you're here as ${participant}. Open it for your profile, or to sign out.`,
+      body: `You're known by a name on this device, not an account — you're here as ${participant}. Open it for your profile, your calendar links, or to sign out.`,
     },
     {
       target: "days",
@@ -462,6 +464,11 @@ export function SchedulePage() {
       target: "view",
       title: "Grid or list",
       body: "Grid shows the rooms side by side; list is a plain agenda that reads better on a phone.",
+    },
+    {
+      target: "pitches",
+      title: "Pitch a session",
+      body: "Propose a session with no room or time, and say which pitches you would turn up to. Organisers place the popular ones on the grid.",
     },
     {
       target: "now",
@@ -493,16 +500,11 @@ export function SchedulePage() {
       body: "Organisers add official sessions anywhere; everyone else proposes open sessions in the rooms that anyone may book.",
     });
   }
-  tourSteps.push({
-    target: "pitches",
-    title: "Pitch a session",
-    body: "Propose a session with no room or time, and say which pitches you would turn up to. Organisers place the popular ones on the grid.",
-  });
   if (role === "admin") {
     tourSteps.push({
       target: "manage",
       title: "Organiser tools",
-      body: "Rooms, tags, passwords, duplicating the event and archiving all live behind Manage.",
+      body: "Rooms, tags, passwords, duplicating the event and archiving all live behind Manage Event.",
     });
   }
   tourSteps.push({
@@ -544,25 +546,6 @@ export function SchedulePage() {
           </div>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
             <ThemeToggle />
-            {/* Everyone needs the board: attendees pitch there, viewers can
-                register interest. Linking it only from Manage hid it from the
-                people it exists for. */}
-            <Link
-              data-tour="pitches"
-              to={`/e/${slug}/proposals`}
-              className="rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500"
-            >
-              Pitches
-              {bundle.proposals.filter((p) => p.placedSessionId === null)
-                .length > 0 && (
-                <span className="ml-1 text-stone-400 dark:text-stone-500">
-                  {
-                    bundle.proposals.filter((p) => p.placedSessionId === null)
-                      .length
-                  }
-                </span>
-              )}
-            </Link>
             {role === "admin" && (
               <Link
                 data-tour="manage"
@@ -582,6 +565,7 @@ export function SchedulePage() {
               ?
             </button>
             <ProfileMenu
+              onCalendar={setCalendar}
               displayName={bundle.displayName}
               slug={slug}
               role={role}
@@ -649,6 +633,24 @@ export function SchedulePage() {
             ))}
           </div>
 
+          {/* Everyone needs the board: attendees pitch there, viewers can
+              register interest. It sits with the other ways of looking at the
+              programme, not up with the account chrome. */}
+          <Link
+            data-tour="pitches"
+            to={`/e/${slug}/proposals`}
+            className="rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2 text-xs font-medium text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500"
+          >
+            Pitches
+            {bundle.proposals.filter((p) => p.placedSessionId === null).length >
+              0 && (
+              <span className="ml-1 text-stone-400 dark:text-stone-500">
+                {bundle.proposals.filter((p) => p.placedSessionId === null)
+                  .length}
+              </span>
+            )}
+          </Link>
+
           <button
             type="button"
             data-tour="now"
@@ -659,13 +661,6 @@ export function SchedulePage() {
           </button>
 
           <div className="ml-auto flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setExportOpen(true)}
-              className="rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2 text-xs font-medium text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500"
-            >
-              Calendar Export
-            </button>
             {canArrange && (
               <button
                 type="button"
@@ -952,11 +947,12 @@ export function SchedulePage() {
         </div>
       )}
 
-      {exportOpen && (
+      {calendar && (
         <CalendarExportModal
           slug={slug}
           starredCount={starredIds.size}
-          onClose={() => setExportOpen(false)}
+          section={calendar}
+          onClose={() => setCalendar(null)}
         />
       )}
 
@@ -972,14 +968,20 @@ export function SchedulePage() {
 function CalendarExportModal({
   slug,
   starredCount,
+  section,
   onClose,
 }: {
   slug: string;
   starredCount: number;
+  /** Which half the menu asked for. Both are always shown — they are two
+   *  answers to the same question — but the one you picked is scrolled to. */
+  section: "download" | "subscribe";
   onClose: () => void;
 }) {
   const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
+  const downloadRef = useRef<HTMLDivElement>(null);
+  const subscribeRef = useRef<HTMLDivElement>(null);
   const [subUrl, setSubUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const base = `/api/e/${encodeURIComponent(slug)}/calendar.ics`;
@@ -1021,10 +1023,17 @@ function CalendarExportModal({
     }
   }, [subUrl, toast]);
 
+  // The modal is short enough to show both halves at once on a desktop; on a
+  // phone it is not, so the half the menu asked for is brought into view.
+  useEffect(() => {
+    const target = section === "subscribe" ? subscribeRef : downloadRef;
+    target.current?.scrollIntoView({ block: "nearest" });
+  }, [section]);
+
   return (
     <Modal title="Calendar" onClose={onClose}>
       <div className="space-y-4 text-sm">
-        <div>
+        <div ref={downloadRef}>
           <p className="font-medium text-stone-800 dark:text-stone-200">
             Download
           </p>
@@ -1055,7 +1064,10 @@ function CalendarExportModal({
           </div>
         </div>
 
-        <div className="border-t border-stone-200 dark:border-stone-700 pt-4">
+        <div
+          ref={subscribeRef}
+          className="border-t border-stone-200 dark:border-stone-700 pt-4"
+        >
           <p className="font-medium text-stone-800 dark:text-stone-200">
             Subscribe
           </p>

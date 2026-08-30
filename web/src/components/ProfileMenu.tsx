@@ -18,15 +18,17 @@ export interface ProfileMenuProps {
   userLabel: string;
   /** The event's roster, used to find the caller's own profile. */
   people: PersonDto[];
+  /** Opens the calendar modal on one of its two halves. */
+  onCalendar: (section: 'download' | 'subscribe') => void;
   onSignOut: () => void;
 }
 
 /**
- * The "you" chip in the header, and the menu behind it (SPEC §7.5). Two
- * destinations only: your profile, and the way out. Your display name is
- * edited on the profile page, and your role follows the event password an
- * organiser issued you — neither belongs on a dropdown, where a stray click
- * could change who you are.
+ * The "you" chip in the header, and the menu behind it (SPEC §7.5). Everything
+ * here is personal to you: your profile, your calendar links, and the way out.
+ * Your display name is edited on the profile page and your role follows the
+ * event password an organiser issued — neither belongs on a dropdown, where a
+ * stray click could change who you are.
  */
 export function ProfileMenu({
   displayName,
@@ -34,6 +36,7 @@ export function ProfileMenu({
   role,
   userLabel,
   people,
+  onCalendar,
   onSignOut,
 }: ProfileMenuProps) {
   const navigate = useNavigate();
@@ -133,6 +136,32 @@ export function ProfileMenu({
           >
             View / edit profile
           </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onCalendar('download');
+            }}
+            className={itemClass}
+          >
+            Calendar export
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              onCalendar('subscribe');
+            }}
+            className={itemClass}
+          >
+            Subscribe
+          </button>
+          <div
+            role="separator"
+            className="my-1 border-t border-stone-200 dark:border-stone-700"
+          />
           <button
             type="button"
             role="menuitem"
