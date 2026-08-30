@@ -10,7 +10,7 @@ import {
   inputClass,
 } from '../components/ui';
 
-const ROLES: Role[] = ['viewer', 'user', 'admin'];
+const ROLES: Role[] = ['viewer', 'user', 'speaker', 'admin'];
 
 export interface AdminPermissionsProps {
   permissions: Partial<PermissionMatrix>;
@@ -55,7 +55,9 @@ export function AdminPermissions({
   };
 
   const heading = (role: Role) =>
-    role === 'user' ? (userRoleLabel.trim() || 'Attendee') : role === 'admin' ? 'Organiser' : 'Viewer';
+    role === 'user'
+      ? userRoleLabel.trim() || 'Attendee'
+      : { viewer: 'Viewer', speaker: 'Speaker', admin: 'Organiser' }[role as Exclude<Role, 'user'>];
 
   const toggle = async (capability: Capability, role: Role, next: boolean) => {
     if (busy) return;

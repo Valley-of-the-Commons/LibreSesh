@@ -13,12 +13,12 @@ export const CAPABILITIES = [
   {
     id: 'contribution.create',
     label: 'Add notes, links and questions',
-    defaults: ['user', 'admin'],
+    defaults: ['user', 'speaker', 'admin'],
   },
   {
     id: 'contribution.delete_own',
     label: 'Delete their own contributions',
-    defaults: ['user', 'admin'],
+    defaults: ['user', 'speaker', 'admin'],
   },
   {
     id: 'contribution.moderate',
@@ -28,32 +28,32 @@ export const CAPABILITIES = [
   {
     id: 'session.create_open',
     label: 'Create sessions in rooms that allow booking',
-    defaults: ['user', 'admin'],
+    defaults: ['user', 'speaker', 'admin'],
   },
   {
     id: 'session.edit_own',
     label: 'Edit and delete their own sessions',
-    defaults: ['user', 'admin'],
+    defaults: ['user', 'speaker', 'admin'],
   },
   {
     id: 'proposal.create',
     label: 'Pitch a session to the proposal board',
-    defaults: ['user', 'admin'],
+    defaults: ['user', 'speaker', 'admin'],
   },
   {
     id: 'proposal.vote',
     label: 'Register interest in a pitch',
-    defaults: ['viewer', 'user', 'admin'],
+    defaults: ['viewer', 'user', 'speaker', 'admin'],
   },
   {
     id: 'session.star',
     label: 'Star sessions and build a personal agenda',
-    defaults: ['viewer', 'user', 'admin'],
+    defaults: ['viewer', 'user', 'speaker', 'admin'],
   },
   {
     id: 'person.edit_own',
     label: 'Edit their own speaker profile',
-    defaults: ['viewer', 'user', 'admin'],
+    defaults: ['viewer', 'user', 'speaker', 'admin'],
   },
 ] as const satisfies readonly { id: string; label: string; defaults: readonly Role[] }[];
 

@@ -1,4 +1,5 @@
 import type { Role } from './shared/types.js';
+import { atLeast } from './auth.js';
 import { can, type PermissionMatrix } from './permissions.js';
 import type { Db, EventRow, RoomRow, SessionRow } from './db.js';
 import { badRequest, conflict, forbidden, notFound } from './errors.js';
@@ -153,14 +154,22 @@ export function assertMayPlace(
   if (room.open_booking !== 1) throw forbidden('That room is not open for booking');
 }
 
-/** Who may edit or delete an existing session. */
+/**
+ * Who may edit or delete an existing session. `speaksHere` — the caller's
+ * claimed profile is this session's speaker — lets a speaker edit a talk an
+ * organiser created for them, official or not; the PATCH route separately
+ * fences placement (room, time, type) of official sessions to organisers,
+ * and deletion never passes `speaksHere`.
+ */
 export function assertMayMutate(
   matrix: PermissionMatrix,
   role: Role,
   identityId: number,
   session: SessionRow,
+  speaksHere = false,
 ): void {
   if (role === 'admin') return;
+  if (speaksHere && atLeast(role, 'speaker')) return;
   if (!can(matrix, role, 'session.edit_own')) throw forbidden('You cannot change sessions');
   if (session.created_by !== identityId) throw forbidden('That is not your session');
   if (session.type !== 'open') throw forbidden('Only organisers can change official sessions');

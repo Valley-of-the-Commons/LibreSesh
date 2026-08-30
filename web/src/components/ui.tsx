@@ -82,6 +82,7 @@ export function FormGrid({
 export function RoleBadge({ role, userLabel }: { role: Role; userLabel?: string }) {
   const style = {
     admin: 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900',
+    speaker: 'bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300',
     user: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300',
     viewer: 'bg-stone-200 text-stone-600 dark:bg-stone-700 dark:text-stone-300',
   }[role];

@@ -48,9 +48,9 @@ describe('permission matrix', () => {
   describe('defaults', () => {
     it('reproduces the documented role matrix', () => {
       const m = getPermissions(harness.db, eventId);
-      expect(m['contribution.create']).toEqual(['user', 'admin']);
+      expect(m['contribution.create']).toEqual(['user', 'speaker', 'admin']);
       expect(m['contribution.moderate']).toEqual(['admin']);
-      expect(m['session.star']).toEqual(['viewer', 'user', 'admin']);
+      expect(m['session.star']).toEqual(['viewer', 'user', 'speaker', 'admin']);
     });
 
     it('ships in the bundle so the client can gate its own controls', async () => {
@@ -164,7 +164,7 @@ describe('permission matrix', () => {
     });
 
     it('stores nothing when the request matches the defaults', async () => {
-      await setPerm('contribution.create', ['user']).expect(200);
+      await setPerm('contribution.create', ['user', 'speaker']).expect(200);
       const rows = harness.db
         .prepare('SELECT * FROM event_permissions WHERE event_id = ?')
         .all(eventId);
@@ -174,7 +174,11 @@ describe('permission matrix', () => {
     it('is scoped to one event', async () => {
       const otherId = seedEvent(harness.db, { slug: 'other' });
       await setPerm('contribution.create', ['viewer', 'user']).expect(200);
-      expect(getPermissions(harness.db, otherId)['contribution.create']).toEqual(['user', 'admin']);
+      expect(getPermissions(harness.db, otherId)['contribution.create']).toEqual([
+        'user',
+        'speaker',
+        'admin',
+      ]);
     });
   });
 });

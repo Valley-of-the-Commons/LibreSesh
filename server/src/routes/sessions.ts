@@ -3,6 +3,7 @@ import { requireWritable } from '../auth.js';
 import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
 import type { SessionRow } from '../db.js';
+import { forbidden } from '../errors.js';
 import { loadSessionDto } from '../mappers.js';
 import { getPermissions, requireCapability } from '../permissions.js';
 import { limit } from '../ratelimit.js';
@@ -18,7 +19,7 @@ import {
   getRoom,
   getSession,
 } from '../sessionRules.js';
-import { resolveSpeaker } from '../speakers.js';
+import { resolveSpeaker, speaksFor } from '../speakers.js';
 import { parse, sessionPatchSchema, sessionSchema } from '../validation.js';
 
 function setTags(ctx: Ctx, sessionId: number, tagIds: number[]): void {
@@ -99,10 +100,24 @@ export function sessionRoutes(ctx: Ctx): Router {
 
   router.patch('/sessions/:id', ...userWrite, (req, res) => {
     const existing = getSession(ctx.db, req.event.id, Number(req.params.id));
-    assertMayMutate(getPermissions(ctx.db, req.event.id), req.role, req.identity.id, existing);
+    const speaksHere = speaksFor(ctx.db, req.identity.id, existing);
+    assertMayMutate(getPermissions(ctx.db, req.event.id), req.role, req.identity.id, existing, speaksHere);
 
     const body = parse(sessionPatchSchema, req.body);
     assertNotStale(existing, body.expectedUpdatedAt);
+
+    // A speaker may rewrite their talk's words, not its slot: placement of an
+    // official session stays with organisers.
+    if (
+      req.role !== 'admin' &&
+      existing.type === 'official' &&
+      (body.roomId !== undefined ||
+        body.type !== undefined ||
+        body.startsAt !== undefined ||
+        body.endsAt !== undefined)
+    ) {
+      throw forbidden('Only organisers can move official sessions');
+    }
 
     const room = getRoom(ctx.db, req.event.id, body.roomId ?? existing.room_id);
     const type = req.role === 'admin' ? (body.type ?? existing.type) : existing.type;

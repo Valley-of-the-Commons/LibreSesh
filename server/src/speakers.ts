@@ -54,3 +54,18 @@ export function resolveSpeaker(
       .run(eventId, name, now, now).lastInsertRowid,
   );
 }
+
+/** Is this identity's claimed profile the session's speaker? */
+export function speaksFor(
+  db: Db,
+  identityId: number,
+  session: { speaker_id: number | null },
+): boolean {
+  if (session.speaker_id === null) return false;
+  const row = db
+    .prepare<[number], { identity_id: number | null }>(
+      'SELECT identity_id FROM people WHERE id = ? AND deleted_at IS NULL',
+    )
+    .get(session.speaker_id);
+  return row?.identity_id === identityId;
+}

@@ -19,7 +19,7 @@ export type { Capability, PermissionMatrix };
  * is fixed: managing rooms, tags, settings and the trash is always admin-only,
  * because those are how an event is administered at all.
  */
-const ROLE_ORDER: Role[] = ['viewer', 'user', 'admin'];
+const ROLE_ORDER: Role[] = ['viewer', 'user', 'speaker', 'admin'];
 
 function defaultMatrix(): PermissionMatrix {
   const out = {} as PermissionMatrix;

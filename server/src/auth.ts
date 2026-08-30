@@ -7,7 +7,7 @@ import { conflict, forbidden, notFound, unauthorized } from './errors.js';
 /** Cost 10 is right at this scale; tests lower it so suites stay fast. */
 export const BCRYPT_COST = Number(process.env.BCRYPT_COST ?? 10);
 
-const RANK: Record<Role, number> = { viewer: 1, user: 2, admin: 3 };
+const RANK: Record<Role, number> = { viewer: 1, user: 2, speaker: 3, admin: 4 };
 
 export const atLeast = (role: Role, min: Role): boolean => RANK[role] >= RANK[min];
 

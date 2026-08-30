@@ -1,6 +1,6 @@
 /** API payload types shared by the server and the web client. */
 
-export type Role = 'viewer' | 'user' | 'admin';
+export type Role = 'viewer' | 'user' | 'speaker' | 'admin';
 export type SessionType = 'official' | 'open';
 export type ContributionKind = 'note' | 'link' | 'question';
 
