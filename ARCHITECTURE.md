@@ -40,6 +40,9 @@ cookie/identity → rate limit → role check → handler → audit + SSE broadc
   requiring one, or the password gate would demand the password it grants.
 - **`calendarRoutes` before `requireRole`** — a subscribing calendar app has no
   cookie and authenticates by capability token instead (see below).
+- **`/me/link` is global, not event-scoped** — redeeming a link phrase swaps
+  the identity cookie itself, so it hangs off `meRoutes` right after the
+  identity middleware, before any event exists in the request.
 
 Handlers are synchronous. `better-sqlite3` and `bcryptjs` are both sync, so
 Express 4 propagates thrown errors without an async wrapper. `HttpError`
@@ -124,6 +127,57 @@ A pitch has no room and no time; a session always has both. Making
 (SQLite cannot relax `NOT NULL` in place) or placeholder values that every query
 then has to special-case. Placing a pitch creates a real session and links the
 two, leaving ownership with the pitcher.
+
+### One person, many devices
+
+A browser identity lives in one cookie jar, so the same human on a phone and a
+laptop would be two strangers. The fix is **adoption, not merging**: a link
+phrase resolves to an identity, and redeeming it sets that identity's token as
+the redeemer's cookie. Both devices are then literally the same `identities`
+row, so role, stars, profile and authorship follow with zero migration of data
+— there is nothing to reconcile because nothing was ever split.
+
+Two kinds of phrase share the `link_codes` table and the one redemption
+endpoint:
+
+| | Device phrase | Speaker code |
+| --- | --- | --- |
+| Minted by | anyone, from the menu behind their name | organisers, from a person's profile page |
+| Shape | three words (~27 bits) | four words (~37 bits) |
+| Lifetime | 10 minutes, single use | until revoked, reusable |
+| Bound to | the minting identity | a `people` row (`person_id` set) |
+
+All the identity work for a speaker code happens at **mint** time — an
+unclaimed person gets a fresh identity, the speaker role, and its display name
+claimed — precisely so that redemption stays the same dumb token adoption in
+both cases. That is what makes one speaker code work from any number of
+devices. Phrases are stored hashed; guesses share the password rate-limit
+budget.
+
+### Migrations
+
+Numbered `.sql` files in `server/migrations/`, applied at boot, each in its
+own transaction, tracked by filename in the `migrations` table. The runner
+(`server/src/db.ts`) enforces three rules that matter once instances run in
+the wild:
+
+- **It refuses to run downgraded.** A `migrations` row naming a file not on
+  disk means the database belongs to a newer build; booting anyway would fail
+  slowly and weirdly. Restore the pre-migration backup to roll back.
+- **It snapshots before touching an established database.** `VACUUM INTO`
+  `<db>.backup-<stamp>` whenever migrations are pending and at least one has
+  ever been applied. Nothing prunes these (yet) — one per upgrade.
+- **Rebuilds are supported and verified.** SQLite cannot widen a CHECK or drop
+  a NOT NULL in place; the recipe is create-new → copy → drop → rename, which
+  needs `foreign_keys` off (a pragma that cannot change mid-transaction, so
+  the runner turns it off around the pending files). Every file must leave
+  `PRAGMA foreign_key_check` clean or its transaction rolls back. Migrations
+  014 (adding the speaker role to two CHECKs) and 015 (making
+  `link_codes.expires_at` nullable) are the worked examples.
+
+Prefer additive migrations anyway — `ADD COLUMN … DEFAULT`, new tables,
+overrides-only tables like `event_permissions` — and reach for a rebuild only
+when the schema genuinely must change shape.
 
 ## Realtime
 

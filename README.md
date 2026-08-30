@@ -12,7 +12,11 @@ Three design pillars:
    display name when you enter an event, and it is unique inside that event
    rather than across the instance — the same person can be "Ada" at one
    event and "A. Lovelace" at another. Access is three shared per-event
-   passwords: viewer, attendee, organiser.
+   passwords — viewer, attendee, organiser — plus a fourth role, speaker,
+   granted by a personal phrase an organiser hands out, never a password.
+   Opening the event on your phone too? The menu behind your name mints a
+   three-word phrase; type it on the other device and it becomes you — same
+   name, role and starred agenda.
 2. **One process, one file.** Node + SQLite + Server-Sent Events. Deploys onto a
    1 vCPU VPS and backs up with a single `sqlite3` command.
 3. **Mobile-first.** The schedule has to be readable on a phone in a hallway.
@@ -95,41 +99,44 @@ In Docker the build stage passes `--ignore-scripts=false`, so this is handled.
 
 ## Roles
 
-Each event has three shared passwords, one per role. The password you type at
-the gate is what grants your role, and there is no way to change role from
-inside the app — switching means signing out and entering a different one. An
-event renames its middle role freely ("attendee", "participant", "member");
-the tables below use the default.
+Each event has three shared passwords — the password you type at the gate is
+what grants your role, and switching means signing out and entering a
+different one. The fourth role, **speaker**, has no password: an organiser
+mints a personal four-word phrase from a speaker's profile page, and typing it
+at any gate signs that device in as the speaker, on as many devices as they
+like, until the phrase is revoked. An event renames its middle role freely
+("attendee", "participant", "member"); the tables below use the default.
 
 **Most of what a role may do is per-event policy**, set from Manage Event →
 Permissions. These ticks are the defaults, not the rules — an organiser can
 move any of them, except the organiser column, which is locked on so that an
 event nobody can moderate cannot be created by accident.
 
-| Capability                                        | viewer | attendee | organiser |
-| ------------------------------------------------- | :----: | :------: | :-------: |
-| Star sessions, build a personal agenda             |   ✓    |    ✓     |     ✓     |
-| Edit your own speaker profile                      |   ✓    |    ✓     |     ✓     |
-| Register interest in a pitch                       |   ✓    |    ✓     |     ✓     |
-| Add notes, links and questions                     |        |    ✓     |     ✓     |
-| Delete your own contributions                      |        |    ✓     |     ✓     |
-| Create sessions in rooms that allow booking        |        |    ✓     |     ✓     |
-| Edit and delete your own sessions                  |        |    ✓     |     ✓     |
-| Pitch a session to the proposal board              |        |    ✓     |     ✓     |
-| Hide anyone's contribution                         |        |          |     ✓     |
+| Capability                                        | viewer | attendee | speaker | organiser |
+| ------------------------------------------------- | :----: | :------: | :-----: | :-------: |
+| Star sessions, build a personal agenda             |   ✓    |    ✓     |    ✓    |     ✓     |
+| Edit your own speaker profile                      |   ✓    |    ✓     |    ✓    |     ✓     |
+| Register interest in a pitch                       |   ✓    |    ✓     |    ✓    |     ✓     |
+| Add notes, links and questions                     |        |    ✓     |    ✓    |     ✓     |
+| Delete your own contributions                      |        |    ✓     |    ✓    |     ✓     |
+| Create sessions in rooms that allow booking        |        |    ✓     |    ✓    |     ✓     |
+| Edit and delete your own sessions                  |        |    ✓     |    ✓    |     ✓     |
+| Pitch a session to the proposal board              |        |    ✓     |    ✓    |     ✓     |
+| Hide anyone's contribution                         |        |          |         |     ✓     |
 
 The rest is structural and not configurable, because it is how an event is
 administered at all:
 
-| Capability                                        | viewer | attendee | organiser |
-| ------------------------------------------------- | :----: | :------: | :-------: |
-| Read the schedule; export or subscribe to it       |   ✓    |    ✓     |     ✓     |
-| Set your display name for this event               |   ✓    |    ✓     |     ✓     |
-| Official sessions — create, edit, move anywhere    |        |          |     ✓     |
-| Rooms, tags, tracks, people                        |        |          |     ✓     |
-| Place a pitch on the grid                          |        |          |     ✓     |
-| Restore deleted items from the trash               |        |          |     ✓     |
-| Passwords, settings, permissions, archive          |        |          |     ✓     |
+| Capability                                        | viewer | attendee | speaker | organiser |
+| ------------------------------------------------- | :----: | :------: | :-----: | :-------: |
+| Read the schedule; export or subscribe to it       |   ✓    |    ✓     |    ✓    |     ✓     |
+| Set your display name for this event               |   ✓    |    ✓     |    ✓    |     ✓     |
+| Rewrite the words of a session you speak at        |        |          |    ✓    |     ✓     |
+| Official sessions — create, edit, move anywhere    |        |          |         |     ✓     |
+| Rooms, tags, tracks, people, merging duplicates    |        |          |         |     ✓     |
+| Place a pitch on the grid                          |        |          |         |     ✓     |
+| Restore deleted items from the trash               |        |          |         |     ✓     |
+| Passwords, settings, permissions, archive          |        |          |         |     ✓     |
 
 Viewing an event requires the viewer password — schedules are never public.
 Display names are unique within an event, so nobody can take an organiser's.
@@ -207,6 +214,15 @@ sqlite3 "$DATABASE_PATH" "VACUUM INTO '/backups/app-$(date +%F).db'"
 For continuous replication instead of nightly snapshots, add
 [Litestream](https://litestream.io) — one extra binary streaming the WAL to
 S3-compatible storage, no code changes.
+
+### Upgrades
+
+Upgrading in place is safe by design: before applying any pending migration to
+an established database the server snapshots it (`app.db.backup-<stamp>` next
+to the file), and it refuses to start an **older** build against a database a
+newer one has migrated, naming the migration in the error. Roll back by
+restoring the pre-migration backup alongside the older build. Backup files
+accumulate one per upgrade — prune them when you prune your nightly ones.
 
 ## Architecture and security
 
