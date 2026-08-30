@@ -6,6 +6,15 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- **A one-file Railway deploy.** `railway.json` points Railway at
+  `deploy/Dockerfile` instead of letting its Node autodetection guess. The guess
+  was fatal: a plain `npm ci` honours the repo's `.npmrc` (`ignore-scripts=true`),
+  which skips `better-sqlite3`'s install step, so the native addon is never
+  fetched or built and the app dies at boot with `Could not locate the bindings
+  file`. The Dockerfile already ran `npm ci --ignore-scripts=false` for exactly
+  this reason. Hosting notes gained a PaaS section covering the `/data` volume
+  the SQLite file needs to survive a redeploy.
+
 - **A speaker role.** Fourth role, between attendee and organiser. Speakers
   inherit every attendee default in the permission matrix and may rewrite the
   description of sessions they hold — the words, not the slot: moving or
