@@ -31,6 +31,9 @@ export function makeHarness(overrides: Partial<Config> = {}): Harness {
     trustProxy: false,
     serveStatic: false,
     demoMode: false,
+    // A demo harness treats the default seeded event as the demo fixture —
+    // the production default is the two seeded slugs, which no test seeds.
+    demoEventSlugs: overrides.demoMode ? ['testconf'] : [],
     seedDemoEvent: false,
     allowEphemeralDb: true,
     ...overrides,

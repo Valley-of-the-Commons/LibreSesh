@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { EventRow } from '../db.js';
 import { getEventBySlug, getRole, hasInstanceKey, hashPassword, setRole } from '../auth.js';
 import { audit } from '../audit.js';
+import { isDemoEvent } from '../config.js';
 import type { Ctx } from '../context.js';
 import { badRequest, conflict, forbidden, notFound } from '../errors.js';
 import { toEventSummary } from '../mappers.js';
@@ -29,7 +30,7 @@ export function eventRoutes(ctx: Ctx): Router {
 
     // Blank password fields are filled in, not rejected; `generated` is the
     // subset this instance invented, which the creator is shown once.
-    const { passwords, generated } = resolveEventPasswords(body, ctx.config.demoMode);
+    const { passwords, generated } = resolveEventPasswords(body, isDemoEvent(ctx.config, body.slug));
 
     const now = new Date().toISOString();
     const info = ctx.db

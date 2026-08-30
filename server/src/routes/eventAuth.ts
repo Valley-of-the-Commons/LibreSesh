@@ -1,6 +1,7 @@
 import { Router, type Request } from 'express';
 import { clearRole, getRole, roleForPassword } from '../auth.js';
 import { audit } from '../audit.js';
+import { isDemoEvent } from '../config.js';
 import type { Ctx } from '../context.js';
 import { claimEventName, eventDisplayName } from '../eventIdentity.js';
 import { HttpError, forbidden } from '../errors.js';
@@ -39,9 +40,11 @@ export function eventAuthRoutes(ctx: Ctx): Router {
   };
 
   router.post('/auth', (req, res) => {
-    // On a demo instance the gate is a role picker, not a password prompt.
+    // On a demo *event* the gate is a role picker, not a password prompt.
     // There is no secret to brute-force here, so no rate limiting either.
-    if (ctx.config.demoMode) {
+    // Scoped to the seeded fixtures: a real event on the same instance keeps
+    // its passwords, which is the whole reason this is not `config.demoMode`.
+    if (isDemoEvent(ctx.config, req.event.slug)) {
       const { role, displayName } = parse(demoAuthSchema, req.body);
       claim(req, displayName);
       grant(req.identity.id, req.event.id, role);

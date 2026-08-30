@@ -183,6 +183,9 @@ describe('blank passwords are filled in', () => {
 
   describe('on a demo instance', () => {
     beforeEach(async () => {
+      // The seeded fixture is the demo event; 'demo-conf' below is not, which
+      // is the point — creating a real event on a demo instance must not hand
+      // it the passwords printed in the README.
       harness = makeHarness({ demoMode: true });
       seedEvent(harness.db);
       admin = agentFor(harness);
@@ -190,7 +193,24 @@ describe('blank passwords are filled in', () => {
       await admin.post('/api/e/testconf/auth').send({ role: 'admin' }).expect(200);
     });
 
-    it('uses the published demo passwords, so the docs keep working', async () => {
+    it('gives a newly created event real passwords, not the published ones', async () => {
+      const res = await create({ ...BASE, slug: 'demo-conf' }).expect(201);
+      const generated = res.body.generatedPasswords as Record<string, string>;
+      expect(Object.values(generated)).not.toContain('viewer2026');
+      expect(Object.values(generated)).not.toContain('user2026');
+      expect(Object.values(generated)).not.toContain('admin2026');
+      // And that event's gate is a password prompt, not a role picker.
+      const visitor = agentFor(harness);
+      await visitor.get('/api/me').expect(200);
+      await visitor.post('/api/e/demo-conf/auth').send({ role: 'admin' }).expect(400);
+    });
+
+    it('restores the published passwords when the demo fixture is recreated', async () => {
+      harness.close();
+      harness = makeHarness({ demoMode: true, demoEventSlugs: ['demo-conf'] });
+      admin = agentFor(harness);
+      await admin.get('/api/me').expect(200);
+
       const res = await create({ ...BASE, slug: 'demo-conf' }).expect(201);
       expect(res.body.generatedPasswords).toEqual({
         viewerPassword: 'viewer2026',
@@ -201,6 +221,11 @@ describe('blank passwords are filled in', () => {
 
     // Predictability is not worth handing out the wrong role.
     it('generates instead when a demo default would collide with a typed one', async () => {
+      harness.close();
+      harness = makeHarness({ demoMode: true, demoEventSlugs: ['demo-clash'] });
+      admin = agentFor(harness);
+      await admin.get('/api/me').expect(200);
+
       const res = await create({
         ...BASE,
         slug: 'demo-clash',

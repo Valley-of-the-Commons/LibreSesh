@@ -30,6 +30,10 @@ CHANGELOG.md under `[0.2.0]`. What is left of the UI-overhaul plan lives in
   Backup (CHANGELOG `[Unreleased]`). Not covered: nothing *imports* an export
   back, so the JSON is an archive and a hand-off format, not a restore path —
   the whole-DB backup is the restore path.
+- **Demo mode is per event now.** `DEMO_MODE=1` opens only the seeded
+  fixtures; anything else on the instance keeps its passwords. The config
+  comment that called a per-event demo column a mistake still stands — this is
+  a deploy-time list of slugs, not data an organiser can toggle.
 - **ARCHITECTURE.md concurrency paragraph.** §Realtime documents broadcast and
   heartbeats but never states the model: last-write-wins, `assertNotStale`
   409 on an `updated_at` mismatch, no CRDT by design.

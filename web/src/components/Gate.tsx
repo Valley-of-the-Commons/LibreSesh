@@ -61,7 +61,7 @@ export function Gate({ slug, eventName, me, onEntered }: GateProps) {
     }
   };
 
-  /** Demo instances hand out roles on a click — there is no password to type. */
+  /** Demo events hand out roles on a click — there is no password to type. */
   const enterAs = async (role: Role) => {
     if (busy) return;
     setBusy(true);
@@ -75,7 +75,9 @@ export function Gate({ slug, eventName, me, onEntered }: GateProps) {
     }
   };
 
-  const demo = me?.demoMode === true;
+  // Per event, not per instance: a demo instance can also be hosting a real
+  // conference, and that gate must still ask for a password.
+  const demo = me?.demoEventSlugs?.includes(slug) === true;
   const roles: { role: Role; label: string; blurb: string }[] = [
     { role: 'viewer', label: 'Viewer', blurb: 'Read the schedule, star sessions' },
     { role: 'user', label: 'Attendee', blurb: 'Add notes, propose open sessions' },
@@ -96,7 +98,7 @@ export function Gate({ slug, eventName, me, onEntered }: GateProps) {
         {demo ? (
           <>
             <p className="mb-1 mt-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-              Demo instance
+              Demo event
             </p>
             <p className="mb-4 text-sm text-stone-500 dark:text-stone-400">
               Pick a role to look around. Nothing here is private.

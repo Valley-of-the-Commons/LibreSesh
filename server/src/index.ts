@@ -50,11 +50,13 @@ const server = app.listen(config.port, '0.0.0.0', () => {
   console.log(`libresesh listening on http://0.0.0.0:${config.port}`);
   console.log(`database: ${config.databasePath}`);
   if (config.demoMode) {
-    // Loud on purpose: every event on this instance is open to anyone who can
-    // reach it, at whatever role they pick.
+    // Loud on purpose, but precise: only the seeded fixtures are open. Any
+    // other event here — including one created through the UI — checks its
+    // passwords normally.
     console.warn(
-      'WARNING: DEMO_MODE is on. Event passwords are NOT checked — anyone can ' +
-        'take any role, including admin. Never set this on a real instance.',
+      `WARNING: DEMO_MODE is on. Passwords are NOT checked for ${config.demoEventSlugs.join(', ')} ` +
+        '— anyone can take any role there, including organiser. Every other event on this ' +
+        'instance keeps its passwords. Never set this on an instance whose demo events matter.',
     );
   }
 });

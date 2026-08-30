@@ -106,7 +106,7 @@ In Docker the build stage passes `--ignore-scripts=false`, so this is handled.
 | Command                 | What it does                                        |
 | ----------------------- | --------------------------------------------------- |
 | `npm run dev`           | API + Vite dev server together                      |
-| `npm run dev:demo`      | The same, with the gate as a role picker (no passwords) |
+| `npm run dev:demo`      | The same, with a role picker on the seeded demo events   |
 | `npm run build`         | Compiles the server and builds `web/dist`           |
 | `npm start`             | Runs the built server (serves `web/dist` too)       |
 | `npm run seed`          | Recreates the two-day demo event                    |
@@ -173,7 +173,8 @@ Display names are unique within an event, so nobody can take an organiser's.
 | `INSTANCE_ADMIN_PASSWORD` | dev placeholder  | **Required in production**; gates event creation   |
 | `TRUST_PROXY`             | off              | Set `1` behind Caddy so rate limits see real IPs   |
 | `SERVE_STATIC`            | on in production | Serves `web/dist` from the API process             |
-| `DEMO_MODE`               | off              | Set `1` and the gate becomes a role picker — public demos only |
+| `DEMO_MODE`               | off              | Set `1` and the gate becomes a role picker **on the seeded demo events only** — every other event on the instance keeps its passwords |
+| `DEMO_EVENT_SLUGS`        | the seeded two   | Comma-separated; which slugs `DEMO_MODE` opens up. Only needed if you seed your own fixture |
 | `SEED_DEMO_EVENT`         | on               | Creates DemoConf at boot if absent — plus LongConf when `DEMO_MODE=1`; set `0` on a real conference instance |
 | `ALLOW_EPHEMERAL_DB`      | off in prod      | Permits a database directory that is not a mounted volume — a disposable instance only |
 

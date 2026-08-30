@@ -191,6 +191,7 @@ describe('demo mode', () => {
     const agent = agentFor(harness);
     const me = await agent.get('/api/me').expect(200);
     expect(me.body.demoMode).toBe(false);
+    expect(me.body.demoEventSlugs).toEqual([]);
   });
 
   it('grants the requested role on a click, with no password', async () => {
@@ -224,6 +225,35 @@ describe('demo mode', () => {
     const agent = agentFor(harness);
     await agent.get('/api/me').expect(200);
     await agent.post('/api/e/testconf/auth').send({ role: 'superuser' }).expect(400);
+  });
+
+  /**
+   * The reason demo mode is a list of slugs rather than a boolean: an instance
+   * showing off the demo may also be running someone's actual conference, and
+   * that event's organiser password has to mean something.
+   */
+  it('leaves every other event on the instance alone', async () => {
+    harness = makeHarness({ demoMode: true, demoEventSlugs: ['democonf-2026'] });
+    seedEvent(harness.db);
+    const agent = agentFor(harness);
+    await agent.get('/api/me').expect(200);
+
+    // No role picker here — the gate wants a password.
+    await agent.post('/api/e/testconf/auth').send({ role: 'admin' }).expect(400);
+    await agent.post('/api/e/testconf/auth').send({ password: 'nope' }).expect(403);
+    await agent.get('/api/e/testconf/bundle').expect(401);
+
+    const ok = await agent.post('/api/e/testconf/auth').send({ password: 'admin-pw' }).expect(200);
+    expect(ok.body.role).toBe('admin');
+  });
+
+  it('names the open events on /me so the gate knows which form to show', async () => {
+    harness = makeHarness({ demoMode: true, demoEventSlugs: ['democonf-2026'] });
+    seedEvent(harness.db);
+    const agent = agentFor(harness);
+    const me = await agent.get('/api/me').expect(200);
+    expect(me.body.demoMode).toBe(true);
+    expect(me.body.demoEventSlugs).toEqual(['democonf-2026']);
   });
 
   it('still accepts the real password while in demo mode', async () => {

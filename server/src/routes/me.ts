@@ -28,6 +28,7 @@ export function meRoutes(ctx: Ctx): Router {
     displayName,
     roles: rolesFor(ctx, identityId),
     demoMode: ctx.config.demoMode,
+    demoEventSlugs: ctx.config.demoEventSlugs,
   });
 
   router.get('/me', limit(ctx.limiter, 'read'), (req, res) => {

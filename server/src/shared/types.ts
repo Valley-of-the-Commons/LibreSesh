@@ -11,8 +11,13 @@ export interface Me {
   displayName: string;
   /** Role held per event slug. Absent slug = no access. */
   roles: Record<string, Role>;
-  /** Public-demo instance: the gate offers roles as buttons, no password. */
+  /** Public-demo instance. Only labels the build as a demo — it does **not**
+   *  mean this event's gate is open; see `demoEventSlugs`. */
   demoMode: boolean;
+  /** The events whose gate offers roles as buttons instead of asking for a
+   *  password. Everything else on a demo instance is a real event with real
+   *  passwords. Empty unless the instance is in demo mode. */
+  demoEventSlugs: string[];
 }
 
 /** A short-lived phrase that lets another device adopt this identity. */

@@ -58,6 +58,16 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- **A demo instance no longer opens every event on it.** `DEMO_MODE=1` made
+  the gate a role picker for *all* events, so a real conference running beside
+  the demo — or one created through the UI to try the thing out — was open to
+  anyone at any role, organiser included, and blank passwords on it were filled
+  in with the values printed in this README. The free-for-all now applies only
+  to the seeded fixtures (`DEMO_EVENT_SLUGS` if you seed your own); every other
+  event checks its passwords exactly as it would on a normal instance. `/me`
+  reports the open slugs rather than a single instance-wide flag, and the boot
+  warning names them instead of claiming the whole instance is open.
+
 - **Buttons line up with the inputs beside them.** A `text-sm` input with
   `py-2` stands 38px tall; a `text-xs` button with `py-2` stands 32. `FormRow`
   bottom-aligns its children, so the mismatch showed as a step along the top
