@@ -13,7 +13,7 @@
  * program, next to the thing that needs them, rather than in a document nobody
  * reads until something breaks.
  */
-import { checkDurableStorage, isWritableDirectory } from './storage.js';
+import { checkDurableStorage, isWritableDirectory, isWritableFileIfPresent } from './storage.js';
 
 export interface PreflightProblem {
   /** What is wrong, in the imperative: the reader is looking at a log. */
@@ -73,11 +73,24 @@ export function preflight(env: Env): PreflightProblem[] {
   // `SQLITE_CANTOPEN`, which says nothing about ownership. Catch it up here.
   if (databasePath !== ':memory:') {
     const { directory } = checkDurableStorage(databasePath);
+    const uid = typeof process.getuid === 'function' ? String(process.getuid()) : 'unknown';
+    const ownershipFix =
+      'A mounted volume usually arrives owned by root, while the app runs as an unprivileged user. deploy/entrypoint.sh fixes the ownership at start-up and then drops privileges — if you are not using it, either run this container as root or chown the volume to the user the app runs as.';
+
     if (!isWritableDirectory(directory)) {
       problems.push({
         severity: 'fatal',
-        problem: `${directory} exists but this process cannot write to it (running as uid ${typeof process.getuid === 'function' ? process.getuid() : 'unknown'}).`,
-        fix: 'A mounted volume usually arrives owned by root, while the app runs as an unprivileged user. deploy/entrypoint.sh fixes the ownership at start-up and then drops privileges — if you are not using it, either run this container as root or chown the volume to the user the app runs as.',
+        problem: `${directory} exists but this process cannot write to it (running as uid ${uid}).`,
+        fix: ownershipFix,
+      });
+    } else if (!isWritableFileIfPresent(databasePath)) {
+      // A writable directory is not enough: one earlier run as root is all it
+      // takes to leave a root-owned app.db behind in a directory that is
+      // otherwise fine.
+      problems.push({
+        severity: 'fatal',
+        problem: `${databasePath} exists but this process cannot write to it, even though ${directory} is writable (running as uid ${uid}).`,
+        fix: `The database file was almost certainly created by a run as a different user — going back and forth over RAILWAY_RUN_UID does exactly this. ${ownershipFix}`,
       });
     }
   }

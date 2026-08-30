@@ -11,8 +11,12 @@ All notable changes to this project are documented here.
   with three things wrong took three rounds of edit-redeploy-read-the-log,
   each revealing exactly one more problem. A preflight now collects them all —
   missing `COOKIE_SECRET`, missing `INSTANCE_ADMIN_PASSWORD`, a data directory
-  that is not a mounted volume, and a missing `TRUST_PROXY` behind a
-  platform proxy (a warning, not a failure) — and prints each with the fix
+  that is not a mounted volume, a data directory that exists but cannot be
+  written to, an existing database file that cannot be written even though its
+  directory can (what a single run as root leaves behind — a root-owned
+  `app.db` that surfaces only as `SQLITE_CANTOPEN`), and a missing
+  `TRUST_PROXY` behind a platform proxy (a warning, not a failure) — and
+  prints each with the fix
   beside it, tailored to whether it is running on a PaaS. Volumes and
   variables cannot be declared in `railway.json`, so the instructions live in
   the program instead: `deploy/railway.env.example` documents the variables,

@@ -1,9 +1,20 @@
-import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { chmodSync, mkdirSync } from 'node:fs';
-import { checkDurableStorage, isMountPoint, isWritableDirectory } from '../server/src/storage.js';
+import {
+  checkDurableStorage,
+  isMountPoint,
+  isWritableDirectory,
+  isWritableFileIfPresent,
+} from '../server/src/storage.js';
 
 const dirs: string[] = [];
 const scratch = (): string => {
@@ -64,5 +75,42 @@ describe('writability probe', () => {
     } finally {
       chmodSync(dir, 0o700);
     }
+  });
+});
+
+describe('existing database file', () => {
+  const asRoot = (): boolean => typeof process.getuid === 'function' && process.getuid() === 0;
+
+  it('says yes when the file is not there yet', () => {
+    expect(isWritableFileIfPresent(join(scratch(), 'app.db'))).toBe(true);
+  });
+
+  it('says yes for a file it can write', () => {
+    const file = join(scratch(), 'app.db');
+    writeFileSync(file, 'x');
+    expect(isWritableFileIfPresent(file)).toBe(true);
+  });
+
+  // One run as root leaves a root-owned app.db in a directory that is still
+  // writable — the directory probe passes and SQLite still fails.
+  it('says no for a read-only file inside a writable directory', () => {
+    const dir = scratch();
+    const file = join(dir, 'app.db');
+    writeFileSync(file, 'x');
+    chmodSync(file, 0o444);
+    try {
+      if (asRoot()) return;
+      expect(isWritableDirectory(dir)).toBe(true);
+      expect(isWritableFileIfPresent(file)).toBe(false);
+    } finally {
+      chmodSync(file, 0o644);
+    }
+  });
+
+  it('does not truncate the file it probes', () => {
+    const file = join(scratch(), 'app.db');
+    writeFileSync(file, 'important bytes');
+    isWritableFileIfPresent(file);
+    expect(readFileSync(file, 'utf8')).toBe('important bytes');
   });
 });

@@ -13,7 +13,7 @@
  * a mount point. That is a Unix-wide property, not a Railway one, so this
  * catches the same mistake on any host.
  */
-import { statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { closeSync, openSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 
 /** True when `path` sits on a different filesystem than its parent — i.e. something is mounted there. */
@@ -69,6 +69,32 @@ export function isWritableDirectory(directory: string): boolean {
   try {
     writeFileSync(probe, '');
     unlinkSync(probe);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * If the database file already exists, can this process write to *it*?
+ *
+ * A writable directory is not enough. Run the container as root once — which is
+ * what the platform escape hatches amount to — and `app.db` is created owned by
+ * root; go back to running unprivileged and the directory may still be fine
+ * while the file itself is not. SQLite reports that as the same opaque
+ * `SQLITE_CANTOPEN`.
+ *
+ * Opened `r+` and closed immediately: a real write-permission test that never
+ * truncates or modifies the database.
+ */
+export function isWritableFileIfPresent(path: string): boolean {
+  try {
+    statSync(path);
+  } catch {
+    return true; // Not there yet — the directory probe is the relevant one.
+  }
+  try {
+    closeSync(openSync(path, 'r+'));
     return true;
   } catch {
     return false;
