@@ -27,14 +27,17 @@ const buildCommit = process.env.BUILD_COMMIT || git('git rev-parse --short HEAD'
 const buildDirty = process.env.BUILD_COMMIT ? false : git('git status --porcelain') !== '';
 const buildTime = new Date().toISOString();
 
+// Exposed through import.meta.env rather than `define`. `define` is only
+// substituted in the production build — in dev the identifiers survive
+// verbatim and throw ReferenceError at render. Anything VITE_-prefixed is
+// available identically in both modes.
+process.env.VITE_BUILD_TAG = buildTag;
+process.env.VITE_BUILD_COMMIT = buildCommit;
+process.env.VITE_BUILD_DIRTY = String(buildDirty);
+process.env.VITE_BUILD_TIME = buildTime;
+
 export default defineConfig({
   root: fileURLToPath(new URL('.', import.meta.url)),
-  define: {
-    __BUILD_TAG__: JSON.stringify(buildTag),
-    __BUILD_COMMIT__: JSON.stringify(buildCommit),
-    __BUILD_DIRTY__: JSON.stringify(buildDirty),
-    __BUILD_TIME__: JSON.stringify(buildTime),
-  },
   plugins: [react()],
   resolve: {
     alias: {

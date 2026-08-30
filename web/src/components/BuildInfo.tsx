@@ -8,10 +8,16 @@
  * when you do not.
  */
 export function BuildInfo({ demo }: { demo: boolean }) {
-  const commit = __BUILD_COMMIT__ + (__BUILD_DIRTY__ ? '-dirty' : '');
-  const built = new Date(__BUILD_TIME__);
-  const builtLabel = Number.isNaN(built.getTime()) ? 'unknown' : built.toISOString().slice(0, 16).replace('T', ' ');
-  const full = `${__BUILD_TAG__} · ${commit} · built ${builtLabel} UTC`;
+  // Defaulted rather than asserted: a missing stamp should show "unknown", not
+  // take the page down with it.
+  const tag = import.meta.env.VITE_BUILD_TAG ?? 'unknown';
+  const dirty = import.meta.env.VITE_BUILD_DIRTY === 'true';
+  const commit = (import.meta.env.VITE_BUILD_COMMIT ?? 'unknown') + (dirty ? '-dirty' : '');
+  const built = new Date(import.meta.env.VITE_BUILD_TIME ?? '');
+  const builtLabel = Number.isNaN(built.getTime())
+    ? 'unknown'
+    : built.toISOString().slice(0, 16).replace('T', ' ');
+  const full = `${tag} · ${commit} · built ${builtLabel} UTC`;
 
   return (
     <div className="pointer-events-none fixed bottom-2 right-2 z-40 flex justify-end">
@@ -23,7 +29,7 @@ export function BuildInfo({ demo }: { demo: boolean }) {
             : 'bg-stone-200/60 text-stone-500 opacity-50 transition-opacity hover:opacity-100 dark:bg-stone-800/60 dark:text-stone-400'
         }`}
       >
-        {demo ? `${__BUILD_TAG__} · ${commit}` : __BUILD_TAG__}
+        {demo ? `${tag} · ${commit}` : tag}
       </span>
     </div>
   );

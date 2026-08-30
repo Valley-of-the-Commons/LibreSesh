@@ -236,3 +236,29 @@ describe('demo mode', () => {
     await agent.post('/api/e/testconf/auth').send({ password: 'admin-pw' }).expect(400);
   });
 });
+
+describe('demo mode config', () => {
+  const original = process.env.DEMO_MODE;
+  afterEach(() => {
+    if (original === undefined) delete process.env.DEMO_MODE;
+    else process.env.DEMO_MODE = original;
+  });
+
+  it('is off when DEMO_MODE is unset', async () => {
+    delete process.env.DEMO_MODE;
+    const { loadConfig } = await import('../server/src/config.js');
+    expect(loadConfig().demoMode).toBe(false);
+  });
+
+  it('is on for DEMO_MODE=1, which is what `npm run dev:demo` sets', async () => {
+    process.env.DEMO_MODE = '1';
+    const { loadConfig } = await import('../server/src/config.js');
+    expect(loadConfig().demoMode).toBe(true);
+  });
+
+  it('treats any other value as off', async () => {
+    process.env.DEMO_MODE = 'true';
+    const { loadConfig } = await import('../server/src/config.js');
+    expect(loadConfig().demoMode).toBe(false);
+  });
+});
