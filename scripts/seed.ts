@@ -35,7 +35,7 @@ const ROOMS = [
   { name: 'Main Hall', description: 'Keynotes and plenaries', capacity: 300, openTrack: 0 },
   { name: 'Workshop A', description: 'Hands-on, bring a laptop', capacity: 60, openTrack: 0 },
   { name: 'Workshop B', description: 'Hands-on, bring a laptop', capacity: 60, openTrack: 0 },
-  { name: 'Open Track', description: 'Grab a slot — anyone may schedule here', capacity: 40, openTrack: 1 },
+  { name: 'Unconf Room', description: 'Grab a slot — anyone may schedule here', capacity: 40, openTrack: 1 },
 ];
 
 const TAGS = [
@@ -113,7 +113,7 @@ const NOTES = [
   'Great point about the 5-minute grid — that is why drag feels calm.',
   'Room is warm, prop the door open.',
   'Recording is not happening, take notes.',
-  'Follow-up session tomorrow in Open Track.',
+  'Follow-up session tomorrow in the Unconf Room.',
   'Someone asked about backups — VACUUM INTO is the answer.',
 ];
 
