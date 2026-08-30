@@ -89,6 +89,15 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- **A dragged session flashed back to its old slot before landing.** On drop
+  the drag state was cleared before the PATCH was even sent, and the block's
+  position comes entirely from that state — so it repainted where it started
+  for a whole round trip, then jumped forward when the response arrived. The
+  block now waits where you dropped it until the server answers, and a
+  rejected move snaps back at the moment we learn it failed. A block whose
+  save is still in flight can no longer be picked up again, which would have
+  raced its own `expectedUpdatedAt`.
+
 - **The build stamp took the whole app down in dev.** Vite's `define` is only
   substituted in a production build, so the identifiers survived verbatim and
   threw `ReferenceError` on render — with no error boundary, that blanked the

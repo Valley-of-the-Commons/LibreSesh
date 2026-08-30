@@ -109,6 +109,9 @@ interface DragState {
   deltaMin: number;
   deltaRoom: number;
   durMin: number;
+  /** Dropped, and the PATCH has not come back yet. The block stays where it
+   *  was dropped until it does. */
+  pending?: boolean;
 }
 
 export interface CalendarProps {
@@ -130,7 +133,14 @@ export interface CalendarProps {
   arrange: boolean;
   canEdit: (session: SessionDto) => boolean;
   onOpen: (id: number) => void;
-  onMove: (session: SessionDto, startMin: number, durMin: number, roomId: number) => void;
+  /** Resolves when the move has been saved (or rejected) — the block is held
+   *  at the drop position until then. */
+  onMove: (
+    session: SessionDto,
+    startMin: number,
+    durMin: number,
+    roomId: number,
+  ) => void | Promise<void>;
 }
 
 export function Calendar({
@@ -152,6 +162,9 @@ export function Calendar({
   onMove,
 }: CalendarProps) {
   const [drag, setDrag] = useState<DragState | null>(null);
+  // A block whose PATCH is still in flight must not be picked up again: the
+  // second request would race the first and lose on `expectedUpdatedAt`.
+  const pending = useRef<number | null>(null);
   const holdTimer = useRef<number | null>(null);
 
   const placed = useMemo(
@@ -177,6 +190,8 @@ export function Calendar({
       mode: 'move' | 'resize',
     ) => {
       if (!arrange || !canEdit(session)) return;
+      // Its last move is still saving; a second PATCH would race the first.
+      if (pending.current === session.id) return;
       event.preventDefault();
       event.stopPropagation();
 
@@ -220,35 +235,74 @@ export function Calendar({
         }
       };
 
-      const cleanup = () => {
+      const detach = () => {
         window.removeEventListener('pointermove', onMoveEvent);
         window.removeEventListener('pointerup', onUp);
         window.removeEventListener('pointercancel', cleanup);
+      };
+
+      const cleanup = () => {
+        detach();
         setDrag(null);
+      };
+
+      /**
+       * Hold the block where it was dropped until the server answers. Dropping
+       * the drag state here instead would repaint the block at its old
+       * position for a whole round trip and then jump it forward when the
+       * PATCH lands. A rejected move still snaps back — just at the moment we
+       * learn it failed, which is the only moment that means anything.
+       */
+      const settle = (held: DragState, result: void | Promise<void>) => {
+        setDrag(held);
+        pending.current = session.id;
+        void Promise.resolve(result).finally(() => {
+          pending.current = null;
+          setDrag((d) => (d?.id === session.id ? null : d));
+        });
       };
 
       const onUp = () => {
         if (holdTimer.current) window.clearTimeout(holdTimer.current);
         const wasArmed = armed;
-        cleanup();
+        detach();
         if (!wasArmed || !moved) {
+          setDrag(null);
           onOpen(session.id);
           return;
         }
         if (mode === 'resize') {
-          if (nextDur !== durMin) onMove(session, startMin, nextDur, session.roomId);
+          if (nextDur === durMin) {
+            setDrag(null);
+            return;
+          }
+          settle(
+            { id: session.id, mode, deltaMin: 0, deltaRoom: 0, durMin: nextDur, pending: true },
+            onMove(session, startMin, nextDur, session.roomId),
+          );
           return;
         }
+        // Clamp before holding, so the block waits exactly where it will land
+        // rather than where the pointer happened to be.
         const newStart = clamp(startMin + deltaMin, dayStartMin, dayEndMin - durMin);
-        const roomIndex = clamp(
-          rooms.findIndex((r) => r.id === session.roomId) + deltaRoom,
-          0,
-          rooms.length - 1,
-        );
+        const fromIndex = rooms.findIndex((r) => r.id === session.roomId);
+        const roomIndex = clamp(fromIndex + deltaRoom, 0, rooms.length - 1);
         const roomId = rooms[roomIndex]?.id ?? session.roomId;
-        if (newStart !== startMin || roomId !== session.roomId) {
-          onMove(session, newStart, durMin, roomId);
+        if (newStart === startMin && roomId === session.roomId) {
+          setDrag(null);
+          return;
         }
+        settle(
+          {
+            id: session.id,
+            mode,
+            deltaMin: newStart - startMin,
+            deltaRoom: roomIndex - fromIndex,
+            durMin,
+            pending: true,
+          },
+          onMove(session, newStart, durMin, roomId),
+        );
       };
 
       window.addEventListener('pointermove', onMoveEvent);
@@ -407,6 +461,7 @@ export function Calendar({
                   ${session.type === 'open' ? 'border-dashed border-emerald-400 dark:border-emerald-500' : 'border-stone-200 dark:border-stone-700'}
                   ${editable ? 'cursor-grab ring-1 ring-stone-300 dark:ring-stone-600' : 'cursor-pointer hover:shadow'}
                   ${active ? 'z-30 opacity-90 shadow-lg' : ''}
+                  ${active?.pending ? 'cursor-progress' : ''}
                   ${dimmed ? 'opacity-30' : ''}`}
                 style={{
                   top: (effectiveStart - dayStartMin) * PX_PER_MIN,

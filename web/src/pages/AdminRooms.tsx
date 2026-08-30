@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import type { RoomDto } from '@shared/types';
-import { ROOM_COLORS, nextRoomColor } from '@shared/roomColors';
+import { useState } from "react";
+import type { RoomDto } from "@shared/types";
+import { ROOM_COLORS, nextRoomColor } from "@shared/roomColors";
 import {
   DangerButton,
   Field,
@@ -12,7 +12,7 @@ import {
   Section,
   Toggle,
   inputClass,
-} from '../components/ui';
+} from "../components/ui";
 
 export interface AdminRoomsProps {
   rooms: RoomDto[];
@@ -57,8 +57,8 @@ function ColorChoice({
             style={{ background: c }}
             className={`h-6 w-6 rounded-full border-2 ${
               c.toLowerCase() === value.toLowerCase()
-                ? 'border-stone-900 dark:border-stone-100'
-                : 'border-transparent hover:border-stone-400'
+                ? "border-stone-900 dark:border-stone-100"
+                : "border-transparent hover:border-stone-400"
             }`}
           />
         ))}
@@ -83,7 +83,9 @@ const parseCapacity = (raw: string): number | null => {
 };
 
 const capacityLabel = (capacity: number | null): string =>
-  capacity === null ? 'no capacity set' : `${capacity} seat${capacity === 1 ? '' : 's'}`;
+  capacity === null
+    ? "no capacity set"
+    : `${capacity} seat${capacity === 1 ? "" : "s"}`;
 
 /**
  * One room. Collapsed it is a summary row; expanded it is a real form.
@@ -112,14 +114,16 @@ function RoomRow({
 }) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(room.name);
-  const [capacity, setCapacity] = useState(room.capacity === null ? '' : String(room.capacity));
+  const [capacity, setCapacity] = useState(
+    room.capacity === null ? "" : String(room.capacity),
+  );
   const [description, setDescription] = useState(room.description);
   const [color, setColor] = useState(room.color);
   const [saving, setSaving] = useState(false);
 
   const reset = () => {
     setName(room.name);
-    setCapacity(room.capacity === null ? '' : String(room.capacity));
+    setCapacity(room.capacity === null ? "" : String(room.capacity));
     setDescription(room.description);
     setColor(room.color);
   };
@@ -176,7 +180,7 @@ function RoomRow({
           <p className="truncate text-sm font-medium">{room.name}</p>
           <p className="truncate text-xs text-stone-500 dark:text-stone-400">
             {capacityLabel(room.capacity)}
-            {room.openTrack && ' · attendees may book'}
+            {room.openTrack && " · attendees may book this room"}
             {room.description && ` · ${room.description}`}
           </p>
         </div>
@@ -189,7 +193,7 @@ function RoomRow({
           }}
           aria-expanded={open}
         >
-          {open ? 'Close' : 'Edit'}
+          {open ? "Close" : "Edit"}
         </SecondaryButton>
       </div>
 
@@ -216,7 +220,10 @@ function RoomRow({
           </FormGrid>
 
           <div className="mt-3">
-            <Field label="Description" hint="Shown to attendees. Where it is, how to find it.">
+            <Field
+              label="Description"
+              hint="Shown to attendees. Where it is, how to find it."
+            >
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -240,8 +247,11 @@ function RoomRow({
           </div>
 
           <FormRow className="mt-4">
-            <PrimaryButton onClick={() => void save()} disabled={!dirty || !name.trim() || saving}>
-              {saving ? 'Saving…' : 'Save room'}
+            <PrimaryButton
+              onClick={() => void save()}
+              disabled={!dirty || !name.trim() || saving}
+            >
+              {saving ? "Saving…" : "Save room"}
             </PrimaryButton>
             <SecondaryButton
               onClick={() => {
@@ -251,7 +261,10 @@ function RoomRow({
             >
               Cancel
             </SecondaryButton>
-            <DangerButton className="ml-auto" onClick={() => void onDelete(room)}>
+            <DangerButton
+              className="ml-auto"
+              onClick={() => void onDelete(room)}
+            >
               Delete
             </DangerButton>
           </FormRow>
@@ -270,8 +283,8 @@ export function AdminRooms({
   onMove,
   onDelete,
 }: AdminRoomsProps) {
-  const [name, setName] = useState('');
-  const [capacity, setCapacity] = useState('');
+  const [name, setName] = useState("");
+  const [capacity, setCapacity] = useState("");
   const [openTrack, setOpenTrack] = useState(false);
   const [busy, setBusy] = useState(false);
   // Mirrors what the server would pick, so the swatch is not a surprise.
@@ -284,11 +297,11 @@ export function AdminRooms({
       await onCreate({
         name: name.trim(),
         capacity: parseCapacity(capacity),
-        description: '',
+        description: "",
         openTrack,
       });
-      setName('');
-      setCapacity('');
+      setName("");
+      setCapacity("");
       setOpenTrack(false);
     } finally {
       setBusy(false);
@@ -315,7 +328,9 @@ export function AdminRooms({
           />
         ))}
         {rooms.length === 0 && (
-          <li className="text-sm text-stone-400 dark:text-stone-500">No rooms yet.</li>
+          <li className="text-sm text-stone-400 dark:text-stone-500">
+            No rooms yet.
+          </li>
         )}
       </ul>
 
@@ -325,7 +340,7 @@ export function AdminRooms({
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && void add()}
+              onKeyDown={(e) => e.key === "Enter" && void add()}
               maxLength={80}
               className={inputClass}
             />
@@ -351,9 +366,12 @@ export function AdminRooms({
         <Toggle
           checked={openTrack}
           onChange={setOpenTrack}
-          label="attendees may book"
+          label="attendees may book this room"
         />
-        <PrimaryButton onClick={() => void add()} disabled={!name.trim() || busy}>
+        <PrimaryButton
+          onClick={() => void add()}
+          disabled={!name.trim() || busy}
+        >
           Add room
         </PrimaryButton>
       </FormRow>
