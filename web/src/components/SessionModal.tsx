@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { PersonDto, RoomDto, Role, SessionDto, TagDto } from '@shared/types';
+import type { PersonDto, RoomDto, Role, SessionDto, TagDto, TrackDto } from '@shared/types';
 import type { SessionWrite } from '../lib/api';
 import { fmtMin, place } from '../lib/format';
 import { zonedTimeToUtc } from '@shared/time';
@@ -20,6 +20,8 @@ export interface SessionModalProps {
   session?: SessionDto;
   rooms: RoomDto[];
   tags: TagDto[];
+  /** Empty when the event defines none; the Track field is then absent. */
+  tracks: TrackDto[];
   people: PersonDto[];
   role: Role;
   timezone: string;
@@ -38,6 +40,7 @@ export function SessionModal({
   session,
   rooms,
   tags,
+  tracks,
   people,
   role,
   timezone,
@@ -71,6 +74,7 @@ export function SessionModal({
   const [start, setStart] = useState(fmtMin(existing?.startMin ?? Math.max(dayStartMin, 14 * 60)));
   const [durMin, setDurMin] = useState(existing?.durMin ?? 30);
   const [tagIds, setTagIds] = useState<number[]>(session?.tagIds ?? []);
+  const [trackId, setTrackId] = useState<number | null>(session?.trackId ?? null);
   const [type, setType] = useState<'official' | 'open'>(
     session?.type ?? (isAdmin ? 'official' : 'open'),
   );
@@ -107,6 +111,7 @@ export function SessionModal({
       startsAt: zonedTimeToUtc(day, startMin, timezone).toISOString(),
       endsAt: zonedTimeToUtc(day, startMin + durMin, timezone).toISOString(),
       tagIds,
+      trackId,
     });
   };
 
@@ -206,6 +211,22 @@ export function SessionModal({
             ))}
           </select>
         </Field>
+        {tracks.length > 0 && (
+          <Field label="Track" hint="Optional. The schedule can lay its columns out by track.">
+            <select
+              value={trackId ?? ''}
+              onChange={(e) => setTrackId(e.target.value ? Number(e.target.value) : null)}
+              className={inputClass}
+            >
+              <option value="">No track</option>
+              {tracks.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
         <Field label="Day">
           <select value={day} onChange={(e) => setDay(e.target.value)} className={inputClass}>
             {days.map((d) => (

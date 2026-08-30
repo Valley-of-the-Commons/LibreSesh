@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import type { PersonDto, RoomDto, TagDto } from '@shared/types';
+import type { PersonDto, RoomDto, TagDto, TrackDto } from '@shared/types';
 import { ApiError, api, type TrashDto } from '../lib/api';
 import { fmtMin, relativeTime } from '../lib/format';
 import { useEventData } from '../lib/useEventData';
@@ -14,6 +14,7 @@ import {
   FormGrid,
   FormRow,
   FormStack,
+  IconButton,
   PrimaryButton,
   SecondaryButton,
   Section,
@@ -45,6 +46,9 @@ export function AdminPage() {
   const [reordering, setReordering] = useState(false);
   const [tagName, setTagName] = useState('');
   const [editingTag, setEditingTag] = useState<TagDto | null>(null);
+  const [trackName, setTrackName] = useState('');
+  const [editingTrack, setEditingTrack] = useState<TrackDto | null>(null);
+  const [movingTracks, setMovingTracks] = useState(false);
   const [tagColor, setTagColor] = useState(DEFAULT_TAG_COLOR);
   const [personName, setPersonName] = useState('');
 
@@ -211,6 +215,66 @@ export function AdminPage() {
   const patchTag = async (tag: TagDto, patch: Partial<TagDto>): Promise<boolean> => {
     try {
       data.apply({ type: 'tag.updated', entity: await api.updateTag(slug, tag.id, patch) });
+      return true;
+    } catch (err) {
+      fail(err);
+      return false;
+    }
+  };
+
+  const addTrack = async () => {
+    if (!trackName.trim()) return;
+    try {
+      const created = await api.createTrack(slug, { name: trackName.trim() });
+      data.apply({ type: 'track.created', entity: created });
+      setTrackName('');
+    } catch (err) {
+      fail(err);
+    }
+  };
+
+  const patchTrack = async (
+    track: TrackDto,
+    patch: { name?: string; color?: string },
+  ): Promise<boolean> => {
+    try {
+      data.apply({ type: 'track.updated', entity: await api.updateTrack(slug, track.id, patch) });
+      return true;
+    } catch (err) {
+      fail(err);
+      return false;
+    }
+  };
+
+  const moveTrack = async (index: number, direction: -1 | 1) => {
+    const list = bundle?.tracks ?? [];
+    const to = index + direction;
+    if (movingTracks || to < 0 || to >= list.length) return;
+    const ids = list.map((t) => t.id);
+    [ids[index], ids[to]] = [ids[to] as number, ids[index] as number];
+    setMovingTracks(true);
+    try {
+      for (const track of await api.reorderTracks(slug, ids)) {
+        data.apply({ type: 'track.updated', entity: track });
+      }
+    } catch (err) {
+      fail(err);
+    } finally {
+      setMovingTracks(false);
+    }
+  };
+
+  const removeTrack = async (track: TrackDto): Promise<boolean> => {
+    if (
+      !window.confirm(
+        `Delete the “${track.name}” track? Its sessions keep their room and lose the track.`,
+      )
+    ) {
+      return false;
+    }
+    try {
+      await api.deleteTrack(slug, track.id);
+      data.apply({ type: 'track.deleted', entity: { id: track.id } });
       return true;
     } catch (err) {
       fail(err);
@@ -406,6 +470,92 @@ export function AdminPage() {
         onMove={moveRoom}
         onDelete={removeRoom}
       />
+
+      <Section
+        title="Tracks"
+        description="Thematic strands running across rooms and days. Optional — with none, the schedule lays its columns out by room and never mentions them. Their order is the order of the columns."
+        className="mb-6"
+      >
+        <FormStack>
+          {bundle.tracks.length > 0 && (
+            <ul className="space-y-2">
+              {bundle.tracks.map((track, index) => (
+                <li
+                  key={track.id}
+                  className="flex items-center gap-2 rounded-lg bg-stone-50 px-3 py-2 dark:bg-stone-800"
+                >
+                  <div className="flex shrink-0">
+                    <IconButton
+                      onClick={() => void moveTrack(index, -1)}
+                      disabled={index === 0 || movingTracks}
+                      aria-label={`Move ${track.name} up`}
+                    >
+                      ↑
+                    </IconButton>
+                    <IconButton
+                      onClick={() => void moveTrack(index, 1)}
+                      disabled={index === bundle.tracks.length - 1 || movingTracks}
+                      aria-label={`Move ${track.name} down`}
+                    >
+                      ↓
+                    </IconButton>
+                  </div>
+                  <span
+                    aria-hidden
+                    className="h-5 w-5 shrink-0 rounded-full border border-stone-300 dark:border-stone-600"
+                    style={{ background: track.color }}
+                  />
+                  <p className="min-w-0 flex-1 truncate text-sm font-medium">{track.name}</p>
+                  <span className="shrink-0 text-xs text-stone-500 dark:text-stone-400">
+                    {plural(
+                      bundle.sessions.filter((x) => x.trackId === track.id).length,
+                      'session',
+                    )}
+                  </span>
+                  <SecondaryButton
+                    className="shrink-0 px-3 py-1.5"
+                    onClick={() => setEditingTrack(track)}
+                  >
+                    Edit
+                  </SecondaryButton>
+                </li>
+              ))}
+            </ul>
+          )}
+          {bundle.tracks.length === 0 && (
+            <p className="text-sm text-stone-400 dark:text-stone-500">
+              No tracks. Add one and the schedule gains a Room / Track switch.
+            </p>
+          )}
+
+          <FormRow>
+            <div className="min-w-40 flex-1">
+              <Field label="New track">
+                <input
+                  value={trackName}
+                  onChange={(e) => setTrackName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && void addTrack()}
+                  maxLength={60}
+                  className={inputClass}
+                />
+              </Field>
+            </div>
+            <PrimaryButton onClick={() => void addTrack()} disabled={!trackName.trim()}>
+              Add track
+            </PrimaryButton>
+          </FormRow>
+        </FormStack>
+      </Section>
+
+      {editingTrack && (
+        <TrackEditor
+          track={editingTrack}
+          sessions={bundle.sessions.filter((x) => x.trackId === editingTrack.id).length}
+          onPatch={patchTrack}
+          onDelete={removeTrack}
+          onClose={() => setEditingTrack(null)}
+        />
+      )}
 
       <Section
         title="Tags"
@@ -834,6 +984,95 @@ function TagEditor({
         {sessions + pitches === 0
           ? 'Nothing carries this tag yet. Deleting it affects nothing.'
           : `Carried by ${plural(sessions, 'session')} and ${plural(pitches, 'pitch', 'pitches')}. Deleting the tag removes it from all of them.`}
+      </p>
+
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <DangerButton onClick={() => void remove()} disabled={busy}>
+          Delete
+        </DangerButton>
+        <div className="flex gap-2">
+          <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
+          <PrimaryButton onClick={() => void save()} disabled={!name.trim() || !dirty || busy}>
+            Save
+          </PrimaryButton>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * Rename, recolour or delete one track. Same shape as the tag editor — a modal
+ * rather than an input in the row, so there is something to cancel — but it
+ * says what deleting costs, because a track's sessions survive it.
+ */
+function TrackEditor({
+  track,
+  sessions,
+  onPatch,
+  onDelete,
+  onClose,
+}: {
+  track: TrackDto;
+  /** How many sessions sit on it. */
+  sessions: number;
+  onPatch: (track: TrackDto, patch: { name?: string; color?: string }) => Promise<boolean>;
+  onDelete: (track: TrackDto) => Promise<boolean>;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(track.name);
+  const [color, setColor] = useState(track.color);
+  const [busy, setBusy] = useState(false);
+
+  const dirty = name.trim() !== track.name || color !== track.color;
+
+  const save = async () => {
+    if (!name.trim() || busy) return;
+    setBusy(true);
+    try {
+      if (await onPatch(track, { name: name.trim(), color })) onClose();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (await onDelete(track)) onClose();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal title="Edit track" onClose={onClose}>
+      <FormStack>
+        <Field label="Name">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && void save()}
+            maxLength={60}
+            className={inputClass}
+            autoFocus
+          />
+        </Field>
+        <Field label="Colour" hint="Used for this track's column on the schedule.">
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="h-9 w-16 cursor-pointer rounded border border-stone-300 bg-white p-1 dark:border-stone-600 dark:bg-stone-900"
+          />
+        </Field>
+      </FormStack>
+
+      <p className="mt-3 text-xs text-stone-500 dark:text-stone-400">
+        {sessions === 0
+          ? 'No sessions are on this track yet.'
+          : `${plural(sessions, 'session')} on this track. Deleting it keeps them — they lose the track, not their room.`}
       </p>
 
       <div className="mt-4 flex items-center justify-between gap-2">

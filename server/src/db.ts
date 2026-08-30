@@ -67,6 +67,7 @@ export interface SessionRow {
   id: number;
   event_id: number;
   room_id: number;
+  track_id: number | null;
   type: 'official' | 'open';
   title: string;
   description: string;
@@ -104,6 +105,15 @@ export interface ProposalRow {
   placed_session_id: number | null;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
+}
+
+export interface TrackRow {
+  id: number;
+  event_id: number;
+  name: string;
+  color: string;
+  sort_order: number;
   deleted_at: string | null;
 }
 

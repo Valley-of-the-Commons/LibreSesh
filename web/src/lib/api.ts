@@ -14,6 +14,7 @@ import type {
   SessionDetailDto,
   SessionDto,
   TagDto,
+  TrackDto,
 } from '@shared/types';
 
 /** Error carrying the server's machine-readable code, so callers can react to
@@ -133,6 +134,16 @@ export const api = {
     request<TagDto>('PATCH', `/e/${encode(slug)}/tags/${id}`, body),
   deleteTag: (slug: string, id: number) => request<void>('DELETE', `/e/${encode(slug)}/tags/${id}`),
 
+  // Tracks — thematic strands the schedule can use as columns instead of rooms.
+  createTrack: (slug: string, body: { name: string; color?: string }) =>
+    request<TrackDto>('POST', `/e/${encode(slug)}/tracks`, body),
+  updateTrack: (slug: string, id: number, body: { name?: string; color?: string }) =>
+    request<TrackDto>('PATCH', `/e/${encode(slug)}/tracks/${id}`, body),
+  reorderTracks: (slug: string, ids: number[]) =>
+    request<TrackDto[]>('PATCH', `/e/${encode(slug)}/tracks`, { ids }),
+  deleteTrack: (slug: string, id: number) =>
+    request<void>('DELETE', `/e/${encode(slug)}/tracks/${id}`),
+
   person: (slug: string, id: number) =>
     request<PersonDetailDto>('GET', `/e/${encode(slug)}/people/${id}`),
   createPerson: (slug: string, body: PersonWrite) =>
@@ -216,6 +227,8 @@ export interface SessionWrite {
   startsAt: string;
   endsAt: string;
   tagIds?: number[];
+  /** `null` clears the track; omitting the key leaves it as it was. */
+  trackId?: number | null;
 }
 
 export interface ProposalWrite {

@@ -40,6 +40,10 @@ import {
 
 const NOW_TICK_MS = 30_000;
 
+/** Column id for sessions with no track. Negative so it cannot collide with a
+ *  real track id, and appended last so the programme proper reads first. */
+const UNTRACKED = -1;
+
 export function SchedulePage() {
   const { slug = "", sessionId } = useParams();
   const navigate = useNavigate();
@@ -102,6 +106,12 @@ export function SchedulePage() {
     [event, isToday, timezone, clock],
   );
 
+  // Only offered when the event actually has tracks; otherwise there is one
+  // sensible axis and no switch to show.
+  const hasTracks = (bundle?.tracks.length ?? 0) > 0;
+  const axis: "room" | "track" =
+    hasTracks && filters.axis === "track" ? "track" : "room";
+
   const view =
     filters.view ??
     (typeof window !== "undefined" && window.innerWidth < 640 ? "list" : "cal");
@@ -131,6 +141,71 @@ export function SchedulePage() {
     for (let i = 0; i < days.length; i += 7) out.push(days.slice(i, i + 7));
     return out;
   }, [days, event?.weekRailFrom]);
+
+  /**
+   * The grid's columns. Rooms carry seats and their booking permission; tracks
+   * carry how many sessions are on them. A session with no track needs
+   * somewhere to sit, so an "Unassigned" column is appended when any exists —
+   * dropping those sessions would hide real programme.
+   */
+  const columns = useMemo(() => {
+    if (axis === "room") {
+      return (bundle?.rooms ?? []).map((room) => ({
+        id: room.id,
+        name: room.name,
+        color: room.color,
+        detail: (
+          <div className="truncate text-xs text-stone-600">
+            {room.openTrack && (
+              <span className="font-medium text-stone-800">attendees may book this room</span>
+            )}
+            {room.openTrack && <br />}
+            {room.capacity ? `${room.capacity} seats` : "no capacity set"}
+          </div>
+        ),
+      }));
+    }
+    const tracks = bundle?.tracks ?? [];
+    const sessions = bundle?.sessions ?? [];
+    const cols = tracks.map((track) => ({
+      id: track.id,
+      name: track.name,
+      color: track.color,
+      detail: (
+        <div className="truncate text-xs text-stone-600">
+          {sessions.filter((x) => x.trackId === track.id).length} in the programme
+        </div>
+      ),
+    }));
+    if (sessions.some((x) => x.trackId === null)) {
+      cols.push({
+        id: UNTRACKED,
+        name: "Unassigned",
+        color: "#E7E5E4",
+        detail: (
+          <div className="truncate text-xs text-stone-600">
+            {sessions.filter((x) => x.trackId === null).length} with no track
+          </div>
+        ),
+      });
+    }
+    return cols;
+  }, [axis, bundle?.rooms, bundle?.tracks, bundle?.sessions]);
+
+  const columnOf = useCallback(
+    (session: SessionDto) =>
+      axis === "room" ? session.roomId : (session.trackId ?? UNTRACKED),
+    [axis],
+  );
+
+  const roomNames = useMemo(
+    () => new Map((bundle?.rooms ?? []).map((r) => [r.id, r.name])),
+    [bundle?.rooms],
+  );
+  const roomNameOf = useCallback(
+    (session: SessionDto) => roomNames.get(session.roomId) ?? "",
+    [roomNames],
+  );
 
   /** Sessions per day — an empty day is dimmed, and a week counts its own. */
   const perDay = useMemo(() => {
@@ -502,6 +577,11 @@ export function SchedulePage() {
       body: "Grid shows the rooms side by side; list is a plain agenda that reads better on a phone.",
     },
     {
+      target: "axis",
+      title: "Rooms or tracks",
+      body: "This event has tracks, so the grid can lay its columns out either way. Reading by track, each block says which room it is in.",
+    },
+    {
       target: "pitches",
       title: "Pitch a session",
       body: "Propose a session with no room or time, and say which pitches you would turn up to. Organisers place the popular ones on the grid.",
@@ -702,6 +782,31 @@ export function SchedulePage() {
             ))}
           </div>
 
+          {/* Only when the event has tracks, and only in the grid — the list
+              is an agenda in time order, with no columns to lay out. */}
+          {hasTracks && view === "cal" && (
+            <div
+              data-tour="axis"
+              className="flex rounded-lg border border-stone-300 bg-white p-0.5 dark:border-stone-600 dark:bg-stone-900"
+            >
+              {(["room", "track"] as const).map((a) => (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => filters.set({ axis: a })}
+                  aria-pressed={axis === a}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+                    axis === a
+                      ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900"
+                      : "text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+                  }`}
+                >
+                  {a === "room" ? "Rooms" : "Tracks"}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Everyone needs the board: attendees pitch there, viewers can
               register interest. It sits with the other ways of looking at the
               programme, not up with the account chrome. */}
@@ -870,7 +975,11 @@ export function SchedulePage() {
         ) : view === "cal" ? (
           <Calendar
             scrollRef={calRef}
-            rooms={bundle.rooms}
+            columns={columns}
+            columnOf={columnOf}
+            axis={axis === "track" ? "Track" : "Room"}
+            moveBetweenColumns={axis === "room"}
+            subtitleOf={axis === "track" ? roomNameOf : undefined}
             tags={bundle.tags}
             sessions={daySessions}
             matchedIds={matchedIds}
@@ -991,6 +1100,7 @@ export function SchedulePage() {
           session={editing.session}
           rooms={bundle.rooms}
           tags={bundle.tags}
+          tracks={bundle.tracks}
           people={bundle.people}
           role={role}
           timezone={timezone}

@@ -6,6 +6,17 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- **Tracks.** Thematic strands running across rooms and days, defined per event
+  from the admin page and ordered like rooms, because that order is the order
+  of the columns. A session sits on at most one — unlike a tag, because the
+  grid can lay tracks out as its columns and a session occupies exactly one
+  column. Once an event has any, the grid gains a Rooms / Tracks switch; read
+  by track, each block gains its room on the card, and sessions with no track
+  gather in a trailing "Unassigned" column rather than vanishing. Deleting a
+  track keeps its sessions — they lose the track, not their room. The choice
+  rides in the URL like every other filter. An event with no tracks is
+  untouched and never mentions them.
+
 - **Week grouping for long events.** Past a threshold the schedule's day tabs
   stop being one horizontal scroller and split in two: a rail of weeks, each
   labelled with its dates and its session count, and below it only that week's
@@ -69,6 +80,13 @@ All notable changes to this project are documented here.
   stage has no `.git`.
 
 ### Changed
+
+- **Room cards lead with what you can do in the room.** "Attendees may book
+  this room" moves above the capacity rather than trailing it. Capacity is a
+  three-digit number in a narrow field now, not a half-width one, and a typed
+  minus sign is dropped. The colour a new room will get is a note beside the
+  button rather than a form field pretending to be editable, and the palette
+  shows the hex it has landed on.
 
 - **Duplicating an event is behind a button.** Seven fields for a thing that
   happens once in an event's life, if ever, sat permanently open above Trash.

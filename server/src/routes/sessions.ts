@@ -13,6 +13,7 @@ import {
   assertNoOverlap,
   assertNotStale,
   assertTagsBelong,
+  assertTrackBelongs,
   assertValidTimes,
   assertWithinEventWindow,
   getRoom,
@@ -95,6 +96,8 @@ export function sessionRoutes(ctx: Ctx): Router {
     }
     const tagIds = body.tagIds ?? [];
     assertTagsBelong(ctx.db, req.event.id, tagIds);
+    const trackId = body.trackId ?? null;
+    assertTrackBelongs(ctx.db, req.event.id, trackId);
 
     const now = new Date().toISOString();
     const id = ctx.db.transaction((): number => {
@@ -102,13 +105,14 @@ export function sessionRoutes(ctx: Ctx): Router {
       const info = ctx.db
         .prepare(
           `INSERT INTO sessions
-            (event_id, room_id, type, title, description, speaker, speaker_id, livestream_url,
-             starts_at, ends_at, created_by, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?)`,
+            (event_id, room_id, track_id, type, title, description, speaker, speaker_id,
+             livestream_url, starts_at, ends_at, created_by, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           req.event.id,
           room.id,
+          trackId,
           type,
           body.title,
           body.description ?? '',
@@ -160,18 +164,22 @@ export function sessionRoutes(ctx: Ctx): Router {
       assertNoOverlap(ctx.db, req.event.id, room.id, window, existing.id);
     }
     if (body.tagIds) assertTagsBelong(ctx.db, req.event.id, body.tagIds);
+    // `undefined` leaves the track alone; an explicit `null` clears it.
+    const nextTrackId = body.trackId === undefined ? existing.track_id : body.trackId;
+    assertTrackBelongs(ctx.db, req.event.id, nextTrackId);
 
     const now = new Date().toISOString();
     ctx.db.transaction(() => {
       const speakerId = resolveSpeaker(ctx, req.event.id, body, existing.speaker_id);
       ctx.db
         .prepare(
-          `UPDATE sessions SET room_id = ?, type = ?, title = ?, description = ?, speaker_id = ?,
-                  livestream_url = ?, starts_at = ?, ends_at = ?, updated_at = ?
+          `UPDATE sessions SET room_id = ?, track_id = ?, type = ?, title = ?, description = ?,
+                  speaker_id = ?, livestream_url = ?, starts_at = ?, ends_at = ?, updated_at = ?
             WHERE id = ?`,
         )
         .run(
           room.id,
+          nextTrackId,
           type,
           body.title ?? existing.title,
           body.description ?? existing.description,

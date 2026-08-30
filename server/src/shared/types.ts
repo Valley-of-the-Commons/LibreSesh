@@ -77,6 +77,8 @@ export interface PersonDetailDto {
 export interface SessionDto {
   id: number;
   roomId: number;
+  /** null when the event has no tracks, or the session is not on one. */
+  trackId: number | null;
   type: SessionType;
   title: string;
   description: string;
@@ -127,6 +129,15 @@ export interface ProposalDto {
   updatedAt: string;
 }
 
+/** A thematic strand across rooms and days. One per session at most, because
+ *  the schedule can lay tracks out as its columns. */
+export interface TrackDto {
+  id: number;
+  name: string;
+  color: string;
+  sortOrder: number;
+}
+
 export interface BundleDto {
   event: EventDto;
   role: Role;
@@ -135,6 +146,8 @@ export interface BundleDto {
   displayName: string;
   rooms: RoomDto[];
   tags: TagDto[];
+  /** Empty unless the organiser has defined any. */
+  tracks: TrackDto[];
   sessions: SessionDto[];
   people: PersonDto[];
   /** Pitches waiting for a slot, plus those already placed. */
@@ -169,6 +182,9 @@ export type ChangeType =
   | 'tag.created'
   | 'tag.updated'
   | 'tag.deleted'
+  | 'track.created'
+  | 'track.updated'
+  | 'track.deleted'
   | 'proposal.created'
   | 'proposal.updated'
   | 'proposal.deleted'

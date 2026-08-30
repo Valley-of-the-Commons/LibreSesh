@@ -1,5 +1,12 @@
-import { useCallback, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import type { RoomDto, SessionDto, TagDto } from '@shared/types';
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react';
+import type { SessionDto, TagDto } from '@shared/types';
 import { fmtMin, place } from '../lib/format';
 
 export const PX_PER_MIN = 1.6;
@@ -18,18 +25,25 @@ interface Lane {
   lanes: number;
 }
 
-/** Greedy lane assignment so overlapping sessions in one room sit side by side. */
+/**
+ * Greedy lane assignment so overlapping sessions in one *column* sit side by
+ * side. Keyed to the column, not the room: lanes are about what visually
+ * collides, and when the columns are tracks two sessions in different rooms
+ * do collide on screen.
+ */
 function laneLayout(
   items: { session: SessionDto; startMin: number; endMin: number }[],
+  columnOf: (session: SessionDto) => number,
 ): Map<number, Lane> {
-  const byRoom = new Map<number, typeof items>();
+  const byColumn = new Map<number, typeof items>();
   for (const item of items) {
-    const list = byRoom.get(item.session.roomId);
+    const key = columnOf(item.session);
+    const list = byColumn.get(key);
     if (list) list.push(item);
-    else byRoom.set(item.session.roomId, [item]);
+    else byColumn.set(key, [item]);
   }
   const out = new Map<number, Lane>();
-  for (const list of byRoom.values()) {
+  for (const list of byColumn.values()) {
     const sorted = list.slice().sort((a, b) => a.startMin - b.startMin);
     const laneEnds: number[] = [];
     for (const item of sorted) {
@@ -114,9 +128,35 @@ interface DragState {
   pending?: boolean;
 }
 
+/**
+ * What the grid lays out along its horizontal axis. Rooms by default; tracks
+ * when the event has them and the organiser or reader switches. Everything
+ * below is column-agnostic — only `axis` and the card's subtitle name it.
+ */
+export interface CalendarColumn {
+  id: number;
+  name: string;
+  color: string;
+  /** Second line on the column card: seats, booking permission, session count. */
+  detail?: ReactNode;
+}
+
 export interface CalendarProps {
   scrollRef: React.RefObject<HTMLDivElement>;
-  rooms: RoomDto[];
+  columns: CalendarColumn[];
+  /** Which column a session belongs in. */
+  columnOf: (session: SessionDto) => number;
+  /** Label above the gutter — "Room" or "Track". */
+  axis: string;
+  /**
+   * Whether dragging sideways changes a session's column. True for rooms,
+   * where the column *is* the room and `onMove` can carry it. False for
+   * tracks: reassigning a strand is not a scheduling move, and `onMove`
+   * speaks in room ids.
+   */
+  moveBetweenColumns: boolean;
+  /** Small line under the title — the room, when rooms are not the columns. */
+  subtitleOf?: (session: SessionDto) => string;
   tags: TagDto[];
   sessions: SessionDto[];
   /** Sessions filtered out are dimmed rather than removed (SPEC §7.3). */
@@ -145,7 +185,11 @@ export interface CalendarProps {
 
 export function Calendar({
   scrollRef,
-  rooms,
+  columns,
+  columnOf,
+  axis,
+  moveBetweenColumns,
+  subtitleOf,
   tags,
   sessions,
   matchedIds,
@@ -174,7 +218,7 @@ export function Calendar({
         .filter((p) => p.date === day),
     [sessions, timezone, day],
   );
-  const lanes = useMemo(() => laneLayout(placed), [placed]);
+  const lanes = useMemo(() => laneLayout(placed, columnOf), [placed, columnOf]);
   const overlaps = useMemo(() => overlappingIds(placed), [placed]);
   const tagColor = useMemo(() => new Map(tags.map((t) => [t.id, t.color])), [tags]);
 
@@ -230,7 +274,7 @@ export function Calendar({
           setDrag({ id: session.id, mode, deltaMin: 0, deltaRoom: 0, durMin: nextDur });
         } else {
           deltaMin = snap((ev.clientY - startY) / PX_PER_MIN);
-          deltaRoom = Math.round((ev.clientX - startX) / COL_W);
+          deltaRoom = moveBetweenColumns ? Math.round((ev.clientX - startX) / COL_W) : 0;
           setDrag({ id: session.id, mode, deltaMin, deltaRoom, durMin });
         }
       };
@@ -285,9 +329,13 @@ export function Calendar({
         // Clamp before holding, so the block waits exactly where it will land
         // rather than where the pointer happened to be.
         const newStart = clamp(startMin + deltaMin, dayStartMin, dayEndMin - durMin);
-        const fromIndex = rooms.findIndex((r) => r.id === session.roomId);
-        const roomIndex = clamp(fromIndex + deltaRoom, 0, rooms.length - 1);
-        const roomId = rooms[roomIndex]?.id ?? session.roomId;
+        const fromIndex = columns.findIndex((c) => c.id === columnOf(session));
+        const toIndex = clamp(fromIndex + deltaRoom, 0, columns.length - 1);
+        // Safe because deltaRoom is pinned to 0 unless the columns are rooms,
+        // and then a column id *is* a room id.
+        const roomId = moveBetweenColumns
+          ? (columns[toIndex]?.id ?? session.roomId)
+          : session.roomId;
         if (newStart === startMin && roomId === session.roomId) {
           setDrag(null);
           return;
@@ -297,7 +345,7 @@ export function Calendar({
             id: session.id,
             mode,
             deltaMin: newStart - startMin,
-            deltaRoom: roomIndex - fromIndex,
+            deltaRoom: toIndex - fromIndex,
             durMin,
             pending: true,
           },
@@ -309,7 +357,17 @@ export function Calendar({
       window.addEventListener('pointerup', onUp);
       window.addEventListener('pointercancel', cleanup);
     },
-    [arrange, canEdit, dayEndMin, dayStartMin, onMove, onOpen, rooms],
+    [
+      arrange,
+      canEdit,
+      columnOf,
+      columns,
+      dayEndMin,
+      dayStartMin,
+      moveBetweenColumns,
+      onMove,
+      onOpen,
+    ],
   );
 
   const hourCount = Math.floor((dayEndMin - dayStartMin) / 60) + 1;
@@ -321,7 +379,7 @@ export function Calendar({
       className="overflow-auto border-t border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 sm:mt-2 sm:rounded-xl sm:border"
       style={{ maxHeight: 'calc(100vh - 200px)' }}
     >
-      <div className="relative" style={{ width: GUTTER_W + rooms.length * COL_W }}>
+      <div className="relative" style={{ width: GUTTER_W + columns.length * COL_W }}>
         {/*
           Each room is a detached card, not a table header cell: a row of
           bordered cells sitting flush on a time grid reads as one table, and
@@ -335,28 +393,20 @@ export function Calendar({
                 same line as the room names rather than floating. */}
             <div className="border border-transparent py-2 text-right text-xs leading-4">
               <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
-                Room
+                {axis}
               </span>
             </div>
           </div>
-          {rooms.map((room) => (
-            <div key={room.id} className="shrink-0 px-1" style={{ width: COL_W }}>
+          {columns.map((column) => (
+            <div key={column.id} className="shrink-0 px-1" style={{ width: COL_W }}>
               <div
                 className="rounded-lg border border-stone-200/80 px-3 py-2 dark:border-stone-700"
-                // The palette is already washed out; 'cc'/'40' keep it that way
+                // The palette is already washed out; 'cc'/'22' keep it that way
                 // in light and dark without maintaining two palettes.
-                style={{ background: `${room.color}cc`, borderColor: room.color }}
+                style={{ background: `${column.color}cc`, borderColor: column.color }}
               >
-                <div className="truncate text-xs font-semibold text-stone-900">{room.name}</div>
-                <div className="truncate text-xs text-stone-600">
-                  {room.capacity ? `${room.capacity} seats` : 'no capacity set'}
-                  {room.openTrack && (
-                    <>
-                      {' · '}
-                      <span className="font-medium text-stone-800">anyone may book</span>
-                    </>
-                  )}
-                </div>
+                <div className="truncate text-xs font-semibold text-stone-900">{column.name}</div>
+                {column.detail}
               </div>
             </div>
           ))}
@@ -385,16 +435,16 @@ export function Calendar({
             />
           ))}
 
-          {rooms.map((room, i) => (
+          {columns.map((column, i) => (
             <div
-              key={room.id}
+              key={column.id}
               className="pointer-events-none absolute bottom-0 top-0 border-l border-stone-100 dark:border-stone-800"
               // Very low alpha: this sits under every session block, so it has
               // to identify the column without competing with it.
               style={{
                 left: GUTTER_W + i * COL_W,
                 width: COL_W,
-                background: `${room.color}22`,
+                background: `${column.color}22`,
               }}
             />
           ))}
@@ -419,10 +469,10 @@ export function Calendar({
             const effectiveStart = startMin + (active?.mode === 'move' ? active.deltaMin : 0);
             const effectiveDur = active?.mode === 'resize' ? active.durMin : durMin;
             const roomIndex = clamp(
-              rooms.findIndex((r) => r.id === session.roomId) +
+              columns.findIndex((c) => c.id === columnOf(session)) +
                 (active?.mode === 'move' ? active.deltaRoom : 0),
               0,
-              Math.max(0, rooms.length - 1),
+              Math.max(0, columns.length - 1),
             );
             const lane = lanes.get(session.id) ?? { lane: 0, lanes: 1 };
             const width = (COL_W - 8) / lane.lanes;
@@ -519,6 +569,12 @@ export function Calendar({
                   {fmtMin(effectiveStart)}–{fmtMin(effectiveStart + effectiveDur)}
                   {session.speaker && ` · ${session.speaker}`}
                 </div>
+                {/* Where the session is, once the columns stopped saying so. */}
+                {subtitleOf && (
+                  <div className="truncate text-xs text-stone-500 dark:text-stone-400">
+                    {subtitleOf(session)}
+                  </div>
+                )}
                 {session.type === 'open' && (
                   <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">open session</span>
                 )}

@@ -2,10 +2,13 @@ import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 export type ViewMode = 'cal' | 'list';
+/** What the grid's columns are. Only meaningful once the event has tracks. */
+export type Axis = 'room' | 'track';
 
 export interface Filters {
   day: string | null;
   view: ViewMode | null;
+  axis: Axis | null;
   rooms: number[];
   tags: number[];
   q: string;
@@ -41,9 +44,11 @@ export function useFilters(): FilterApi {
 
   const filters = useMemo<Filters>(() => {
     const view = params.get('view');
+    const axis = params.get('axis');
     return {
       day: params.get('day'),
       view: view === 'cal' || view === 'list' ? view : null,
+      axis: axis === 'room' || axis === 'track' ? axis : null,
       rooms: parseIds(params.get('room')),
       tags: parseIds(params.get('tag')),
       q: params.get('q') ?? '',
@@ -63,6 +68,7 @@ export function useFilters(): FilterApi {
           };
           if ('day' in patch) write('day', patch.day ?? null);
           if ('view' in patch) write('view', patch.view ?? null);
+          if ('axis' in patch) write('axis', patch.axis ?? null);
           if ('rooms' in patch) write('room', (patch.rooms ?? []).join(','));
           if ('tags' in patch) write('tag', (patch.tags ?? []).join(','));
           if ('q' in patch) write('q', patch.q ?? null);

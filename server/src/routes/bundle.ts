@@ -2,7 +2,14 @@ import { Router } from 'express';
 import type { BundleDto, SessionDetailDto } from '../shared/types.js';
 import { atLeast } from '../auth.js';
 import type { Ctx } from '../context.js';
-import type { ContributionRow, PersonRow, RoomRow, SessionRow, TagRow } from '../db.js';
+import type {
+  ContributionRow,
+  PersonRow,
+  RoomRow,
+  SessionRow,
+  TagRow,
+  TrackRow,
+} from '../db.js';
 import { NameResolver, eventDisplayName } from '../eventIdentity.js';
 import {
   speakerNames,
@@ -13,6 +20,7 @@ import {
   toRoomDto,
   toSessionDto,
   toTagDto,
+  toTrackDto,
   loadSessionDto,
   loadProposalDtos,
 } from '../mappers.js';
@@ -35,6 +43,11 @@ export function bundleRoutes(ctx: Ctx): Router {
     const tags = ctx.db
       .prepare<[number], TagRow>(
         'SELECT * FROM tags WHERE event_id = ? AND deleted_at IS NULL ORDER BY name',
+      )
+      .all(eventId);
+    const tracks = ctx.db
+      .prepare<[number], TrackRow>(
+        'SELECT * FROM tracks WHERE event_id = ? AND deleted_at IS NULL ORDER BY sort_order, id',
       )
       .all(eventId);
     const sessions = ctx.db
@@ -74,6 +87,7 @@ export function bundleRoutes(ctx: Ctx): Router {
         eventDisplayName(ctx.db, eventId, req.identity.id) ?? req.identity.display_name,
       rooms: rooms.map(toRoomDto),
       tags: tags.map(toTagDto),
+      tracks: tracks.map(toTrackDto),
       sessions: sessions.map((s) =>
         toSessionDto(
           s,

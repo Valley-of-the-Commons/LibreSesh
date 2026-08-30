@@ -8,6 +8,7 @@ import type {
   RoomDto,
   SessionDto,
   TagDto,
+  TrackDto,
 } from '@shared/types';
 import { ApiError, api } from './api';
 
@@ -55,6 +56,9 @@ const upsert = <T extends { id: number }>(list: T[], item: T): T[] => {
  */
 const byRoomOrder = (rooms: RoomDto[]): RoomDto[] =>
   rooms.slice().sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+
+const byTrackOrder = (tracks: TrackDto[]): TrackDto[] =>
+  [...tracks].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
 
 const byTagName = (tags: TagDto[]): TagDto[] =>
   tags.slice().sort((a, b) => a.name.localeCompare(b.name));
@@ -166,6 +170,28 @@ function applyChange(state: State, change: ChangeEvent): State {
           sessions: bundle.sessions.map((s) =>
             s.tagIds.includes(id) ? { ...s, tagIds: s.tagIds.filter((t) => t !== id) } : s,
           ),
+        },
+      };
+    }
+    case 'track.created':
+    case 'track.updated':
+      return {
+        ...state,
+        bundle: {
+          ...bundle,
+          tracks: byTrackOrder(upsert(bundle.tracks, change.entity as TrackDto)),
+        },
+      };
+    case 'track.deleted': {
+      const { id } = change.entity as { id: number };
+      // The server clears the track from its sessions in the same write, so
+      // the bundle has to do the same or a column lingers with nothing in it.
+      return {
+        ...state,
+        bundle: {
+          ...bundle,
+          tracks: bundle.tracks.filter((t) => t.id !== id),
+          sessions: bundle.sessions.map((s) => (s.trackId === id ? { ...s, trackId: null } : s)),
         },
       };
     }

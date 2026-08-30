@@ -92,6 +92,17 @@ export const authSchema = z.object({
   displayName: displayNameSchema.optional(),
 });
 
+export const trackSchema = z.object({
+  name: trimmed(60),
+  color: colorSchema.optional(),
+});
+export const trackPatchSchema = z
+  .object({ name: trimmed(60).optional(), color: colorSchema.optional() })
+  .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
+export const trackOrderSchema = z.object({
+  ids: z.array(z.number().int().positive()).min(1).max(60),
+});
+
 export const roomSchema = z.object({
   name: trimmed(80),
   description: optionalTrimmed(500).optional(),
@@ -136,6 +147,7 @@ export const sessionSchema = z.object({
   startsAt: isoInstantSchema,
   endsAt: isoInstantSchema,
   tagIds: z.array(z.number().int().positive()).max(20).optional(),
+  trackId: z.number().int().positive().nullable().optional(),
 });
 export const sessionPatchSchema = sessionSchema.partial().extend({
   expectedUpdatedAt: isoInstantSchema.optional(),

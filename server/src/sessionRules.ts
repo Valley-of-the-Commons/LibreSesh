@@ -45,6 +45,17 @@ export function assertTagsBelong(db: Db, eventId: number, tagIds: number[]): voi
   if (found.length !== new Set(tagIds).size) throw badRequest('Unknown tag');
 }
 
+/** Reject a track id from another event, or one that has been deleted. */
+export function assertTrackBelongs(db: Db, eventId: number, trackId: number | null): void {
+  if (trackId === null) return;
+  const found = db
+    .prepare<[number, number], { id: number }>(
+      'SELECT id FROM tracks WHERE event_id = ? AND id = ? AND deleted_at IS NULL',
+    )
+    .get(eventId, trackId);
+  if (!found) throw badRequest('Unknown track');
+}
+
 /**
  * Shape checks that apply to every writer: 5-minute snap in the event's
  * timezone and a sane duration (SPEC §5.1).

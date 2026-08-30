@@ -52,27 +52,17 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 
 ## Medium Priority
 
-- **"Tracks" are named but do not exist.** There is no track anywhere in the
-  system: no table, no column, no API, nothing an organiser can define. The
-  only thing carrying the word was `rooms.open_track`, a boolean meaning
-  "attendees may schedule here" — a booking permission, not a track. The UI
-  wording was removed on 2026-08-30; the column name is the last trace.
-  - **Rename `rooms.open_track` -> `rooms.open_booking`.** Small and
-    self-contained: a migration, `RoomRow`, `RoomDto.openTrack`, the admin
-    toggle, the seed and the tests. Removes the last implication of a feature
-    that was never built.
-  - **Decide whether tracks should exist at all.** A track would be a thematic
-    strand spanning several rooms and days — "Design track", "Ops track" —
-    which is a real conference concept the tool has no answer for. Tags are
-    the closest existing thing and may already be enough: they are per-event,
-    named, coloured, filterable and attach to both sessions and pitches. If
-    tracks are wanted as a distinct concept, the cheap shape is a `kind` on
-    tags ('label' | 'track') rather than a third entity, plus optionally a
-    "column by: Room | Track" toggle on the grid.
+- **Rename `rooms.open_track` -> `rooms.open_booking`.** The last trace of the
+  word "track" meaning something it never meant: the column is a booking
+  permission, and now that tracks are a real, separate thing (migration 011)
+  the name is actively misleading. A migration, `RoomRow`, `RoomDto.openTrack`,
+  the admin toggle, the seed and the tests.
 
-  No user has asked to group the schedule by track — the original report was
-  that the grid header was _misleading_, and that is fixed. Do the rename;
-  treat the feature as unproven until someone asks for it.
+- **Number fields accept nonsense.** Room capacity is `type="number" min={0}`,
+  which the browser enforces on the spinner but not on typing or paste; the
+  client strips a minus sign and `parseCapacity` floors it, and the server
+  takes whatever arrives. Same shape wherever a number is typed. Wants one
+  validated numeric input primitive rather than a guard per field.
 
 - **No write path under flaky connectivity.** Reads recover well — `EventSource`
   auto-reconnects and `useEventData` refetches the whole bundle on reopen, and

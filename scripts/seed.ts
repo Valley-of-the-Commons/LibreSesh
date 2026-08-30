@@ -52,6 +52,14 @@ const TAGS = [
   { name: 'Governance', color: '#8A8A5C' },
 ];
 
+/** Only seeded for a long event: a two-day unconference has no strands to
+ *  speak of, and with no tracks the schedule never mentions them. */
+const TRACKS = [
+  { name: 'Build', color: '#BFD7E8' },
+  { name: 'Community', color: '#CFE3CE' },
+  { name: 'Operations', color: '#EDE2C6' },
+];
+
 const OFFICIAL_TITLES = [
   'Opening keynote: schedules as commons',
   'What pretalx taught us about complexity',
@@ -175,6 +183,8 @@ function main(): void {
       db.prepare('DELETE FROM people WHERE event_id = ?').run(prior.id);
       db.prepare('DELETE FROM rooms WHERE event_id = ?').run(prior.id);
       db.prepare('DELETE FROM tags WHERE event_id = ?').run(prior.id);
+      db.prepare('DELETE FROM tracks WHERE event_id = ?').run(prior.id);
+      db.prepare('DELETE FROM event_permissions WHERE event_id = ?').run(prior.id);
       db.prepare('DELETE FROM event_identities WHERE event_id = ?').run(prior.id);
       db.prepare('DELETE FROM roles WHERE event_id = ?').run(prior.id);
       db.prepare('DELETE FROM audit WHERE event_id = ?').run(prior.id);
@@ -270,11 +280,23 @@ function main(): void {
     const programmeDays = long
       ? days.filter((d, i) => i === 0 || i === days.length - 1 || !isWeekend(d))
       : days;
+    const trackIds = long
+      ? TRACKS.map((track, i) =>
+          Number(
+            db
+              .prepare(
+                'INSERT INTO tracks (event_id, name, color, sort_order) VALUES (?, ?, ?, ?)',
+              )
+              .run(eventId, track.name, track.color, i).lastInsertRowid,
+          ),
+        )
+      : [];
+
     const insertSession = db.prepare(
       `INSERT INTO sessions
-        (event_id, room_id, type, title, description, speaker, speaker_id, starts_at, ends_at,
-         created_by, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?)`,
+        (event_id, room_id, track_id, type, title, description, speaker, speaker_id,
+         starts_at, ends_at, created_by, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?)`,
     );
     const insertSessionTag = db.prepare(
       'INSERT OR IGNORE INTO session_tags (session_id, tag_id) VALUES (?, ?)',
@@ -296,6 +318,9 @@ function main(): void {
             insertSession.run(
               eventId,
               roomId,
+              // A sixth are left off a track, so the "Unassigned" column has
+              // something to hold.
+              trackIds.length && rand() > 0.17 ? pick(trackIds) : null,
               'official',
               OFFICIAL_TITLES[titleIndex % OFFICIAL_TITLES.length],
               'A short description of the session. Written in **markdown**, rendered safely.',
@@ -329,6 +354,7 @@ function main(): void {
         insertSession.run(
           eventId,
           openRoomId,
+          null,
           'open',
           title,
           'Proposed on the day. Turn up, or do not.',

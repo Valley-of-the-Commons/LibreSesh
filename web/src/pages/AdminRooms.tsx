@@ -70,6 +70,9 @@ function ColorChoice({
           aria-label="Custom colour"
           className="h-6 w-8 cursor-pointer rounded border border-stone-300 bg-white p-0.5 dark:border-stone-600 dark:bg-stone-900"
         />
+        <span className="ml-1 font-mono text-xs uppercase text-stone-400 dark:text-stone-500">
+          {value}
+        </span>
       </div>
     </div>
   );
@@ -184,8 +187,12 @@ function RoomRow({
         <div className="min-w-32 flex-1">
           <p className="truncate text-sm font-medium">{room.name}</p>
           <p className="truncate text-xs text-stone-500 dark:text-stone-400">
+            {room.openTrack && (
+              <span className="font-medium text-stone-600 dark:text-stone-300">
+                Attendees may book this room ·{" "}
+              </span>
+            )}
             {capacityLabel(room.capacity)}
-            {room.openTrack && " · attendees may book this room"}
             {room.description && ` · ${room.description}`}
           </p>
         </div>
@@ -218,9 +225,10 @@ function RoomRow({
                 <input
                   type="number"
                   min={0}
+                  inputMode="numeric"
                   value={capacity}
-                  onChange={(e) => setCapacity(e.target.value)}
-                  className={inputClass}
+                  onChange={(e) => setCapacity(e.target.value.replace(/-/g, ""))}
+                  className={`${inputClass} w-24`}
                 />
               </Field>
             </FormGrid>
@@ -339,7 +347,7 @@ export function AdminRooms({
           its own line, then the action. Everything that was crammed onto one
           row needed a hand-tuned margin to fake a baseline. */}
       <FormStack>
-        <FormGrid cols={3}>
+        <FormGrid>
           <Field label="New room">
             <input
               value={name}
@@ -353,22 +361,11 @@ export function AdminRooms({
             <input
               type="number"
               min={0}
+              inputMode="numeric"
               value={capacity}
-              onChange={(e) => setCapacity(e.target.value)}
-              className={inputClass}
+              onChange={(e) => setCapacity(e.target.value.replace(/-/g, ""))}
+              className={`${inputClass} w-24`}
             />
-          </Field>
-          <Field label="Colour" hint="Assigned on creation; change it any time.">
-            {/* Same border and padding as an input, so it derives the same
-                height rather than hardcoding one. */}
-            <div className="flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm dark:border-stone-600 dark:bg-stone-900">
-              <span
-                aria-hidden
-                className="h-5 w-5 shrink-0 rounded-full border border-stone-300 dark:border-stone-600"
-                style={{ background: suggested }}
-              />
-              <span className="text-stone-500 dark:text-stone-400">{suggested}</span>
-            </div>
           </Field>
         </FormGrid>
 
@@ -385,6 +382,17 @@ export function AdminRooms({
           >
             Add room
           </PrimaryButton>
+          {/* The colour is assigned, not chosen — a note, not a control. */}
+          <span className="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400">
+            <span
+              aria-hidden
+              className="h-4 w-4 shrink-0 rounded-full border border-stone-300 dark:border-stone-600"
+              style={{ background: suggested }}
+            />
+            Gets{" "}
+            <span className="font-mono uppercase">{suggested}</span>; change it
+            after creating.
+          </span>
         </FormRow>
       </FormStack>
     </Section>

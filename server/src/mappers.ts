@@ -8,6 +8,7 @@ import type {
   RoomDto,
   SessionDto,
   TagDto,
+  TrackDto,
 } from './shared/types.js';
 import type {
   ContributionRow,
@@ -18,6 +19,7 @@ import type {
   RoomRow,
   SessionRow,
   TagRow,
+  TrackRow,
 } from './db.js';
 
 import { NameResolver } from './eventIdentity.js';
@@ -48,6 +50,13 @@ export const toRoomDto = (r: RoomRow): RoomDto => ({
   color: r.color,
   openTrack: r.open_track === 1,
   sortOrder: r.sort_order,
+});
+
+export const toTrackDto = (t: TrackRow): TrackDto => ({
+  id: t.id,
+  name: t.name,
+  color: t.color,
+  sortOrder: t.sort_order,
 });
 
 export const toTagDto = (t: TagRow): TagDto => ({ id: t.id, name: t.name, color: t.color });
@@ -105,6 +114,7 @@ export function toSessionDto(
   return {
     id: row.id,
     roomId: row.room_id,
+    trackId: row.track_id,
     type: row.type,
     title: row.title,
     description: row.description,
