@@ -16,6 +16,9 @@ const optionalTrimmed = (max: number) =>
     .pipe(z.string().max(max));
 
 export const displayNameSchema = trimmed(40);
+/** Day count at which the schedule switches to a week rail. One would mean
+ *  every event gets one; beyond a quarter the rail is unusable either way. */
+export const weekRailFromSchema = z.coerce.number().int().min(1).max(90);
 /** What an event calls its middle role. Shown as a chip, so keep it short. */
 export const roleLabelSchema = trimmed(24);
 export const slugSchema = z
@@ -228,6 +231,7 @@ export const settingsSchema = z
     endDate: dateSchema.optional(),
     dayStartMin: minuteOfDaySchema.optional(),
     dayEndMin: minuteOfDaySchema.optional(),
+    weekRailFrom: weekRailFromSchema.optional(),
     viewerPassword: passwordSchema.optional(),
     userPassword: passwordSchema.optional(),
     adminPassword: passwordSchema.optional(),

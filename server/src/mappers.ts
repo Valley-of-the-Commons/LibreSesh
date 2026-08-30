@@ -35,6 +35,7 @@ export const toEventDto = (e: EventRow): EventDto => ({
   id: e.id,
   timezone: e.timezone,
   dayStartMin: e.day_start_min,
+  weekRailFrom: e.week_rail_from,
   dayEndMin: e.day_end_min,
   userRoleLabel: e.user_role_label,
 });

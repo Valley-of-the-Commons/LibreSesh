@@ -6,6 +6,15 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- **Week grouping for long events.** Past a threshold the schedule's day tabs
+  stop being one horizontal scroller and split in two: a rail of weeks, each
+  labelled with its dates and its session count, and below it only that week's
+  days. Days with nothing scheduled are dimmed, and the week holding today is
+  marked. The threshold is an event setting — "Group days into weeks past",
+  default 8 days — so a one- to three-day unconference looks exactly as it did.
+  The selected week is derived from the selected day rather than held in state,
+  so a shared `?day=` link still opens on the right week.
+
 - **A fortnight-long demo event.** `npm run seed:long` builds "LongConf 2026"
   — fourteen days from today, weekends clear, alongside the two-day DemoConf
   rather than replacing it. The seed takes `SEED_SLUG`, `SEED_NAME` and

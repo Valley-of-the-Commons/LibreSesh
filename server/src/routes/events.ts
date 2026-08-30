@@ -99,8 +99,9 @@ export function eventRoutes(ctx: Ctx): Router {
         .prepare(
           `INSERT INTO events
             (slug, name, timezone, start_date, end_date, day_start_min, day_end_min,
-             viewer_pw_hash, user_pw_hash, admin_pw_hash, archived, user_role_label, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
+             week_rail_from, viewer_pw_hash, user_pw_hash, admin_pw_hash, archived,
+             user_role_label, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
         )
         .run(
           body.newSlug,
@@ -110,6 +111,7 @@ export function eventRoutes(ctx: Ctx): Router {
           body.endDate,
           source.day_start_min,
           source.day_end_min,
+          source.week_rail_from,
           hashPassword(body.viewerPassword),
           hashPassword(body.userPassword),
           hashPassword(body.adminPassword),

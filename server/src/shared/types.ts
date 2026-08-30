@@ -27,6 +27,9 @@ export interface EventDto extends EventSummary {
   id: number;
   timezone: string;
   dayStartMin: number;
+  /** Longest event that still shows one flat strip of day tabs; above it the
+   *  days split into a rail of weeks. */
+  weekRailFrom: number;
   dayEndMin: number;
   /** What this event calls its middle role, e.g. "attendee". */
   userRoleLabel: string;

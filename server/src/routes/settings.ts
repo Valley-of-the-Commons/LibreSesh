@@ -32,7 +32,7 @@ export function settingsRoutes(ctx: Ctx): Router {
       ctx.db
         .prepare(
           `UPDATE events SET name = ?, start_date = ?, end_date = ?, day_start_min = ?,
-                  day_end_min = ?, viewer_pw_hash = ?, user_pw_hash = ?, admin_pw_hash = ?,
+                  day_end_min = ?, week_rail_from = ?, viewer_pw_hash = ?, user_pw_hash = ?, admin_pw_hash = ?,
                   archived = ?, user_role_label = ?
             WHERE id = ?`,
         )
@@ -42,6 +42,7 @@ export function settingsRoutes(ctx: Ctx): Router {
           endDate,
           dayStartMin,
           dayEndMin,
+          body.weekRailFrom ?? current.week_rail_from,
           body.viewerPassword ? hashPassword(body.viewerPassword) : current.viewer_pw_hash,
           body.userPassword ? hashPassword(body.userPassword) : current.user_pw_hash,
           body.adminPassword ? hashPassword(body.adminPassword) : current.admin_pw_hash,

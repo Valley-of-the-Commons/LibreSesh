@@ -39,6 +39,25 @@ export function dayLabel(date: string, today: string): { top: string; sub: strin
   };
 }
 
+/**
+ * A span of days as one label: "1–7 Jun", or "29 Jun – 5 Jul" when it straddles
+ * a month. Used by the week rail, where a week has to name itself in the width
+ * of a chip.
+ */
+export function dayRangeLabel(from: string, to: string): string {
+  const utc = { timeZone: 'UTC' } as const;
+  const a = new Date(`${from}T12:00:00Z`);
+  const b = new Date(`${to}T12:00:00Z`);
+  const aDay = a.toLocaleDateString(undefined, { day: 'numeric', ...utc });
+  const bDay = b.toLocaleDateString(undefined, { day: 'numeric', ...utc });
+  const aMonth = a.toLocaleDateString(undefined, { month: 'short', ...utc });
+  const bMonth = b.toLocaleDateString(undefined, { month: 'short', ...utc });
+  if (from === to) return `${aDay} ${aMonth}`;
+  return aMonth === bMonth
+    ? `${aDay}–${bDay} ${bMonth}`
+    : `${aDay} ${aMonth} – ${bDay} ${bMonth}`;
+}
+
 /** "just now" / "5m ago" / "2h ago" / a date, for contribution timestamps. */
 export function relativeTime(iso: string, now: number = Date.now()): string {
   const minutes = Math.round((now - new Date(iso).getTime()) / 60000);

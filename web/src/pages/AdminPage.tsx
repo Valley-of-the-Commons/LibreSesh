@@ -56,6 +56,7 @@ export function AdminPage() {
   const [endDate, setEndDate] = useState('');
   const [dayStart, setDayStart] = useState('');
   const [dayEnd, setDayEnd] = useState('');
+  const [weekRailFrom, setWeekRailFrom] = useState('8');
   const [userRoleLabel, setUserRoleLabel] = useState('');
   const [viewerPassword, setViewerPassword] = useState('');
   const [userPassword, setUserPassword] = useState('');
@@ -97,6 +98,7 @@ export function AdminPage() {
     setEndDate(event.endDate);
     setDayStart(fmtMin(event.dayStartMin));
     setDayEnd(fmtMin(event.dayEndMin));
+    setWeekRailFrom(String(event.weekRailFrom));
     setUserRoleLabel(event.userRoleLabel);
     // Clear the duplicate form too, so it isn't pre-filled after a clone.
     setCloneName('');
@@ -258,6 +260,18 @@ export function AdminPage() {
     return (h ?? 0) * 60 + (m ?? 0);
   };
 
+  // Inclusive, matching dateRange on the schedule.
+  const eventDays =
+    startDate && endDate
+      ? Math.max(
+          1,
+          Math.round(
+            (Date.parse(`${endDate}T12:00:00Z`) - Date.parse(`${startDate}T12:00:00Z`)) /
+              86400000,
+          ) + 1,
+        )
+      : 1;
+
   const saveSettings = async () => {
     try {
       const updated = await api.updateSettings(slug, {
@@ -266,6 +280,7 @@ export function AdminPage() {
         endDate,
         dayStartMin: toMinutes(dayStart),
         dayEndMin: toMinutes(dayEnd),
+        weekRailFrom: Number(weekRailFrom) || 8,
         ...(userRoleLabel.trim() ? { userRoleLabel: userRoleLabel.trim() } : {}),
         ...(viewerPassword ? { viewerPassword } : {}),
         ...(userPassword ? { userPassword } : {}),
@@ -523,6 +538,27 @@ export function AdminPage() {
             <input type="time" step={300} value={dayEnd} onChange={(e) => setDayEnd(e.target.value)} className={inputClass} />
           </Field>
         </FormGrid>
+        <Field
+          label="Group days into weeks past"
+          hint={`Up to this many days the schedule shows one row of day tabs. Longer than this and they split into a rail of weeks. This event runs ${eventDays} day${eventDays === 1 ? '' : 's'}.`}
+        >
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={90}
+              value={weekRailFrom}
+              onChange={(e) => setWeekRailFrom(e.target.value)}
+              className={`${inputClass} w-24`}
+            />
+            <span className="text-xs text-stone-500 dark:text-stone-400">
+              days
+              {eventDays > (Number(weekRailFrom) || 8)
+                ? ' · the rail is on for this event'
+                : ' · one row of tabs for this event'}
+            </span>
+          </div>
+        </Field>
         <Field
           label="What you call your participants"
           hint="Shown on role badges and in prompts. “attendee”, “participant”, “member”…"

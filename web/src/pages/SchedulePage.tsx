@@ -9,6 +9,7 @@ import { dateRange, zonedTimeToUtc } from "@shared/time";
 import { ApiError, api, type SessionWrite } from "../lib/api";
 import {
   dayLabel,
+  dayRangeLabel,
   fmtMin,
   nowMinuteOfDay,
   place,
@@ -115,6 +116,38 @@ export function SchedulePage() {
       ),
     [days, today],
   );
+
+  /**
+   * Past `weekRailFrom` days the flat day strip becomes a horizontal scroller
+   * that hides the event's shape: no sense of where you are, or how much is
+   * left. From there it splits in two — a rail of weeks, and that week's days
+   * below. The threshold is the organiser's call (default 8), so a one- to
+   * three-day unconference, which is nearly all of them, never sees it.
+   */
+  const weeks = useMemo(() => {
+    const from = event?.weekRailFrom ?? 8;
+    if (days.length <= from) return [];
+    const out: string[][] = [];
+    for (let i = 0; i < days.length; i += 7) out.push(days.slice(i, i + 7));
+    return out;
+  }, [days, event?.weekRailFrom]);
+
+  /** Sessions per day — an empty day is dimmed, and a week counts its own. */
+  const perDay = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const session of bundle?.sessions ?? []) {
+      const date = place(session, timezone).date;
+      counts.set(date, (counts.get(date) ?? 0) + 1);
+    }
+    return counts;
+  }, [bundle?.sessions, timezone]);
+
+  // Derived from the selected day rather than held in state, so the rail
+  // follows a shared `?day=` link instead of fighting it.
+  const weekIndex = weeks.length
+    ? Math.floor(Math.max(0, days.indexOf(day)) / 7)
+    : 0;
+  const stripDays = weeks.length ? (weeks[weekIndex] ?? days) : days;
 
   /** The identity's starred session ids, as a set for cheap lookups. */
   const starredIds = useMemo(
@@ -458,7 +491,10 @@ export function SchedulePage() {
     {
       target: "days",
       title: "Pick a day",
-      body: "One tab per day of the event.",
+      body:
+        weeks.length > 1
+          ? "One tab per day. A long event splits into weeks above — pick a week, then a day. Dimmed days have nothing scheduled yet."
+          : "One tab per day of the event.",
     },
     {
       target: "view",
@@ -578,12 +614,45 @@ export function SchedulePage() {
           </div>
         </div>
 
+        {weeks.length > 1 && (
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-1.5 px-4 pb-2">
+            {weeks.map((week, i) => {
+              const first = week[0] as string;
+              const last = week[week.length - 1] as string;
+              const count = week.reduce((n, d) => n + (perDay.get(d) ?? 0), 0);
+              const holdsToday = week.includes(today);
+              return (
+                <button
+                  key={first}
+                  type="button"
+                  onClick={() => filters.set({ day: holdsToday ? today : first })}
+                  aria-pressed={i === weekIndex}
+                  aria-label={`Week ${i + 1}, ${dayRangeLabel(first, last)}, ${count} sessions`}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium ${
+                    i === weekIndex
+                      ? "border-stone-900 bg-stone-900 text-white dark:border-stone-100 dark:bg-stone-100 dark:text-stone-900"
+                      : "border-stone-300 text-stone-600 hover:border-stone-500 dark:border-stone-600 dark:text-stone-300 dark:hover:border-stone-400"
+                  }`}
+                >
+                  Week {i + 1}
+                  <span className="ml-1.5 text-stone-400 dark:text-stone-500">
+                    {dayRangeLabel(first, last)}
+                  </span>
+                  {holdsToday && !week.includes(day) && (
+                    <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent align-middle" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 pb-3">
           <div
             data-tour="days"
             className="flex overflow-x-auto rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 p-0.5 no-scrollbar"
           >
-            {days.map((d) => {
+            {stripDays.map((d) => {
               const label = dayLabel(d, today);
               return (
                 <button
@@ -595,7 +664,7 @@ export function SchedulePage() {
                     day === d
                       ? "bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-white"
                       : "text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800"
-                  }`}
+                  } ${day !== d && (perDay.get(d) ?? 0) === 0 ? "opacity-40" : ""}`}
                 >
                   {label.top}{" "}
                   <span

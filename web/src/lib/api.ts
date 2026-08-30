@@ -259,6 +259,7 @@ export interface SettingsWrite {
   name?: string;
   startDate?: string;
   endDate?: string;
+  weekRailFrom?: number;
   dayStartMin?: number;
   dayEndMin?: number;
   viewerPassword?: string;

@@ -16,6 +16,7 @@ export interface EventRow {
   start_date: string;
   end_date: string;
   day_start_min: number;
+  week_rail_from: number;
   day_end_min: number;
   viewer_pw_hash: string;
   user_pw_hash: string;

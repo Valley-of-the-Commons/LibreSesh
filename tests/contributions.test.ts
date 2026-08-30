@@ -416,6 +416,50 @@ describe('event settings and creation', () => {
       .expect(400);
   });
 
+  it('carries the week-rail threshold into a clone', async () => {
+    await admin.patch('/api/e/testconf/settings').send({ weekRailFrom: 21 }).expect(200);
+    await admin
+      .post('/api/events/testconf/clone')
+      .send({
+        newSlug: 'testconf-rail',
+        newName: 'Test Conf Rail',
+        startDate: '2027-06-01',
+        endDate: '2027-06-30',
+        viewerPassword: 'viewer2',
+        userPassword: 'user222',
+        adminPassword: 'admin22',
+      })
+      .expect(201);
+    await admin.post('/api/e/testconf-rail/auth').send({ password: 'admin22' }).expect(200);
+    const res = await admin.get('/api/e/testconf-rail/bundle').expect(200);
+    expect(res.body.event.weekRailFrom).toBe(21);
+  });
+
+  it('defaults the week-rail threshold to eight days', async () => {
+    const res = await admin.get('/api/e/testconf/bundle').expect(200);
+    expect(res.body.event.weekRailFrom).toBe(8);
+  });
+
+  it('lets an organiser change the week-rail threshold', async () => {
+    const res = await admin
+      .patch('/api/e/testconf/settings')
+      .send({ weekRailFrom: 21 })
+      .expect(200);
+    expect(res.body.weekRailFrom).toBe(21);
+  });
+
+  it('refuses a week-rail threshold outside 1–90', async () => {
+    await admin.patch('/api/e/testconf/settings').send({ weekRailFrom: 0 }).expect(400);
+    await admin.patch('/api/e/testconf/settings').send({ weekRailFrom: 91 }).expect(400);
+    await admin.patch('/api/e/testconf/settings').send({ weekRailFrom: 4.5 }).expect(400);
+  });
+
+  it('leaves the threshold alone when a patch omits it', async () => {
+    await admin.patch('/api/e/testconf/settings').send({ weekRailFrom: 14 }).expect(200);
+    const res = await admin.patch('/api/e/testconf/settings').send({ name: 'Renamed' }).expect(200);
+    expect(res.body.weekRailFrom).toBe(14);
+  });
+
   it('clones rooms and tags but no sessions', async () => {
     await admin.post('/api/e/testconf/rooms').send({ name: 'Hall', openTrack: true }).expect(201);
     await admin.post('/api/e/testconf/tags').send({ name: 'AI' }).expect(201);
