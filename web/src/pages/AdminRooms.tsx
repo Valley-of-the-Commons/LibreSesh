@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { RoomDto } from '@shared/types';
+import { ROOM_COLORS, nextRoomColor } from '@shared/roomColors';
 import {
   DangerButton,
   Field,
@@ -27,6 +28,50 @@ export interface RoomDraft {
   capacity: number | null;
   description: string;
   openTrack: boolean;
+}
+
+/** Palette swatches plus a free-form picker, so the defaults are one click
+ *  away but nobody is limited to them. */
+function ColorChoice({
+  value,
+  onChange,
+  label,
+}: {
+  value: string;
+  onChange: (next: string) => void;
+  label: string;
+}) {
+  return (
+    <div>
+      <span className="mb-1 block text-xs font-medium text-stone-600 dark:text-stone-300">
+        {label}
+      </span>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {ROOM_COLORS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            aria-label={c}
+            aria-pressed={c.toLowerCase() === value.toLowerCase()}
+            onClick={() => onChange(c)}
+            style={{ background: c }}
+            className={`h-6 w-6 rounded-full border-2 ${
+              c.toLowerCase() === value.toLowerCase()
+                ? 'border-stone-900 dark:border-stone-100'
+                : 'border-transparent hover:border-stone-400'
+            }`}
+          />
+        ))}
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          aria-label="Custom colour"
+          className="h-6 w-8 cursor-pointer rounded border border-stone-300 bg-white p-0.5 dark:border-stone-600 dark:bg-stone-900"
+        />
+      </div>
+    </div>
+  );
 }
 
 /** '' means "no capacity", which is a real state distinct from 0. */
@@ -69,18 +114,21 @@ function RoomRow({
   const [name, setName] = useState(room.name);
   const [capacity, setCapacity] = useState(room.capacity === null ? '' : String(room.capacity));
   const [description, setDescription] = useState(room.description);
+  const [color, setColor] = useState(room.color);
   const [saving, setSaving] = useState(false);
 
   const reset = () => {
     setName(room.name);
     setCapacity(room.capacity === null ? '' : String(room.capacity));
     setDescription(room.description);
+    setColor(room.color);
   };
 
   const dirty =
     name.trim() !== room.name ||
     parseCapacity(capacity) !== room.capacity ||
-    description.trim() !== room.description;
+    description.trim() !== room.description ||
+    color !== room.color;
 
   const save = async () => {
     if (!name.trim() || saving) return;
@@ -90,6 +138,7 @@ function RoomRow({
         name: name.trim(),
         capacity: parseCapacity(capacity),
         description: description.trim(),
+        color,
       });
       setOpen(false);
     } finally {
@@ -116,6 +165,12 @@ function RoomRow({
             ↓
           </IconButton>
         </div>
+
+        <span
+          aria-hidden
+          className="h-5 w-5 shrink-0 rounded-full border border-stone-300 dark:border-stone-600"
+          style={{ background: room.color }}
+        />
 
         <div className="min-w-32 flex-1">
           <p className="truncate text-sm font-medium">{room.name}</p>
@@ -173,6 +228,10 @@ function RoomRow({
           </div>
 
           <div className="mt-3">
+            <ColorChoice value={color} onChange={setColor} label="Colour" />
+          </div>
+
+          <div className="mt-3">
             <Toggle
               checked={room.openTrack}
               onChange={(next) => void onPatch(room, { openTrack: next })}
@@ -215,6 +274,8 @@ export function AdminRooms({
   const [capacity, setCapacity] = useState('');
   const [openTrack, setOpenTrack] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Mirrors what the server would pick, so the swatch is not a surprise.
+  const suggested = nextRoomColor(rooms.map((r) => r.color));
 
   const add = async () => {
     if (!name.trim() || busy) return;
@@ -281,6 +342,12 @@ export function AdminRooms({
             />
           </Field>
         </div>
+        <span
+          aria-label={`New room colour ${suggested}`}
+          title={`New rooms get ${suggested} — change it after creating`}
+          className="mb-2 h-6 w-6 shrink-0 rounded-full border border-stone-300 dark:border-stone-600"
+          style={{ background: suggested }}
+        />
         <Toggle
           checked={openTrack}
           onChange={setOpenTrack}

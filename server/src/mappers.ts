@@ -42,6 +42,7 @@ export const toRoomDto = (r: RoomRow): RoomDto => ({
   name: r.name,
   description: r.description,
   capacity: r.capacity,
+  color: r.color,
   openTrack: r.open_track === 1,
   sortOrder: r.sort_order,
 });

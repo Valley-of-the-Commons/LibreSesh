@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { CAPABILITY_IDS, getPermissions } from '../server/src/permissions.js';
+import { ROOM_COLORS, nextRoomColor } from '../server/src/shared/roomColors.js';
 import {
   actorWithRole,
   makeHarness,
@@ -175,5 +176,22 @@ describe('permission matrix', () => {
       await setPerm('contribution.create', ['viewer', 'user']).expect(200);
       expect(getPermissions(harness.db, otherId)['contribution.create']).toEqual(['user', 'admin']);
     });
+  });
+});
+
+describe('room colour palette', () => {
+  it('picks the first unused colour, then cycles', () => {
+    expect(nextRoomColor([])).toBe(ROOM_COLORS[0]);
+    expect(nextRoomColor([ROOM_COLORS[0]])).toBe(ROOM_COLORS[1]);
+    // Case should not decide whether a colour counts as taken.
+    expect(nextRoomColor([ROOM_COLORS[0].toUpperCase()])).toBe(ROOM_COLORS[1]);
+    // Every colour spoken for: fall back to cycling rather than returning
+    // undefined.
+    expect(ROOM_COLORS).toContain(nextRoomColor([...ROOM_COLORS]));
+  });
+
+  it('offers a palette of washed-out tints', () => {
+    expect(ROOM_COLORS.length).toBeGreaterThanOrEqual(6);
+    for (const c of ROOM_COLORS) expect(c).toMatch(/^#[0-9a-fA-F]{6}$/);
   });
 });

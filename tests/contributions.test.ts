@@ -217,6 +217,34 @@ describe('rooms and tags', () => {
     expect(cleared.body.name).toBe('Hall');
   });
 
+  it('gives each new room a colour no other room is using', async () => {
+    const a = await admin.post('/api/e/testconf/rooms').send({ name: 'A' }).expect(201);
+    const b = await admin.post('/api/e/testconf/rooms').send({ name: 'B' }).expect(201);
+    const c = await admin.post('/api/e/testconf/rooms').send({ name: 'C' }).expect(201);
+    const colors = [a.body.color, b.body.color, c.body.color];
+    expect(new Set(colors).size).toBe(3);
+    for (const color of colors) expect(color).toMatch(/^#[0-9a-fA-F]{6}$/);
+  });
+
+  it('honours an explicitly chosen colour', async () => {
+    const res = await admin
+      .post('/api/e/testconf/rooms')
+      .send({ name: 'Hall', color: '#123456' })
+      .expect(201);
+    expect(res.body.color).toBe('#123456');
+
+    const patched = await admin
+      .patch(`/api/e/testconf/rooms/${res.body.id}`)
+      .send({ color: '#abcdef' })
+      .expect(200);
+    expect(patched.body.color).toBe('#abcdef');
+  });
+
+  it('rejects a colour that is not a hex triplet', async () => {
+    await admin.post('/api/e/testconf/rooms').send({ name: 'X', color: 'red' }).expect(400);
+    await admin.post('/api/e/testconf/rooms').send({ name: 'X', color: '#fff' }).expect(400);
+  });
+
   it('leaves fields the patch omits untouched', async () => {
     const created = await admin
       .post('/api/e/testconf/rooms')

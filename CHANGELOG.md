@@ -14,6 +14,11 @@ All notable changes to this project are documented here.
   are stored. The organiser column is locked on: an event nobody can moderate
   would have no way back. Structural rules stay fixed — official sessions
   remain organiser-only and open sessions still need an open-track room.
+- **Room colours.** Every room carries a colour, shown on its schedule column
+  and its header card, and editable in the admin room editor from a palette of
+  washed-out watercolour tints or a free-form picker. A new room defaults to
+  the first colour none of its neighbours is using. Existing rooms are spread
+  across the palette by column order on migration.
 - **Room editing.** Capacity and description are editable after creation. The
   API had always accepted them; the admin page exposed neither.
 - **Session livestream link.** Optional http(s) link on a session, hidden
@@ -38,6 +43,13 @@ All notable changes to this project are documented here.
 - **Identity is held in context.** `useMe` fetched `/me` wherever it was
   called, so a second caller meant a second round trip for the same answer.
 - The demo event's open-track room is called "Unconf Room".
+- **Nothing user-facing calls a booking permission a "track" any more.** No
+  track is implemented anywhere — `rooms.open_track` is a boolean meaning
+  "attendees may schedule here" — so the schedule badge now reads "anyone may
+  book", and the session modal and tour say what they mean.
+- **The schedule's room band is detached from the grid.** Each room is a
+  card with a "Room" axis label beside it, rather than a row of table cells
+  flush on the time grid, which read as weekday headers.
 
 ### Fixed
 

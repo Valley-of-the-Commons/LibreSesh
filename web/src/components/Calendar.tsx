@@ -288,21 +288,18 @@ export function Calendar({
           {rooms.map((room) => (
             <div key={room.id} className="shrink-0 px-1" style={{ width: COL_W }}>
               <div
-                className={`rounded-lg border px-3 py-2 ${
-                  room.openTrack
-                    ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/50'
-                    : 'border-stone-200 bg-stone-50 dark:border-stone-700 dark:bg-stone-800'
-                }`}
+                className="rounded-lg border border-stone-200/80 px-3 py-2 dark:border-stone-700"
+                // The palette is already washed out; 'cc'/'40' keep it that way
+                // in light and dark without maintaining two palettes.
+                style={{ background: `${room.color}cc`, borderColor: room.color }}
               >
-                <div className="truncate text-xs font-semibold">{room.name}</div>
-                <div className="truncate text-xs text-stone-400 dark:text-stone-500">
+                <div className="truncate text-xs font-semibold text-stone-900">{room.name}</div>
+                <div className="truncate text-xs text-stone-600">
                   {room.capacity ? `${room.capacity} seats` : 'no capacity set'}
                   {room.openTrack && (
                     <>
                       {' · '}
-                      <span className="font-medium text-emerald-700 dark:text-emerald-400">
-                        anyone may book
-                      </span>
+                      <span className="font-medium text-stone-800">anyone may book</span>
                     </>
                   )}
                 </div>
@@ -337,10 +334,14 @@ export function Calendar({
           {rooms.map((room, i) => (
             <div
               key={room.id}
-              className={`pointer-events-none absolute bottom-0 top-0 border-l border-stone-100 dark:border-stone-800 ${
-                room.openTrack ? 'bg-emerald-50/40 dark:bg-emerald-950/40' : ''
-              }`}
-              style={{ left: GUTTER_W + i * COL_W, width: COL_W }}
+              className="pointer-events-none absolute bottom-0 top-0 border-l border-stone-100 dark:border-stone-800"
+              // Very low alpha: this sits under every session block, so it has
+              // to identify the column without competing with it.
+              style={{
+                left: GUTTER_W + i * COL_W,
+                width: COL_W,
+                background: `${room.color}22`,
+              }}
             />
           ))}
 

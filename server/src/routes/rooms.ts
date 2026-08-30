@@ -6,6 +6,7 @@ import type { RoomRow } from '../db.js';
 import { conflict, notFound } from '../errors.js';
 import { toRoomDto } from '../mappers.js';
 import { limit } from '../ratelimit.js';
+import { nextRoomColor } from '../shared/roomColors.js';
 import { parse, roomPatchSchema, roomSchema } from '../validation.js';
 
 export function roomRoutes(ctx: Ctx): Router {
@@ -24,16 +25,25 @@ export function roomRoutes(ctx: Ctx): Router {
 
   router.post('/rooms', ...adminWrite, (req, res) => {
     const body = parse(roomSchema, req.body);
+    // Default to a colour none of this event's rooms is using, so a new room
+    // is distinguishable without anyone picking one.
+    const taken = ctx.db
+      .prepare<[number], { color: string }>(
+        'SELECT color FROM rooms WHERE event_id = ? AND deleted_at IS NULL',
+      )
+      .all(req.event.id)
+      .map((r) => r.color);
     const info = ctx.db
       .prepare(
-        `INSERT INTO rooms (event_id, name, description, capacity, open_track, sort_order)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO rooms (event_id, name, description, capacity, color, open_track, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         req.event.id,
         body.name,
         body.description ?? '',
         body.capacity ?? null,
+        body.color ?? nextRoomColor(taken),
         body.openTrack ? 1 : 0,
         body.sortOrder ?? 0,
       );
@@ -55,13 +65,15 @@ export function roomRoutes(ctx: Ctx): Router {
     const body = parse(roomPatchSchema, req.body);
     ctx.db
       .prepare(
-        `UPDATE rooms SET name = ?, description = ?, capacity = ?, open_track = ?, sort_order = ?
+        `UPDATE rooms SET name = ?, description = ?, capacity = ?, color = ?,
+                open_track = ?, sort_order = ?
           WHERE id = ?`,
       )
       .run(
         body.name ?? existing.name,
         body.description ?? existing.description,
         body.capacity === undefined ? existing.capacity : body.capacity,
+        body.color ?? existing.color,
         body.openTrack === undefined ? existing.open_track : body.openTrack ? 1 : 0,
         body.sortOrder ?? existing.sort_order,
         existing.id,

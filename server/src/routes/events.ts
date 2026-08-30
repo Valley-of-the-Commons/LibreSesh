@@ -119,8 +119,8 @@ export function eventRoutes(ctx: Ctx): Router {
       const id = Number(info.lastInsertRowid);
       ctx.db
         .prepare(
-          `INSERT INTO rooms (event_id, name, description, capacity, open_track, sort_order)
-           SELECT ?, name, description, capacity, open_track, sort_order
+          `INSERT INTO rooms (event_id, name, description, capacity, color, open_track, sort_order)
+           SELECT ?, name, description, capacity, color, open_track, sort_order
              FROM rooms WHERE event_id = ? AND deleted_at IS NULL`,
         )
         .run(id, source.id);

@@ -35,6 +35,8 @@ export interface RoomDto {
   name: string;
   description: string;
   capacity: number | null;
+  /** Hex, from the ROOM_COLORS palette by default but free-form. */
+  color: string;
   openTrack: boolean;
   sortOrder: number;
 }

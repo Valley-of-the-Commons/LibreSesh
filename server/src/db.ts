@@ -48,6 +48,7 @@ export interface RoomRow {
   name: string;
   description: string;
   capacity: number | null;
+  color: string;
   open_track: number;
   sort_order: number;
   deleted_at: string | null;

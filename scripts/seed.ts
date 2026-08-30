@@ -10,6 +10,7 @@
 import { hashPassword } from '../server/src/auth.js';
 import { loadConfig } from '../server/src/config.js';
 import { openDb, type Db } from '../server/src/db.js';
+import { ROOM_COLORS } from '../server/src/shared/roomColors.js';
 import { newDisplayName, newIdentityToken } from '../server/src/identity.js';
 import { localDate, zonedTimeToUtc } from '../server/src/shared/time.js';
 
@@ -191,9 +192,17 @@ function main(): void {
       Number(
         db
           .prepare(
-            'INSERT INTO rooms (event_id, name, description, capacity, open_track, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+            'INSERT INTO rooms (event_id, name, description, capacity, color, open_track, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
           )
-          .run(eventId, room.name, room.description, room.capacity, room.openTrack, i).lastInsertRowid,
+          .run(
+            eventId,
+            room.name,
+            room.description,
+            room.capacity,
+            ROOM_COLORS[i % ROOM_COLORS.length],
+            room.openTrack,
+            i,
+          ).lastInsertRowid,
       ),
     );
     const openRoomId = roomIds[ROOMS.findIndex((r) => r.openTrack === 1)] as number;
