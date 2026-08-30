@@ -162,17 +162,21 @@ whose claim wins; the other identity ends up profile-less but intact.
 
 ## Follow-up direction: speakers
 
-Discussed 2026-08-30, not yet built (see STATUS backlog):
+Discussed 2026-08-30 and **shipped the same day** (migrations 014/015), after
+the migration runner learned rebuilds, a downgrade guard and pre-migration
+backups. As built:
 
-- A fourth **speaker role** between attendee and admin. Prerequisite: the
-  CHECK constraints on `roles.role` / `event_permissions.role` make this the
-  first table-rebuild migration; the runner needs to learn that first.
-- **Speaker codes**: the organiser-on-behalf-of flow ("Speaker A" pitched
-  before Speaker A arrives) gets a dedicated rail — an admin-minted,
-  per-person, long-lived, revocable code bound to a `people` row. Redeeming
-  it claims that profile and grants the speaker role, from any number of
-  devices, because redemption reuses the device-link mechanism: adopt the
-  identity token. Deliberately *not* an email/password account and *not* a
-  fourth shared password — a shared speaker password would defeat the point
-  (anyone holding it could post as any speaker).
+- A fourth **speaker role** between attendee and admin (migration 014, the
+  first table rebuild). Inherits attendee defaults in the matrix; its one
+  structural power is editing sessions whose speaker is the holder's claimed
+  profile — words only, placement and deletion of official sessions stay
+  with organisers.
+- **Speaker codes** (migration 015): an admin-minted, per-person, revocable
+  four-word phrase bound to a `people` row. All the identity work happens at
+  *mint* time — an unclaimed person gets a fresh identity, the speaker role,
+  and its name claimed at the event — so redemption is the same dumb token
+  adoption `/me/link` already does, which is what makes one code work from
+  any number of devices. Deliberately *not* an email/password account and
+  *not* a fourth shared password — a shared speaker password would defeat
+  the point (anyone holding it could post as any speaker).
 

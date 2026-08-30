@@ -52,9 +52,9 @@ every failure as `{ error: { code, message } }`.
 | --- | --- |
 | `events` | Three bcrypt password hashes, timezone, day viewport, archive flag |
 | `identities` | Anonymous cookie token, the display-name seed, optional iCal token |
-| `link_codes` | Hashed, single-use, 10-minute phrases for adopting an identity on a second device |
+| `link_codes` | Hashed phrases that adopt an identity: device phrases (single-use, 10 minutes) and admin-minted speaker codes (per person, live until revoked) |
 | `event_identities` | `(event, identity) → display name`, unique within the event |
-| `roles` | `(identity, event) → viewer\|user\|admin` |
+| `roles` | `(identity, event) → viewer\|user\|speaker\|admin` |
 | `rooms`, `tags` | Per event, soft-deleted |
 | `sessions` | Scheduled: always has a room and a time |
 | `proposals` | Pitched: no room, no time, until an organiser places it |
@@ -168,7 +168,7 @@ explicitly *not* built to withstand a targeted attacker with time.
 | Threat | Mitigation |
 | --- | --- |
 | Guessing an event password | bcrypt (cost 10); 5 attempts per 15 min per identity **and** per IP, `Retry-After` on the 6th |
-| Guessing a device-link phrase | Same 5-per-15-min budget as passwords; phrases are single-use, expire after 10 minutes, at most one live per identity, stored hashed |
+| Guessing a link phrase | Same 5-per-15-min budget as passwords; stored hashed. Device phrases are single-use and die in 10 minutes; speaker codes are four words (~37 bits) and revocable |
 | Casual vandalism of the programme | Soft deletes + restore; append-only `audit` log with identity id; `hidden` flag for contributions |
 | Spam / flooding | Token buckets per identity and per IP on every write class; server-enforced max lengths |
 | XSS via session or profile text | HTML escaped before markdown parsing; URL scheme allowlist; no `dangerouslySetInnerHTML` on unescaped input |

@@ -6,6 +6,24 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- **A speaker role.** Fourth role, between attendee and organiser. Speakers
+  inherit every attendee default in the permission matrix and may rewrite the
+  description of sessions they hold — the words, not the slot: moving or
+  deleting an official session stays with organisers. Granted by speaker
+  codes, never by a shared password.
+
+- **Speaker codes.** From a profile page, organisers mint a four-word phrase
+  bound to that person. Typing it at any event gate signs the device in *as*
+  that person, speaker role included — the "session created on their behalf,
+  speaker arrives later" flow without an email/password account. Works from
+  any number of devices, shown once, stored hashed, revocable.
+
+- **Hardened migrations for running instances.** The server now refuses to
+  boot a database migrated by a newer build, takes a `VACUUM INTO` backup
+  before applying pending migrations to an established database, and can run
+  table-rebuild migrations (how SQLite widens a CHECK) safely, verifying
+  foreign keys before each commit.
+
 - **Link another device.** The menu behind your name mints a three-word phrase
   (`pine-otter-lantern`); typing it at the gate on another device makes that
   device *you* — same name, role, stars and sessions — closing the "my phone

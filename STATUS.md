@@ -40,20 +40,9 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 ## High Priority
 
 - It should be possible to change name of the main event. Preferably also the link (subpage).
-- **Speaker role.** A fourth role between attendee and admin. Blocked on the
-  item below: `roles.role` and `event_permissions.role` carry CHECK
-  constraints, and SQLite cannot alter a CHECK — adding 'speaker' is the first
-  table-rebuild migration. Grant it via speaker codes, not a fourth shared
-  password (a shared password would defeat "nobody posts as the speaker").
-- **Migration runner hardening.** Three pieces before the first breaking
-  migration: (1) a rebuild recipe that works with `foreign_keys = ON` inside
-  the per-file transaction; (2) a downgrade guard — refuse to boot when the
-  `migrations` table names a file not on disk; (3) `VACUUM INTO` a timestamped
-  backup before applying pending migrations.
-- **Speaker codes.** Admin-minted, per-person, long-lived, revocable link
-  codes: redeeming one claims that person's profile (and later the speaker
-  role) from any device. Same redemption rail as device linking — a
-  `link_codes` row with no expiry and a `person_id`, additive migration.
+- **Old migration backups pile up.** Each upgrade with pending migrations
+  leaves a `*.backup-<stamp>` file beside the DB and nothing prunes them.
+  Fine for now (one file per deploy); wants a keep-last-N sweep eventually.
 
 ## Medium Priority
 
