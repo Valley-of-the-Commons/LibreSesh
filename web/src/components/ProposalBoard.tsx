@@ -342,11 +342,13 @@ function ProposalCard({
             }
             className={`flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold disabled:opacity-50 ${
               proposal.interested
-                ? 'border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
+                ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300'
                 : 'border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500'
             }`}
           >
-            <span aria-hidden="true">{proposal.interested ? '★' : '☆'}</span>
+            {/* An up-arrow, not a star: a star means "on my agenda" on the
+                schedule, and the same glyph here would read as the same act. */}
+            <span aria-hidden="true">{proposal.interested ? '▲' : '△'}</span>
             {proposal.interestCount}
           </button>
         )}

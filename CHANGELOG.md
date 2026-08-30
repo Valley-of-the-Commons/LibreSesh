@@ -6,6 +6,13 @@ All notable changes to this project are documented here.
 
 ### Changed
 
+- **A pitch is upvoted with an arrow, not a star.** The interest button on the
+  pitch board wore the same ★ as "on my agenda" on the schedule, so the one
+  glyph stood for two different acts — backing a pitch that may never be
+  scheduled, and marking a session you mean to attend. Interest is a ▲ now, and
+  blue rather than the agenda's amber; the count and the behaviour are
+  unchanged.
+
 - **The schedule header makes room on a phone.** Five controls were competing
   for whatever width the event name left over. The theme switcher moved into
   the profile menu behind your name — it is a preference you set once, not a
