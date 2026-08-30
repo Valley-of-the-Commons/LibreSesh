@@ -201,6 +201,8 @@ export interface SessionWrite {
   speakerId?: number | null;
   /** A name that matches nobody creates a person. Used instead of `speakerId`. */
   speakerName?: string;
+  /** Watch-along link, http(s). '' clears it. */
+  livestreamUrl?: string;
   startsAt: string;
   endsAt: string;
   tagIds?: number[];

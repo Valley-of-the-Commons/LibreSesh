@@ -70,6 +70,7 @@ export interface SessionRow {
   description: string;
   speaker: string;
   speaker_id: number | null;
+  livestream_url: string;
   starts_at: string;
   ends_at: string;
   created_by: number;

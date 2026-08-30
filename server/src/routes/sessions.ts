@@ -97,9 +97,9 @@ export function sessionRoutes(ctx: Ctx): Router {
       const info = ctx.db
         .prepare(
           `INSERT INTO sessions
-            (event_id, room_id, type, title, description, speaker, speaker_id, starts_at, ends_at,
-             created_by, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?)`,
+            (event_id, room_id, type, title, description, speaker, speaker_id, livestream_url,
+             starts_at, ends_at, created_by, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, '', ?, ?, ?, ?, ?, ?, ?)`,
         )
         .run(
           req.event.id,
@@ -108,6 +108,7 @@ export function sessionRoutes(ctx: Ctx): Router {
           body.title,
           body.description ?? '',
           speakerId,
+          body.livestreamUrl ?? '',
           window.startsAt.toISOString(),
           window.endsAt.toISOString(),
           req.identity.id,
@@ -161,7 +162,7 @@ export function sessionRoutes(ctx: Ctx): Router {
       ctx.db
         .prepare(
           `UPDATE sessions SET room_id = ?, type = ?, title = ?, description = ?, speaker_id = ?,
-                  starts_at = ?, ends_at = ?, updated_at = ?
+                  livestream_url = ?, starts_at = ?, ends_at = ?, updated_at = ?
             WHERE id = ?`,
         )
         .run(
@@ -170,6 +171,7 @@ export function sessionRoutes(ctx: Ctx): Router {
           body.title ?? existing.title,
           body.description ?? existing.description,
           speakerId,
+          body.livestreamUrl ?? existing.livestream_url,
           window.startsAt.toISOString(),
           window.endsAt.toISOString(),
           now,

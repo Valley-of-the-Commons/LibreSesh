@@ -74,6 +74,9 @@ export interface SessionDto {
   /** Resolved from the linked person; empty when the session has no speaker. */
   speaker: string;
   speakerId: number | null;
+  /** Watch-along link, http(s). Empty string means there is no stream, which
+   *  is the default — the UI hides the field rather than showing it blank. */
+  livestreamUrl: string;
   /** UTC ISO-8601. */
   startsAt: string;
   endsAt: string;

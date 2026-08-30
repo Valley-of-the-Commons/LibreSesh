@@ -251,6 +251,68 @@ describe('editing and deleting sessions', () => {
   });
 });
 
+describe('session livestream link', () => {
+  let harness: Harness;
+  let roomId: number;
+  let admin: Agent;
+
+  beforeEach(async () => {
+    harness = makeHarness();
+    const eventId = seedEvent(harness.db);
+    roomId = seedRoom(harness.db, eventId, { name: 'Main Hall' });
+    admin = await actorWithRole(harness, 'testconf', 'admin-pw');
+  });
+  afterEach(() => harness.close());
+
+  const create = (body: Record<string, unknown> = {}) =>
+    admin.post('/api/e/testconf/sessions').send({
+      roomId,
+      title: 'Keynote',
+      startsAt: at(DAY_ONE, 600),
+      endsAt: at(DAY_ONE, 660),
+      ...body,
+    });
+
+  it('defaults to an empty string, which means "no stream"', async () => {
+    const res = await create().expect(201);
+    expect(res.body.livestreamUrl).toBe('');
+  });
+
+  it('round-trips a link through create and patch', async () => {
+    const created = await create({ livestreamUrl: 'https://stream.example.org/hall' }).expect(201);
+    expect(created.body.livestreamUrl).toBe('https://stream.example.org/hall');
+
+    const patched = await admin
+      .patch(`/api/e/testconf/sessions/${created.body.id}`)
+      .send({ livestreamUrl: 'https://stream.example.org/moved' })
+      .expect(200);
+    expect(patched.body.livestreamUrl).toBe('https://stream.example.org/moved');
+  });
+
+  it('clears the link with an empty string', async () => {
+    const created = await create({ livestreamUrl: 'https://stream.example.org/hall' }).expect(201);
+    const cleared = await admin
+      .patch(`/api/e/testconf/sessions/${created.body.id}`)
+      .send({ livestreamUrl: '' })
+      .expect(200);
+    expect(cleared.body.livestreamUrl).toBe('');
+  });
+
+  it('leaves the link alone when the patch omits it', async () => {
+    const created = await create({ livestreamUrl: 'https://stream.example.org/hall' }).expect(201);
+    const patched = await admin
+      .patch(`/api/e/testconf/sessions/${created.body.id}`)
+      .send({ title: 'Keynote II' })
+      .expect(200);
+    expect(patched.body.livestreamUrl).toBe('https://stream.example.org/hall');
+  });
+
+  it('rejects a non-http(s) link', async () => {
+    await create({ livestreamUrl: 'javascript:alert(1)' }).expect(400);
+    await create({ livestreamUrl: 'not a url' }).expect(400);
+  });
+});
+
 describe('archived events', () => {
   let harness: Harness;
   let admin: Agent;

@@ -184,6 +184,20 @@ export function DetailSheet({
           />
         )}
 
+        {/* Rendered only when set — most sessions have no stream, and an
+            empty row would be noise on a phone in a hallway. */}
+        {session.livestreamUrl && (
+          <a
+            href={session.livestreamUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mb-4 flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-sm font-medium text-stone-700 hover:border-stone-400 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-200 dark:hover:border-stone-500"
+          >
+            <span aria-hidden>▶</span>
+            Watch the livestream
+          </a>
+        )}
+
         {canEdit && !archived && (
           <div className="mb-4 flex gap-2">
             <SecondaryButton className="flex-1 py-1.5" onClick={onEdit}>

@@ -65,6 +65,7 @@ export function SessionModal({
   const [addingSpeaker, setAddingSpeaker] = useState(false);
   const [newSpeaker, setNewSpeaker] = useState('');
   const [description, setDescription] = useState(session?.description ?? '');
+  const [livestreamUrl, setLivestreamUrl] = useState(session?.livestreamUrl ?? '');
   const [roomId, setRoomId] = useState<number>(session?.roomId ?? allowedRooms[0]?.id ?? 0);
   const [day, setDay] = useState(existing?.date ?? defaultDay);
   const [start, setStart] = useState(fmtMin(existing?.startMin ?? Math.max(dayStartMin, 14 * 60)));
@@ -90,6 +91,11 @@ export function SessionModal({
       setError(`Open sessions must sit between ${fmtMin(dayStartMin)} and ${fmtMin(dayEndMin)}`);
       return;
     }
+    const stream = livestreamUrl.trim();
+    if (stream && !/^https?:\/\//i.test(stream)) {
+      setError('A livestream link must start with http:// or https://');
+      return;
+    }
     const newName = newSpeaker.trim();
     onSave({
       roomId,
@@ -97,6 +103,7 @@ export function SessionModal({
       title: title.trim(),
       ...(addingSpeaker && newName ? { speakerName: newName } : { speakerId }),
       description: description.trim(),
+      livestreamUrl: livestreamUrl.trim(),
       startsAt: zonedTimeToUtc(day, startMin, timezone).toISOString(),
       endsAt: zonedTimeToUtc(day, startMin + durMin, timezone).toISOString(),
       tagIds,
@@ -168,6 +175,19 @@ export function SessionModal({
           rows={3}
           maxLength={5000}
           className={`${inputClass} resize-none`}
+        />
+      </Field>
+
+      <Field
+        label="Livestream link"
+        hint="Optional. Attendees only see this if you set it."
+      >
+        <input
+          value={livestreamUrl}
+          onChange={(e) => setLivestreamUrl(e.target.value)}
+          placeholder="https://…"
+          maxLength={2000}
+          className={inputClass}
         />
       </Field>
 

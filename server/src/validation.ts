@@ -93,6 +93,22 @@ export const tagSchema = z.object({
 });
 export const tagPatchSchema = tagSchema.partial();
 
+/** An optional http(s) URL. '' is allowed and means "not set" — that is how a
+ *  livestream link is cleared. Same protocol rules as contribution links. */
+const optionalHttpUrl = z
+  .string()
+  .trim()
+  .max(2000)
+  .refine((raw) => {
+    if (raw === '') return true;
+    try {
+      const parsed = new URL(raw);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  }, 'Only http and https links');
+
 export const sessionSchema = z.object({
   roomId: z.number().int().positive(),
   type: z.enum(['official', 'open']).optional(),
@@ -101,6 +117,7 @@ export const sessionSchema = z.object({
   speakerId: z.number().int().positive().nullable().optional(),
   /** Convenience for the session form: names an existing person or creates one. */
   speakerName: optionalTrimmed(120).optional(),
+  livestreamUrl: optionalHttpUrl.optional(),
   startsAt: isoInstantSchema,
   endsAt: isoInstantSchema,
   tagIds: z.array(z.number().int().positive()).max(20).optional(),

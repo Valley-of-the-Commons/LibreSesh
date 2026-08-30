@@ -126,6 +126,7 @@ export function toSessionDto(
     description: row.description,
     speaker: speakerName,
     speakerId: row.speaker_id,
+    livestreamUrl: row.livestream_url,
     startsAt: row.starts_at,
     endsAt: row.ends_at,
     tagIds,
