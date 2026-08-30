@@ -6,6 +6,20 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- **A tall modal is no longer cut off at the top.** The panel was centred with
+  `items-center` and capped at `90vh`. An overflowing flex child centred that
+  way has its top edge *above* the container's, where no scrolling can reach
+  it — and `vh` counts the area behind a mobile address bar, so `90vh` could
+  exceed what is actually on screen. The overlay itself now scrolls, wrapping a
+  `min-h-full` row, and the cap is in `dvh`.
+
+- **A demo instance seeds the long fixture again.** Boot seeding only created
+  DemoConf, so LongConf — the fortnight with tracks, a week rail and empty
+  weekends — was missing from deployed demos, and with it every screen only
+  that event reaches. `DEMO_MODE=1` now seeds both.
+
+### Fixed
+
 - **A production instance checks its whole deployment at boot, once.**
   `loadConfig` threw on the first missing variable it met, so a fresh deploy
   with three things wrong took three rounds of edit-redeploy-read-the-log,

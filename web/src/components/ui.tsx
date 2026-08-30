@@ -348,22 +348,38 @@ export function Modal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-label={title}>
+    // The overlay scrolls, not just the panel. Centring an overflowing child
+    // with `items-center` puts its top above the container's top edge, where
+    // no scrolling can reach it — the modal appears cut off at the top. A
+    // scrollable overlay wrapping a `min-h-full` flex row keeps the whole
+    // panel reachable however tall it gets.
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto overscroll-contain"
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+    >
+      {/* Fixed, not absolute: the backdrop must cover the viewport while the
+          overlay behind it scrolls. */}
       <button
         type="button"
         aria-label="Close"
-        className="absolute inset-0 cursor-default bg-stone-900/40 dark:bg-black/60"
+        className="fixed inset-0 cursor-default bg-stone-900/40 dark:bg-black/60"
         onClick={onClose}
       />
-      <div
-        ref={panel}
-        tabIndex={-1}
-        className={`relative max-h-[90vh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 outline-none dark:bg-stone-900 sm:rounded-2xl ${
-          wide ? 'max-w-2xl' : 'max-w-md'
-        }`}
-      >
-        <h2 className="mb-4 text-base font-semibold tracking-tight">{title}</h2>
-        {children}
+      <div className="flex min-h-full items-end justify-center sm:items-center sm:p-4">
+        <div
+          ref={panel}
+          tabIndex={-1}
+          // dvh, not vh: on mobile browsers vh counts the area behind the
+          // address bar, so 90vh can be taller than what you can actually see.
+          className={`relative max-h-[100dvh] w-full overflow-y-auto rounded-t-2xl bg-white p-5 outline-none dark:bg-stone-900 sm:max-h-[calc(100dvh-2rem)] sm:rounded-2xl ${
+            wide ? 'max-w-2xl' : 'max-w-md'
+          }`}
+        >
+          <h2 className="mb-4 text-base font-semibold tracking-tight">{title}</h2>
+          {children}
+        </div>
       </div>
     </div>
   );
