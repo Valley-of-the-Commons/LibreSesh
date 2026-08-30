@@ -38,6 +38,22 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 
 ## High Priority
 
+- **Two backups, chosen 2026-08-30, deferred until the deploy was solid.** The
+  user picked both shapes and asked for the deployment work first:
+  1. **Per-event JSON export** (`GET /api/e/:slug/export.json`, event admin) —
+     rooms, sessions, tags, tracks, people, contributions and pitches, with no
+     password hashes, no identity tokens and no code hashes. Safe to hand to an
+     organiser rather than only the instance owner. Do this one first: it is
+     the smaller piece and the one with a safe blast radius.
+  2. **Encrypted whole-DB download** (instance-password gated) — `VACUUM INTO`
+     a temp file, AES-256-GCM under a passphrase typed at download time with a
+     scrypt-derived key (node crypto, no new deps), stream it, delete the temp.
+     Must ship with `scripts/decrypt-backup.ts`: the framing is custom, so
+     `openssl` alone will not open it, and a backup you cannot restore is not
+     one. Note the artifact is a credential, not a document — it carries live
+     identity tokens, and speaker/link codes hashed with **sha256 over a
+     ~37-bit phrase**, which is brute-forceable offline.
+
 - It should be possible to change name of the main event. Preferably also the link (subpage).
 - **Merge moves the person, not their history.** `POST /people/:id/merge`
   repoints `sessions.speaker_id` and `proposals.speaker_id` and abandons the
@@ -95,24 +111,34 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
   Wants the same reveal screen, then `resolveEventPasswords` wired into the
   clone route so the two creation paths stop disagreeing.
 
-- **Manual browser pass.** Automated coverage is server-side; the drag, now-line
-  and 360px checks still want a human look — now more so, with dark mode, the
-  proposal board and the agenda banner added.
-- **Deploy paths are now only *partly* unverified.** `deploy/Dockerfile` is
-  real as of 2026-08-30: a Railway instance builds from it (`railway.json`
-  pins the builder, since Railway's Node autodetection runs a plain `npm ci`
-  that honours our `ignore-scripts=true` and so never builds better-sqlite3).
-  That exercises the image, the migrations and the boot-time demo seed. The
-  compose path is still untried — neither `docker` nor the `sqlite3` CLI
-  exists in this dev container — so `deploy/docker-compose.yml`, the Caddy
-  front end and `deploy/backup.sh` have never actually been run. Treat the
-  first VPS deploy as their real test.
-  Railway-specific notes live in `_planning/deployment-guide.md` §10.
-  The first deploy also ran with **no volume attached**, so a rebuild destroyed
-  the event on it; that failure mode is now a startup error rather than silent
-  data loss (`server/src/storage.ts`), but the running instance still needs its
-  volume checked and the data re-created.
-- **No component test coverage, and no error boundary.** 305 tests, and the
+- **Manual browser pass — now with a specific backlog.** Automated coverage is
+  server-side, so four UI changes shipped on 2026-08-30 on a read-through
+  alone (no browser in this dev container, no component tests). Each wants a
+  real look, ideally on a phone:
+  - the `Modal` rewrite — overlay scrolls, `dvh` cap — against the tallest
+    modal there is, and the one it was reported on ("Link another device");
+  - the schedule header on a narrow screen: theme now lives in the profile
+    menu, Manage/Arrange/Add sit together and go icon-only below `sm`. Watch
+    where the action row chooses to wrap;
+  - the tour no longer auto-starting for an organiser, while "?" still opens
+    it;
+  - the drag, now-line and 360px checks that were already outstanding.
+- **Deploy paths, and what is actually proven.** Railway builds from
+  `deploy/Dockerfile` (`railway.json` pins the builder — Railway's Node
+  autodetection runs a plain `npm ci`, which honours our `ignore-scripts=true`
+  and so never builds better-sqlite3). Two failures found the hard way on
+  2026-08-30, both now startup errors instead of silent damage:
+  no volume attached, so a rebuild destroyed the event on it; then a
+  root-owned volume the unprivileged app could not write, surfacing only as
+  `SQLITE_CANTOPEN`. `server/src/preflight.ts` reports every misconfiguration
+  at once, and `deploy/entrypoint.sh` chowns the volume before dropping to
+  `node`.
+  **Still unproven:** there is no `docker` in this dev container, so the
+  entrypoint's *root* branch and the `gosu` install have never executed — the
+  next deploy is their first real run. `deploy/docker-compose.yml`, the Caddy
+  front end and `deploy/backup.sh` have never been run at all; treat the first
+  VPS deploy as their test. Railway notes: `_planning/deployment-guide.md` §10.
+- **No component test coverage, and no error boundary.** 326 tests, and the
   only web-side ones (`format.test.ts`, `calendar.test.ts`) cover pure
   functions — there is no jsdom/testing-library stack, so nothing renders a
   component. The drag maths, the SSE reducer and the clash detection are the
