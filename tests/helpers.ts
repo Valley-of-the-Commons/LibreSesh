@@ -31,6 +31,7 @@ export function makeHarness(overrides: Partial<Config> = {}): Harness {
     trustProxy: false,
     serveStatic: false,
     demoMode: false,
+    seedDemoEvent: false,
     ...overrides,
   };
   const app = createApp(db, config);

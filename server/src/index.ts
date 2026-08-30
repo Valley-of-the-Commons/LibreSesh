@@ -1,9 +1,25 @@
 import { loadConfig } from './config.js';
 import { createApp } from './app.js';
 import { openDb } from './db.js';
+import { DEMO_PASSWORDS, seedDemoEvent } from './seed.js';
 
 const config = loadConfig();
 const db = openDb(config.databasePath);
+
+// Only ever creates the event when it is absent — never replaces one — so a
+// redeploy cannot wipe what people added to the demo, and deleting it in the
+// admin UI is not undone on the next restart.
+if (config.seedDemoEvent) {
+  const seeded = seedDemoEvent(db);
+  if (seeded) {
+    console.log(
+      `seeded the demo event "${seeded.slug}" (${seeded.sessionCount} sessions). ` +
+        `Passwords: viewer=${DEMO_PASSWORDS.viewer} user=${DEMO_PASSWORDS.user} ` +
+        `admin=${DEMO_PASSWORDS.admin}. Set SEED_DEMO_EVENT=0 to stop creating it.`,
+    );
+  }
+}
+
 const { express: app, ctx } = createApp(db, config);
 
 // 0.0.0.0 so the port is reachable from outside a container.

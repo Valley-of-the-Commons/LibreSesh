@@ -6,6 +6,14 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- **The demo event ships in production.** The DemoConf fixture moved from
+  `scripts/seed.ts` into `server/src/seed.ts`, so it is compiled into the
+  build and exists in the runtime image, where `scripts/` and `tsx` are pruned
+  away. The server creates it at boot when it is missing — only when missing,
+  so a redeploy never wipes what people added to it, and deleting it stays
+  deleted. `SEED_DEMO_EVENT=0` turns it off. `npm run seed` is now a thin
+  wrapper over the same fixture and still replaces the event, as before.
+
 - **A one-file Railway deploy.** `railway.json` points Railway at
   `deploy/Dockerfile` instead of letting its Node autodetection guess. The guess
   was fatal: a plain `npm ci` honours the repo's `.npmrc` (`ignore-scripts=true`),

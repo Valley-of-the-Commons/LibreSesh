@@ -15,6 +15,12 @@ export interface Config {
    * real event by mistake. This can only be set by whoever deploys.
    */
   demoMode: boolean;
+  /**
+   * Seed the DemoConf fixture at boot if it is missing. On by default so a
+   * fresh instance has something to look at; set SEED_DEMO_EVENT=0 on a real
+   * conference instance, where a fake event on the landing page is noise.
+   */
+  seedDemoEvent: boolean;
 }
 
 function required(name: string, fallback?: string): string {
@@ -45,5 +51,6 @@ export function loadConfig(): Config {
     trustProxy: process.env.TRUST_PROXY === '1',
     serveStatic: process.env.SERVE_STATIC === '1' || isProd,
     demoMode: process.env.DEMO_MODE === '1',
+    seedDemoEvent: process.env.SEED_DEMO_EVENT !== '0',
   };
 }
