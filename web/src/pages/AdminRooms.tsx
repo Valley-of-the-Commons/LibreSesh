@@ -78,6 +78,10 @@ function ColorChoice({
   );
 }
 
+/** Digits only, four at most — a `type="number"` honours neither on a typed
+ *  or pasted value, and no venue seats ten thousand. */
+const digits = (raw: string): string => raw.replace(/\D/g, "").slice(0, 4);
+
 /** '' means "no capacity", which is a real state distinct from 0. */
 const parseCapacity = (raw: string): number | null => {
   const trimmed = raw.trim();
@@ -223,12 +227,11 @@ function RoomRow({
               </Field>
               <Field label="Capacity" hint="Leave blank if it does not matter.">
                 <input
-                  type="number"
-                  min={0}
                   inputMode="numeric"
                   value={capacity}
-                  onChange={(e) => setCapacity(e.target.value.replace(/-/g, ""))}
-                  className={`${inputClass} w-24`}
+                  onChange={(e) => setCapacity(digits(e.target.value))}
+                  aria-label="Capacity"
+                  className={`${inputClass} w-20`}
                 />
               </Field>
             </FormGrid>
@@ -294,6 +297,9 @@ export function AdminRooms({
 }: AdminRoomsProps) {
   const [name, setName] = useState("");
   const [capacity, setCapacity] = useState("");
+  // Most rooms never get one, so the field is asked for rather than always sat
+  // there taking width off the name.
+  const [capacityOpen, setCapacityOpen] = useState(false);
   const [openTrack, setOpenTrack] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -309,6 +315,7 @@ export function AdminRooms({
       });
       setName("");
       setCapacity("");
+      setCapacityOpen(false);
       setOpenTrack(false);
     } finally {
       setBusy(false);
@@ -341,39 +348,42 @@ export function AdminRooms({
         )}
       </ul>
 
-      {/* Same shape as the editor above: fields on a grid, the permission on
-          its own line, then the action. Everything that was crammed onto one
-          row needed a hand-tuned margin to fake a baseline. */}
-      <FormStack>
-        <FormGrid>
-          <Field label="New room">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && void add()}
-              maxLength={80}
-              className={inputClass}
-            />
-          </Field>
-          <Field label="Capacity" hint="Leave blank if it does not matter.">
-            <input
-              type="number"
-              min={0}
-              inputMode="numeric"
-              value={capacity}
-              onChange={(e) => setCapacity(e.target.value.replace(/-/g, ""))}
-              className={`${inputClass} w-24`}
-            />
-          </Field>
-        </FormGrid>
+      {/* One line on a desktop, wrapping on a phone. `items-end` is doing the
+          alignment, so nothing here carries a nudged margin — which is why the
+          capacity field has no hint: a hint would make it taller than the name
+          and lift the buttons off the baseline. */}
+      <div>
+        <FormRow>
+          <div className="min-w-40 flex-1">
+            <Field label="New room">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && void add()}
+                maxLength={80}
+                className={inputClass}
+              />
+            </Field>
+          </div>
 
-        <Toggle
-          checked={openTrack}
-          onChange={setOpenTrack}
-          label="Attendees may book this room"
-        />
+          {capacityOpen ? (
+            <Field label="Capacity">
+              <input
+                inputMode="numeric"
+                value={capacity}
+                onChange={(e) => setCapacity(digits(e.target.value))}
+                onKeyDown={(e) => e.key === "Enter" && void add()}
+                aria-label="Capacity"
+                className={`${inputClass} w-20`}
+                autoFocus
+              />
+            </Field>
+          ) : (
+            <SecondaryButton onClick={() => setCapacityOpen(true)}>
+              Specify capacity
+            </SecondaryButton>
+          )}
 
-        <FormRow className="mt-1">
           <PrimaryButton
             onClick={() => void add()}
             disabled={!name.trim() || busy}
@@ -381,7 +391,17 @@ export function AdminRooms({
             Add room
           </PrimaryButton>
         </FormRow>
-      </FormStack>
+
+        {/* Sits against the name field it qualifies, not floating in the gap
+            between two form rows. */}
+        <div className="mt-1.5">
+          <Toggle
+            checked={openTrack}
+            onChange={setOpenTrack}
+            label="Attendees may book this room"
+          />
+        </div>
+      </div>
     </Section>
   );
 }
