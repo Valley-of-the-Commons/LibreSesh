@@ -7,9 +7,9 @@ Last updated: 2026-08-30
 
 ## In Progress
 
-Working directly on `main` (the `feat/ui-overhaul` branch merged 2026-08-30).
-Shipped work is in CHANGELOG.md under `[Unreleased]`; what is left of that
-plan lives in `_planning/plans/2026-08-29-ui-overhaul-permissions-pitches.md`:
+Working directly on `main`. 0.2.0 was tagged 2026-08-30; what shipped is in
+CHANGELOG.md under `[0.2.0]`. What is left of the UI-overhaul plan lives in
+`_planning/plans/2026-08-29-ui-overhaul-permissions-pitches.md`:
 
 - **Pitch board.** Always show the creator, default the creator as host,
   up/down votes replacing proposal interest, and a hot/new split. Not started.
@@ -89,12 +89,15 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
   `deploy/docker-compose.yml` and `deploy/backup.sh` have never actually been
   run. They follow the spec and standard practice, but treat the first VPS
   deploy as the real test.
-- **No UI test coverage.** All 210 tests are server-side; there is no
-  jsdom/testing-library stack at all. The drag maths, the SSE reducer and the
-  clash detection are the parts most likely to regress silently — and the
-  build-stamp crash on 2026-08-30 (a component that threw on every render,
-  blanking the page, while the whole suite stayed green) is what that gap
-  costs. A React error boundary would have contained it; there is none.
+- **No component test coverage, and no error boundary.** 255 tests, and the
+  only web-side ones (`format.test.ts`, `calendar.test.ts`) cover pure
+  functions — there is no jsdom/testing-library stack, so nothing renders a
+  component. The drag maths, the SSE reducer and the clash detection are the
+  parts most likely to regress silently, and the Calendar column refactor on
+  2026-08-30 went in on a read-through alone. The build-stamp crash the same
+  day — a component that threw on every render, blanking the page, while the
+  whole suite stayed green — is what the gap costs. A React error boundary
+  would have contained it; there is still none.
 
 ## Low Priority / Ideas
 
