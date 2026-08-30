@@ -52,10 +52,13 @@ COPY --from=build /app/server/dist ./server/dist
 COPY --from=build /app/server/migrations ./server/migrations
 COPY --from=build /app/web/dist ./web/dist
 
-# The DB lives on a mounted volume so it survives image rebuilds.
+# The DB lives on a volume mounted at /data so it survives image rebuilds —
+# declared by the caller (compose's `./data:/data`, or a Railway volume), not by
+# a Dockerfile VOLUME. Railway rejects that instruction outright, and it earns
+# nothing here: with a bind mount it is a no-op, and without one it quietly
+# conjures an anonymous volume that hides the fact you forgot to mount anything.
 RUN mkdir -p /data && chown -R node:node /data /app
 USER node
-VOLUME ["/data"]
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
