@@ -108,7 +108,7 @@ export const roomSchema = z.object({
   description: optionalTrimmed(500).optional(),
   capacity: z.number().int().min(0).max(100000).nullable().optional(),
   color: colorSchema.optional(),
-  openTrack: z.boolean().optional(),
+  openBooking: z.boolean().optional(),
   sortOrder: z.number().int().min(0).max(9999).optional(),
 });
 export const roomPatchSchema = roomSchema.partial();

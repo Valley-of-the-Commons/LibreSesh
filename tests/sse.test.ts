@@ -87,7 +87,7 @@ describe('SSE stream', () => {
   beforeEach(async () => {
     harness = makeHarness();
     const eventId = seedEvent(harness.db);
-    roomId = seedRoom(harness.db, eventId, { openTrack: 1 });
+    roomId = seedRoom(harness.db, eventId, { openBooking: 1 });
 
     server = harness.app.express.listen(0, '127.0.0.1');
     await new Promise((resolve) => server.once('listening', resolve));
@@ -152,7 +152,7 @@ describe('SSE stream', () => {
 
   it('does not leak another event’s changes', async () => {
     const otherEventId = seedEvent(harness.db, { slug: 'other' });
-    const otherRoom = seedRoom(harness.db, otherEventId, { openTrack: 1 });
+    const otherRoom = seedRoom(harness.db, otherEventId, { openBooking: 1 });
     const otherAdmin = new Client(baseUrl);
     await otherAdmin.enter('other', 'admin-pw');
 

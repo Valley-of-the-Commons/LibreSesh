@@ -28,7 +28,7 @@ export interface RoomDraft {
   name: string;
   capacity: number | null;
   description: string;
-  openTrack: boolean;
+  openBooking: boolean;
 }
 
 /** Palette swatches plus a free-form picker, so the defaults are one click
@@ -127,7 +127,7 @@ function RoomRow({
   );
   const [description, setDescription] = useState(room.description);
   const [color, setColor] = useState(room.color);
-  const [openTrack, setOpenTrack] = useState(room.openTrack);
+  const [openBooking, setOpenBooking] = useState(room.openBooking);
   const [saving, setSaving] = useState(false);
 
   const reset = () => {
@@ -135,7 +135,7 @@ function RoomRow({
     setCapacity(room.capacity === null ? "" : String(room.capacity));
     setDescription(room.description);
     setColor(room.color);
-    setOpenTrack(room.openTrack);
+    setOpenBooking(room.openBooking);
   };
 
   const dirty =
@@ -143,7 +143,7 @@ function RoomRow({
     parseCapacity(capacity) !== room.capacity ||
     description.trim() !== room.description ||
     color !== room.color ||
-    openTrack !== room.openTrack;
+    openBooking !== room.openBooking;
 
   const save = async () => {
     if (!name.trim() || saving) return;
@@ -154,7 +154,7 @@ function RoomRow({
         capacity: parseCapacity(capacity),
         description: description.trim(),
         color,
-        openTrack,
+        openBooking,
       });
       setOpen(false);
     } finally {
@@ -191,7 +191,7 @@ function RoomRow({
         <div className="min-w-32 flex-1">
           <p className="truncate text-sm font-medium">{room.name}</p>
           <p className="truncate text-xs text-stone-500 dark:text-stone-400">
-            {room.openTrack && (
+            {room.openBooking && (
               <span className="font-medium text-stone-600 dark:text-stone-300">
                 Attendees may book this room ·{" "}
               </span>
@@ -252,8 +252,8 @@ function RoomRow({
             <ColorChoice value={color} onChange={setColor} label="Colour" />
 
             <Toggle
-              checked={openTrack}
-              onChange={setOpenTrack}
+              checked={openBooking}
+              onChange={setOpenBooking}
               label="Attendees may book this room"
             />
 
@@ -300,7 +300,7 @@ export function AdminRooms({
   // Most rooms never get one, so the field is asked for rather than always sat
   // there taking width off the name.
   const [capacityOpen, setCapacityOpen] = useState(false);
-  const [openTrack, setOpenTrack] = useState(false);
+  const [openBooking, setOpenBooking] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const add = async () => {
@@ -311,12 +311,12 @@ export function AdminRooms({
         name: name.trim(),
         capacity: parseCapacity(capacity),
         description: "",
-        openTrack,
+        openBooking,
       });
       setName("");
       setCapacity("");
       setCapacityOpen(false);
-      setOpenTrack(false);
+      setOpenBooking(false);
     } finally {
       setBusy(false);
     }
@@ -396,8 +396,8 @@ export function AdminRooms({
             between two form rows. */}
         <div className="mt-1.5">
           <Toggle
-            checked={openTrack}
-            onChange={setOpenTrack}
+            checked={openBooking}
+            onChange={setOpenBooking}
             label="Attendees may book this room"
           />
         </div>

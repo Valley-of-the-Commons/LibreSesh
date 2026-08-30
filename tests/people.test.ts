@@ -21,7 +21,7 @@ describe('speaker profiles', () => {
   beforeEach(async () => {
     harness = makeHarness();
     eventId = seedEvent(harness.db);
-    roomId = seedRoom(harness.db, eventId, { openTrack: 1 });
+    roomId = seedRoom(harness.db, eventId, { openBooking: 1 });
     admin = await actorWithRole(harness, 'testconf', 'admin-pw');
     user = await actorWithRole(harness, 'testconf', 'user-pw');
     viewer = await actorWithRole(harness, 'testconf', 'viewer-pw');
@@ -73,7 +73,7 @@ describe('speaker profiles', () => {
 
   it('will not take a person from another event', async () => {
     const otherEvent = seedEvent(harness.db, { slug: 'other' });
-    seedRoom(harness.db, otherEvent, { openTrack: 1 });
+    seedRoom(harness.db, otherEvent, { openBooking: 1 });
     const otherAdmin = await actorWithRole(harness, 'other', 'admin-pw');
     const foreign = await otherAdmin
       .post('/api/e/other/people')
@@ -152,7 +152,7 @@ describe('speaker profiles', () => {
       const me = await user.get('/api/me').expect(200);
       const created = await user
         .patch('/api/e/testconf/me/profile')
-        .send({ bio: 'I like open tracks.' })
+        .send({ bio: 'I like open rooms.' })
         .expect(201);
       expect(created.body.name).toBe(me.body.displayName);
       expect(created.body.isMine).toBe(true);
@@ -200,7 +200,7 @@ describe('speaker profiles', () => {
       // your profile afterwards must adopt that record, not collide with it —
       // otherwise you are locked out of your own profile permanently.
       const me = await user.get('/api/me').expect(200);
-      const roomId = seedRoom(harness.db, eventId, { name: 'Self', openTrack: 1 });
+      const roomId = seedRoom(harness.db, eventId, { name: 'Self', openBooking: 1 });
       const session = await user
         .post('/api/e/testconf/sessions')
         .send({

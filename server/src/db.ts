@@ -50,7 +50,7 @@ export interface RoomRow {
   description: string;
   capacity: number | null;
   color: string;
-  open_track: number;
+  open_booking: number;
   sort_order: number;
   deleted_at: string | null;
 }

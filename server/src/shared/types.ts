@@ -42,7 +42,8 @@ export interface RoomDto {
   capacity: number | null;
   /** Hex, from the ROOM_COLORS palette by default but free-form. */
   color: string;
-  openTrack: boolean;
+  /** Attendees may schedule their own sessions in this room. */
+  openBooking: boolean;
   sortOrder: number;
 }
 

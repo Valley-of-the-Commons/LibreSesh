@@ -255,7 +255,7 @@ export function proposalRoutes(ctx: Ctx): Router {
 
       const body = parse(placeSchema, req.body);
       const room = getRoom(ctx.db, req.event.id, body.roomId);
-      const type = body.type ?? (room.open_track === 1 ? 'open' : 'official');
+      const type = body.type ?? (room.open_booking === 1 ? 'open' : 'official');
       assertMayPlace(getPermissions(ctx.db, req.event.id), req.role, room, type);
 
       const window = { startsAt: new Date(body.startsAt), endsAt: new Date(body.endsAt) };

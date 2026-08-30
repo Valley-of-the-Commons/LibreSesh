@@ -156,10 +156,10 @@ export function SchedulePage() {
         color: room.color,
         detail: (
           <div className="truncate text-xs text-stone-600">
-            {room.openTrack && (
+            {room.openBooking && (
               <span className="font-medium text-stone-800">attendees may book this room</span>
             )}
-            {room.openTrack && <br />}
+            {room.openBooking && <br />}
             {room.capacity ? `${room.capacity} seats` : "no capacity set"}
           </div>
         ),
@@ -551,7 +551,7 @@ export function SchedulePage() {
   const canArrange =
     !event.archived &&
     (role === "admin" ||
-      (role === "user" && bundle.rooms.some((r) => r.openTrack)));
+      (role === "user" && bundle.rooms.some((r) => r.openBooking)));
 
   // Ordered coach-marks. Role-conditional controls are dropped here; the Tour
   // itself also skips any target that isn't in the DOM. Not memoised because

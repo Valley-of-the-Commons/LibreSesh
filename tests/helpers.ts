@@ -76,18 +76,18 @@ export function seedEvent(
 export function seedRoom(
   db: Db,
   eventId: number,
-  overrides: Partial<{ name: string; openTrack: number; sortOrder: number }> = {},
+  overrides: Partial<{ name: string; openBooking: number; sortOrder: number }> = {},
 ): number {
   const info = db
     .prepare(
-      'INSERT INTO rooms (event_id, name, description, capacity, open_track, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+      'INSERT INTO rooms (event_id, name, description, capacity, open_booking, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
     )
     .run(
       eventId,
       overrides.name ?? 'Room',
       '',
       null,
-      overrides.openTrack ?? 0,
+      overrides.openBooking ?? 0,
       overrides.sortOrder ?? 0,
     );
   return Number(info.lastInsertRowid);

@@ -52,12 +52,6 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 
 ## Medium Priority
 
-- **Rename `rooms.open_track` -> `rooms.open_booking`.** The last trace of the
-  word "track" meaning something it never meant: the column is a booking
-  permission, and now that tracks are a real, separate thing (migration 011)
-  the name is actively misleading. A migration, `RoomRow`, `RoomDto.openTrack`,
-  the admin toggle, the seed and the tests.
-
 - **Number fields accept nonsense.** Room capacity is `type="number" min={0}`,
   which the browser enforces on the spinner but not on typing or paste; the
   client strips a minus sign and `parseCapacity` floors it, and the server

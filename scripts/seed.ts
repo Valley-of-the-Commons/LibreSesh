@@ -37,10 +37,10 @@ const rand = mulberry32(20260101);
 const pick = <T>(items: readonly T[]): T => items[Math.floor(rand() * items.length)] as T;
 
 const ROOMS = [
-  { name: 'Main Hall', description: 'Keynotes and plenaries', capacity: 300, openTrack: 0 },
-  { name: 'Workshop A', description: 'Hands-on, bring a laptop', capacity: 60, openTrack: 0 },
-  { name: 'Workshop B', description: 'Hands-on, bring a laptop', capacity: 60, openTrack: 0 },
-  { name: 'Unconf Room', description: 'Grab a slot — anyone may schedule here', capacity: 40, openTrack: 1 },
+  { name: 'Main Hall', description: 'Keynotes and plenaries', capacity: 300, openBooking: 0 },
+  { name: 'Workshop A', description: 'Hands-on, bring a laptop', capacity: 60, openBooking: 0 },
+  { name: 'Workshop B', description: 'Hands-on, bring a laptop', capacity: 60, openBooking: 0 },
+  { name: 'Unconf Room', description: 'Grab a slot — anyone may schedule here', capacity: 40, openBooking: 1 },
 ];
 
 const TAGS = [
@@ -216,7 +216,7 @@ function main(): void {
       Number(
         db
           .prepare(
-            'INSERT INTO rooms (event_id, name, description, capacity, color, open_track, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO rooms (event_id, name, description, capacity, color, open_booking, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
           )
           .run(
             eventId,
@@ -224,12 +224,12 @@ function main(): void {
             room.description,
             room.capacity,
             ROOM_COLORS[i % ROOM_COLORS.length],
-            room.openTrack,
+            room.openBooking,
             i,
           ).lastInsertRowid,
       ),
     );
-    const openRoomId = roomIds[ROOMS.findIndex((r) => r.openTrack === 1)] as number;
+    const openRoomId = roomIds[ROOMS.findIndex((r) => r.openBooking === 1)] as number;
 
     const tagIds = TAGS.map((tag) =>
       Number(
@@ -341,7 +341,7 @@ function main(): void {
       }
     }
 
-    // Open sessions: attendee-created, in the open track only.
+    // Open sessions: attendee-created, in the open-booking room only.
     OPEN_TITLES.forEach((title, i) => {
       const day = days[i % days.length] as string;
       // Over many days the pitches spread one per day, so the slot has to

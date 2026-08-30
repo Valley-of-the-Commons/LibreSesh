@@ -70,7 +70,7 @@ export function PlaceProposalModal({
             {rooms.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.name}
-                {r.openTrack ? ' (open)' : ''}
+                {r.openBooking ? ' (open)' : ''}
               </option>
             ))}
           </select>

@@ -87,6 +87,13 @@ All notable changes to this project are documented here.
 
 ### Changed
 
+- **`rooms.open_track` is `rooms.open_booking`.** The column never held a
+  track — it is a boolean meaning "attendees may schedule here". The word left
+  the UI on 2026-08-30; with real tracks now in the schema the name had gone
+  from vague to wrong, so the column, `RoomDto.openTrack`, the API field and
+  the "not an open track" error all follow. `openBooking` is a breaking change
+  to the room API.
+
 - **The permission matrix opens locked.** Every switch in it saves the instant
   you click it and there is no undo, so it now greys out until the organiser
   password is typed. A new `POST /e/:slug/confirm-admin` checks the password

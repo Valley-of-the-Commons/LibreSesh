@@ -35,7 +35,7 @@ export function roomRoutes(ctx: Ctx): Router {
       .map((r) => r.color);
     const info = ctx.db
       .prepare(
-        `INSERT INTO rooms (event_id, name, description, capacity, color, open_track, sort_order)
+        `INSERT INTO rooms (event_id, name, description, capacity, color, open_booking, sort_order)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
@@ -44,7 +44,7 @@ export function roomRoutes(ctx: Ctx): Router {
         body.description ?? '',
         body.capacity ?? null,
         body.color ?? nextRoomColor(taken),
-        body.openTrack ? 1 : 0,
+        body.openBooking ? 1 : 0,
         body.sortOrder ?? 0,
       );
     const room = load(req.event.id, Number(info.lastInsertRowid));
@@ -66,7 +66,7 @@ export function roomRoutes(ctx: Ctx): Router {
     ctx.db
       .prepare(
         `UPDATE rooms SET name = ?, description = ?, capacity = ?, color = ?,
-                open_track = ?, sort_order = ?
+                open_booking = ?, sort_order = ?
           WHERE id = ?`,
       )
       .run(
@@ -74,7 +74,7 @@ export function roomRoutes(ctx: Ctx): Router {
         body.description ?? existing.description,
         body.capacity === undefined ? existing.capacity : body.capacity,
         body.color ?? existing.color,
-        body.openTrack === undefined ? existing.open_track : body.openTrack ? 1 : 0,
+        body.openBooking === undefined ? existing.open_booking : body.openBooking ? 1 : 0,
         body.sortOrder ?? existing.sort_order,
         existing.id,
       );

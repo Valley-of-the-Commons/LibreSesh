@@ -58,7 +58,7 @@ export function SessionModal({
   const isAdmin = role === 'admin';
   // Users may only place sessions in rooms that allow booking (SPEC §5.1).
   const allowedRooms = useMemo(
-    () => (isAdmin ? rooms : rooms.filter((r) => r.openTrack)),
+    () => (isAdmin ? rooms : rooms.filter((r) => r.openBooking)),
     [isAdmin, rooms],
   );
 
@@ -208,7 +208,7 @@ export function SessionModal({
             {allowedRooms.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.name}
-                {r.openTrack ? ' (open)' : ''}
+                {r.openBooking ? ' (open)' : ''}
               </option>
             ))}
           </select>

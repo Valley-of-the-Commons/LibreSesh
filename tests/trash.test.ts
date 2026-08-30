@@ -20,7 +20,7 @@ describe('undo for soft deletes', () => {
   beforeEach(async () => {
     harness = makeHarness();
     const eventId = seedEvent(harness.db);
-    roomId = seedRoom(harness.db, eventId, { name: 'Main Hall', openTrack: 1 });
+    roomId = seedRoom(harness.db, eventId, { name: 'Main Hall', openBooking: 1 });
     admin = await actorWithRole(harness, 'testconf', 'admin-pw');
     user = await actorWithRole(harness, 'testconf', 'user-pw');
 

@@ -150,7 +150,7 @@ export function assertMayPlace(
   if (role === 'admin') return;
   if (!can(matrix, role, 'session.create_open')) throw forbidden('You cannot add sessions');
   if (type !== 'open') throw forbidden('Only organisers can add official sessions');
-  if (room.open_track !== 1) throw forbidden('That room is not an open track');
+  if (room.open_booking !== 1) throw forbidden('That room is not open for booking');
 }
 
 /** Who may edit or delete an existing session. */

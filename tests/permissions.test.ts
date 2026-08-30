@@ -22,7 +22,7 @@ describe('permission matrix', () => {
     harness = makeHarness();
     eventId = seedEvent(harness.db);
     seedRoom(harness.db, eventId, { name: 'Main Hall' });
-    openRoom = seedRoom(harness.db, eventId, { name: 'Open', openTrack: 1, sortOrder: 1 });
+    openRoom = seedRoom(harness.db, eventId, { name: 'Open', openBooking: 1, sortOrder: 1 });
     admin = await actorWithRole(harness, 'testconf', 'admin-pw');
     user = await actorWithRole(harness, 'testconf', 'user-pw');
     viewer = await actorWithRole(harness, 'testconf', 'viewer-pw');

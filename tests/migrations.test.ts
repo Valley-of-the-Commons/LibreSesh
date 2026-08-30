@@ -22,11 +22,22 @@ describe('migrations', () => {
       'sessions',
       'session_tags',
       'contributions',
+      'tracks',
+      'event_identities',
       'audit',
       'migrations',
     ]) {
       expect(tables).toContain(table);
     }
+  });
+
+  it('renamed the booking permission off the word "track"', () => {
+    const columns = db
+      .prepare<[], { name: string }>('PRAGMA table_info(rooms)')
+      .all()
+      .map((c) => c.name);
+    expect(columns).toContain('open_booking');
+    expect(columns).not.toContain('open_track');
   });
 
   it('is idempotent', () => {

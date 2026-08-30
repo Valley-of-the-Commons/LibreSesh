@@ -21,7 +21,7 @@ describe('contributions', () => {
   beforeEach(async () => {
     harness = makeHarness();
     const eventId = seedEvent(harness.db);
-    const roomId = seedRoom(harness.db, eventId, { openTrack: 1 });
+    const roomId = seedRoom(harness.db, eventId, { openBooking: 1 });
     admin = await actorWithRole(harness, 'testconf', 'admin-pw');
     author = await actorWithRole(harness, 'testconf', 'user-pw');
     otherUser = await actorWithRole(harness, 'testconf', 'user-pw');
@@ -116,7 +116,7 @@ describe('contributions', () => {
 
   it('404s a contribution belonging to another event', async () => {
     const otherEvent = seedEvent(harness.db, { slug: 'other' });
-    const otherRoom = seedRoom(harness.db, otherEvent, { openTrack: 1 });
+    const otherRoom = seedRoom(harness.db, otherEvent, { openBooking: 1 });
     const otherAdmin = await actorWithRole(harness, 'other', 'admin-pw');
     const otherSession = await otherAdmin
       .post('/api/e/other/sessions')
@@ -167,15 +167,15 @@ describe('rooms and tags', () => {
   it('creates, patches and soft-deletes a room', async () => {
     const created = await admin
       .post('/api/e/testconf/rooms')
-      .send({ name: 'Hall', capacity: 100, openTrack: true })
+      .send({ name: 'Hall', capacity: 100, openBooking: true })
       .expect(201);
-    expect(created.body).toMatchObject({ name: 'Hall', capacity: 100, openTrack: true });
+    expect(created.body).toMatchObject({ name: 'Hall', capacity: 100, openBooking: true });
 
     const patched = await admin
       .patch(`/api/e/testconf/rooms/${created.body.id}`)
-      .send({ openTrack: false })
+      .send({ openBooking: false })
       .expect(200);
-    expect(patched.body.openTrack).toBe(false);
+    expect(patched.body.openBooking).toBe(false);
 
     await admin.delete(`/api/e/testconf/rooms/${created.body.id}`).expect(204);
     const bundle = await admin.get('/api/e/testconf/bundle').expect(200);
@@ -248,7 +248,7 @@ describe('rooms and tags', () => {
   it('leaves fields the patch omits untouched', async () => {
     const created = await admin
       .post('/api/e/testconf/rooms')
-      .send({ name: 'Hall', capacity: 80, description: 'Upstairs', openTrack: true })
+      .send({ name: 'Hall', capacity: 80, description: 'Upstairs', openBooking: true })
       .expect(201);
 
     const patched = await admin
@@ -259,12 +259,12 @@ describe('rooms and tags', () => {
       name: 'Hall B',
       capacity: 80,
       description: 'Upstairs',
-      openTrack: true,
+      openBooking: true,
     });
   });
 
   it('refuses to delete a room that still has sessions', async () => {
-    const roomId = seedRoom(harness.db, eventId, { openTrack: 1 });
+    const roomId = seedRoom(harness.db, eventId, { openBooking: 1 });
     await admin
       .post('/api/e/testconf/sessions')
       .send({
@@ -335,7 +335,7 @@ describe('rooms and tags', () => {
   });
 
   it('drops a deleted tag from its sessions', async () => {
-    const roomId = seedRoom(harness.db, eventId, { openTrack: 1 });
+    const roomId = seedRoom(harness.db, eventId, { openBooking: 1 });
     const tag = await admin.post('/api/e/testconf/tags').send({ name: 'Web' }).expect(201);
     const session = await admin
       .post('/api/e/testconf/sessions')
@@ -461,7 +461,7 @@ describe('event settings and creation', () => {
   });
 
   it('clones rooms and tags but no sessions', async () => {
-    await admin.post('/api/e/testconf/rooms').send({ name: 'Hall', openTrack: true }).expect(201);
+    await admin.post('/api/e/testconf/rooms').send({ name: 'Hall', openBooking: true }).expect(201);
     await admin.post('/api/e/testconf/tags').send({ name: 'AI' }).expect(201);
     const room = (await admin.get('/api/e/testconf/bundle')).body.rooms[0];
     await admin

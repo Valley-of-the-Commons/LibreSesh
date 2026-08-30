@@ -3,7 +3,7 @@
 A simple, open-source scheduling tool for conferences and unconferences.
 
 Attendees read a live schedule, add notes, links and questions to sessions, and
-propose their own sessions in open tracks. Organisers arrange everything by drag
+propose their own sessions in the rooms that allow it. Organisers arrange everything by drag
 and drop. Changes reach every open browser in under a second.
 
 Three design pillars:
@@ -94,7 +94,7 @@ entering a lower one downgrades it.
 | Edit your own speaker profile                      |   ✓    |  ✓   |   ✓   |
 | Register interest in a pitched session             |   ✓    |  ✓   |   ✓   |
 | Add notes, links, questions                        |        |  ✓   |   ✓   |
-| Create and edit your own sessions in open tracks   |        |  ✓   |   ✓   |
+| Create and edit your own open sessions             |        |  ✓   |   ✓   |
 | Pitch a session to the proposal board              |        |  ✓   |   ✓   |
 | Full CRUD on sessions, rooms, tags; moderation     |        |      |   ✓   |
 | Place a pitch on the grid; restore deleted items   |        |      |   ✓   |

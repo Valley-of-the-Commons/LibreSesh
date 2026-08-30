@@ -26,7 +26,7 @@ describe('session write rules', () => {
     harness = makeHarness();
     const eventId = seedEvent(harness.db);
     fixedRoom = seedRoom(harness.db, eventId, { name: 'Main Hall' });
-    openRoom = seedRoom(harness.db, eventId, { name: 'Open Track', openTrack: 1, sortOrder: 1 });
+    openRoom = seedRoom(harness.db, eventId, { name: 'Open Room', openBooking: 1, sortOrder: 1 });
     tagId = seedTag(harness.db, eventId);
     admin = await actorWithRole(harness, 'testconf', 'admin-pw');
     user = await actorWithRole(harness, 'testconf', 'user-pw');
@@ -56,9 +56,9 @@ describe('session write rules', () => {
     expect(res.body.type).toBe('open');
   });
 
-  it('stops a user scheduling outside an open track', async () => {
+  it('stops a user scheduling in a room that is not open for booking', async () => {
     const res = await create(user, { roomId: fixedRoom }).expect(403);
-    expect(res.body.error.message).toMatch(/open track/i);
+    expect(res.body.error.message).toMatch(/not open for booking/i);
   });
 
   it('stops a viewer creating anything', async () => {
@@ -138,7 +138,7 @@ describe('editing and deleting sessions', () => {
     harness = makeHarness();
     const eventId = seedEvent(harness.db);
     seedRoom(harness.db, eventId, { name: 'Main Hall' });
-    openRoom = seedRoom(harness.db, eventId, { name: 'Open Track', openTrack: 1, sortOrder: 1 });
+    openRoom = seedRoom(harness.db, eventId, { name: 'Open Room', openBooking: 1, sortOrder: 1 });
     admin = await actorWithRole(harness, 'testconf', 'admin-pw');
     owner = await actorWithRole(harness, 'testconf', 'user-pw');
     otherUser = await actorWithRole(harness, 'testconf', 'user-pw');
@@ -321,7 +321,7 @@ describe('archived events', () => {
   beforeEach(async () => {
     harness = makeHarness();
     const eventId = seedEvent(harness.db, { archived: 1 });
-    roomId = seedRoom(harness.db, eventId, { openTrack: 1 });
+    roomId = seedRoom(harness.db, eventId, { openBooking: 1 });
     admin = await actorWithRole(harness, 'testconf', 'admin-pw');
   });
   afterEach(() => harness.close());
