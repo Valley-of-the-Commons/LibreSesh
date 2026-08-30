@@ -27,7 +27,7 @@ export const CAPABILITIES = [
   },
   {
     id: 'session.create_open',
-    label: 'Create sessions in open-track rooms',
+    label: 'Create sessions in rooms that allow booking',
     defaults: ['user', 'admin'],
   },
   {

@@ -4,6 +4,10 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [0.2.0] — 2026-08-30
+
 ### Added
 
 - **A "?" beside the session type.** Official versus open is an authority

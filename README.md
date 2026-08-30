@@ -8,9 +8,11 @@ and drop. Changes reach every open browser in under a second.
 
 Three design pillars:
 
-1. **No accounts.** Your identity is an anonymous browser cookie with a display
-   name you can change. Access is three shared per-event passwords —
-   viewer, user, admin.
+1. **No accounts.** Your identity is an anonymous browser cookie. You pick a
+   display name when you enter an event, and it is unique inside that event
+   rather than across the instance — the same person can be "Ada" at one
+   event and "A. Lovelace" at another. Access is three shared per-event
+   passwords: viewer, attendee, organiser.
 2. **One process, one file.** Node + SQLite + Server-Sent Events. Deploys onto a
    1 vCPU VPS and backs up with a single `sqlite3` command.
 3. **Mobile-first.** The schedule has to be readable on a phone in a hallway.
@@ -34,10 +36,12 @@ server/            Express app, DB layer, SSE, auth, rate limiting
   src/shared/      types + timezone helpers, imported by the web app too
 web/               Vite React app
 scripts/           seed.ts, create-event.ts
+assets/            brand source SVGs (the app builds from copies under web/)
 tests/             Vitest suites
 deploy/            Dockerfile, compose, Caddyfile, systemd unit, backup script
 design/mockup.jsx  approved UI reference — never imported
 ARCHITECTURE.md    how it fits together, and the threat model
+CHANGELOG.md       what has shipped
 STATUS.md          current work and the backlog
 ```
 
@@ -45,9 +49,13 @@ STATUS.md          current work and the backlog
 
 ```sh
 npm install
-npm run seed     # creates the "DemoConf 2026" demo event
-npm run dev      # app on :3000, API behind it on :3001
+npm run seed       # "DemoConf 2026" — two days, the everyday fixture
+npm run dev        # app on :3000, API behind it on :3001
 ```
+
+`npm run seed:long` builds "LongConf 2026" alongside it — a fortnight from
+today, with tracks — which is what exercises the week rail and the Rooms /
+Tracks switch.
 
 Open <http://localhost:3000>. The demo passwords are `viewer2026`, `user2026`
 and `admin2026`; the instance password defaults to `dev-instance-password`.
@@ -73,34 +81,58 @@ In Docker the build stage passes `--ignore-scripts=false`, so this is handled.
 | Command                 | What it does                                        |
 | ----------------------- | --------------------------------------------------- |
 | `npm run dev`           | API + Vite dev server together                      |
+| `npm run dev:demo`      | The same, with the gate as a role picker (no passwords) |
 | `npm run build`         | Compiles the server and builds `web/dist`           |
 | `npm start`             | Runs the built server (serves `web/dist` too)       |
-| `npm run seed`          | Recreates the demo event                            |
+| `npm run seed`          | Recreates the two-day demo event                    |
+| `npm run seed:long`     | A fortnight-long demo event, with tracks            |
 | `npm run create-event`  | Interactive CLI to create a real event              |
 | `npm test`              | Vitest suite                                        |
+| `npm run test:watch`    | The suite in watch mode                             |
 | `npm run lint`          | ESLint + both TypeScript projects                   |
+| `npm run typecheck`     | Just the TypeScript projects                        |
 | `npm run rebuild:native`| Rebuilds `better-sqlite3` against the local Node     |
 
 ## Roles
 
-Each event has three shared passwords. Entering a higher one upgrades your role;
-entering a lower one downgrades it.
+Each event has three shared passwords, one per role. The password you type at
+the gate is what grants your role, and there is no way to change role from
+inside the app — switching means signing out and entering a different one. An
+event renames its middle role freely ("attendee", "participant", "member");
+the tables below use the default.
 
-| Capability                                        | viewer | user | admin |
-| ------------------------------------------------- | :----: | :--: | :---: |
-| View the schedule and contributions                |   ✓    |  ✓   |   ✓   |
-| Rename yourself                                    |   ✓    |  ✓   |   ✓   |
-| Star sessions, build a personal agenda             |   ✓    |  ✓   |   ✓   |
-| Edit your own speaker profile                      |   ✓    |  ✓   |   ✓   |
-| Register interest in a pitched session             |   ✓    |  ✓   |   ✓   |
-| Add notes, links, questions                        |        |  ✓   |   ✓   |
-| Create and edit your own open sessions             |        |  ✓   |   ✓   |
-| Pitch a session to the proposal board              |        |  ✓   |   ✓   |
-| Full CRUD on sessions, rooms, tags; moderation     |        |      |   ✓   |
-| Place a pitch on the grid; restore deleted items   |        |      |   ✓   |
-| Change passwords, edit settings, archive           |        |      |   ✓   |
+**Most of what a role may do is per-event policy**, set from Manage Event →
+Permissions. These ticks are the defaults, not the rules — an organiser can
+move any of them, except the organiser column, which is locked on so that an
+event nobody can moderate cannot be created by accident.
+
+| Capability                                        | viewer | attendee | organiser |
+| ------------------------------------------------- | :----: | :------: | :-------: |
+| Star sessions, build a personal agenda             |   ✓    |    ✓     |     ✓     |
+| Edit your own speaker profile                      |   ✓    |    ✓     |     ✓     |
+| Register interest in a pitch                       |   ✓    |    ✓     |     ✓     |
+| Add notes, links and questions                     |        |    ✓     |     ✓     |
+| Delete your own contributions                      |        |    ✓     |     ✓     |
+| Create sessions in rooms that allow booking        |        |    ✓     |     ✓     |
+| Edit and delete your own sessions                  |        |    ✓     |     ✓     |
+| Pitch a session to the proposal board              |        |    ✓     |     ✓     |
+| Hide anyone's contribution                         |        |          |     ✓     |
+
+The rest is structural and not configurable, because it is how an event is
+administered at all:
+
+| Capability                                        | viewer | attendee | organiser |
+| ------------------------------------------------- | :----: | :------: | :-------: |
+| Read the schedule; export or subscribe to it       |   ✓    |    ✓     |     ✓     |
+| Set your display name for this event               |   ✓    |    ✓     |     ✓     |
+| Official sessions — create, edit, move anywhere    |        |          |     ✓     |
+| Rooms, tags, tracks, people                        |        |          |     ✓     |
+| Place a pitch on the grid                          |        |          |     ✓     |
+| Restore deleted items from the trash               |        |          |     ✓     |
+| Passwords, settings, permissions, archive          |        |          |     ✓     |
 
 Viewing an event requires the viewer password — schedules are never public.
+Display names are unique within an event, so nobody can take an organiser's.
 
 ## Configuration
 
@@ -112,6 +144,7 @@ Viewing an event requires the viewer password — schedules are never public.
 | `INSTANCE_ADMIN_PASSWORD` | dev placeholder  | **Required in production**; gates event creation   |
 | `TRUST_PROXY`             | off              | Set `1` behind Caddy so rate limits see real IPs   |
 | `SERVE_STATIC`            | on in production | Serves `web/dist` from the API process             |
+| `DEMO_MODE`               | off              | Set `1` and the gate becomes a role picker — public demos only |
 
 ## Deployment
 
