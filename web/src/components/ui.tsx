@@ -175,6 +175,38 @@ export function DangerButton({
   );
 }
 
+/**
+ * A round "?" that reveals a note beside the control it explains. For the
+ * handful of fields whose meaning is not in their name — where a hint under
+ * the field would be permanent clutter for something you read once.
+ */
+export function HelpButton({
+  open,
+  onClick,
+  label,
+}: {
+  open: boolean;
+  onClick: () => void;
+  /** Names what is being explained, e.g. "session types". */
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-expanded={open}
+      aria-label={`Explain ${label}`}
+      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold leading-none ${
+        open
+          ? 'border-stone-500 bg-stone-500 text-white dark:border-stone-400 dark:bg-stone-400 dark:text-stone-900'
+          : 'border-stone-300 text-stone-500 hover:border-stone-500 hover:text-stone-700 dark:border-stone-600 dark:text-stone-400 dark:hover:border-stone-400 dark:hover:text-stone-200'
+      }`}
+    >
+      ?
+    </button>
+  );
+}
+
 /** Square button for a single glyph — reorder arrows, close, etc. Always needs
  *  an `aria-label`, since the glyph is not a name. */
 export function IconButton({

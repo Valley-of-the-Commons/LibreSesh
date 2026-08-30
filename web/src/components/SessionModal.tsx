@@ -7,6 +7,7 @@ import {
   Chip,
   Field,
   FormGrid,
+  HelpButton,
   FormStack,
   Modal,
   PrimaryButton,
@@ -74,6 +75,7 @@ export function SessionModal({
   const [start, setStart] = useState(fmtMin(existing?.startMin ?? Math.max(dayStartMin, 14 * 60)));
   const [durMin, setDurMin] = useState(existing?.durMin ?? 30);
   const [tagIds, setTagIds] = useState<number[]>(session?.tagIds ?? []);
+  const [typeHelp, setTypeHelp] = useState(false);
   const [trackId, setTrackId] = useState<number | null>(session?.trackId ?? null);
   const [type, setType] = useState<'official' | 'open'>(
     session?.type ?? (isAdmin ? 'official' : 'open'),
@@ -282,13 +284,38 @@ export function SessionModal({
 
       {isAdmin && (
         <Field label="Type">
-          <div className="flex gap-1.5">
+          <div className="flex items-center gap-1.5">
             {(['official', 'open'] as const).map((t) => (
               <Chip key={t} active={type === t} onClick={() => setType(t)}>
                 {t}
               </Chip>
             ))}
+            <HelpButton
+              open={typeHelp}
+              onClick={() => setTypeHelp(!typeHelp)}
+              label="session types"
+            />
           </div>
+          {typeHelp && (
+            <div className="mt-2 space-y-1.5 rounded-lg border border-stone-200 bg-stone-50 p-3 text-xs leading-relaxed text-stone-600 dark:border-stone-700 dark:bg-stone-800 dark:text-stone-300">
+              <p>
+                <strong className="font-semibold text-stone-800 dark:text-stone-100">
+                  Official
+                </strong>{' '}
+                is the published programme. Only organisers can add one or change it.
+              </p>
+              <p>
+                <strong className="font-semibold text-stone-800 dark:text-stone-100">Open</strong>{' '}
+                is attendee-placed. Whoever created it can keep editing it, and it can only go
+                in a room that allows booking.
+              </p>
+              <p>
+                Making a session official therefore locks it against the person who put it up.
+                Neither type affects timing: organisers may double-book a room, everyone else
+                may not, whichever type it is.
+              </p>
+            </div>
+          )}
         </Field>
       )}
       </FormStack>

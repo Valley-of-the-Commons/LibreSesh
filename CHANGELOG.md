@@ -6,6 +6,12 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- **A "?" beside the session type.** Official versus open is an authority
+  distinction, not a scheduling one, and nothing on screen said so. The note
+  explains that official is the published programme, open is attendee-placed
+  and stays editable by whoever put it up — so promoting a session to official
+  locks it against its creator — and that neither type affects timing.
+
 - **Tracks.** Thematic strands running across rooms and days, defined per event
   from the admin page and ordered like rooms, because that order is the order
   of the columns. A session sits on at most one — unlike a tag, because the
