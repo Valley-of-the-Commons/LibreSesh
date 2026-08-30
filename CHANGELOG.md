@@ -6,6 +6,15 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- **Display names are unique per event.** `PATCH /me` wrote the name with no
+  check at all, so anyone could take an organiser's. The name now belongs to
+  `(event, identity)` and is unique inside the event — not across the instance,
+  which would have let the first person to type "Ada" hold it everywhere
+  forever. You claim it at the gate, where a clash comes back in place before
+  any role is granted, and change it on your profile. The same name in two
+  different events is two different people, and each session or note is
+  credited to the name its author uses there.
+
 - **Brand assets.** The LibreSesh logo replaces the placeholder initial-letter
   square: the stacked mark with its "open source scheduling" tagline heads the
   event list, and the one-line wordmark sits in the schedule header, linking
@@ -40,6 +49,12 @@ All notable changes to this project are documented here.
   stage has no `.git`.
 
 ### Changed
+
+- **The schedule header is sorted by what each control is for.** Pitches moves
+  down beside the grid/list switcher and the Now button — it is another way of
+  looking at the programme. Calendar export and Subscribe move into the name
+  menu and lose their toolbar button; both are personal to you, and the
+  subscription link literally is.
 
 - **The identity chip opens a menu, not a modal.** Tapping your name in the
   schedule header used to open a panel that could rename you *and* change your

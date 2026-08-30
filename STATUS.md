@@ -32,6 +32,10 @@ plan lives in `_planning/plans/2026-08-29-ui-overhaul-permissions-pitches.md`:
   crosses the "no accounts" line, whether a transfer carries the role, whether
   merge is admin-only, and whether stars transfer at all. The third one shapes
   the permission matrix, so it wants answering before merge is built.
+  Migration 009 moved the ground under this: a display name now belongs to
+  `(event, identity)` and is unique inside the event, so "the name a second
+  device cannot reclaim" is now per event rather than global. The spec's
+  options want rereading against that.
 
 ---
 
@@ -42,20 +46,13 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 ## High Priority
 
 - It should be possible to change name of the main event. Preferably also the link (subpage).
-- **Display names are not unique.** `PATCH /me` writes
-  `identities.display_name` with no collision check at all (`me.ts:35`), so any
-  number of people can call themselves the same thing — including copying an
-  organiser's name. Note the field is _global_, not per event, so "already
-  taken" needs deciding first: unique per event is what an attendee would
-  expect, but the column is shared across every event an identity attends.
-  Related: [\_planning/specs/identity-and-people.md](_planning/specs/identity-and-people.md),
-  where the same column is what a second device cannot reclaim.
 - **People dedupe/merge.** Anyone who can create a session or a pitch can create
   a person by typing a new speaker name, so "A. Lovelace" and "Ada Lovelace" can
   coexist. Right for an unconference, but there is no merge tool.
 
 ## Medium Priority
 
+- Tags should editable.
 - **"Tracks" are named but do not exist.** There is no track anywhere in the
   system: no table, no column, no API, nothing an organiser can define. The
   only thing carrying the word was `rooms.open_track`, a boolean meaning

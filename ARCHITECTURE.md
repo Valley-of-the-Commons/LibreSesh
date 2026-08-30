@@ -51,7 +51,8 @@ every failure as `{ error: { code, message } }`.
 | Table | Notes |
 | --- | --- |
 | `events` | Three bcrypt password hashes, timezone, day viewport, archive flag |
-| `identities` | Anonymous cookie token, display name, optional iCal token |
+| `identities` | Anonymous cookie token, the display-name seed, optional iCal token |
+| `event_identities` | `(event, identity) → display name`, unique within the event |
 | `roles` | `(identity, event) → viewer\|user\|admin` |
 | `rooms`, `tags` | Per event, soft-deleted |
 | `sessions` | Scheduled: always has a room and a time |
@@ -71,6 +72,49 @@ do not "simplify" this by comparing UTC minutes.
 **Soft deletes everywhere.** `deleted_at` rather than `DELETE`, so an organiser
 can undo vandalism (`/trash` and the restore endpoints). A hard delete of a
 session would orphan its contributions and stars.
+
+### One database, many events
+
+Every event lives in the same SQLite file, scoped by `event_id`. The obvious
+alternative — a database per event — was considered and rejected, because
+identity here is deliberately *cross-event*: one signed cookie is one person
+across the whole instance, `GET /me` answers with their role in every event,
+and the event list is a query. Splitting per event would not remove that shared
+state, it would relocate it into a registry database, and then everything that
+spans events — the event list, cloning an event's rooms and tags into a new
+one, `/trash`, backups, migrations — would have to straddle two connections.
+
+What per-event databases would genuinely buy is isolation, and the isolation
+that actually mattered was over names (below), which a schema change bought
+outright. Revisit this only if a single instance ever hosts events large or
+sensitive enough that physical separation is the requirement — at which point
+the answer is probably separate *instances*, not separate files.
+
+### Why a display name belongs to the event, not the identity
+
+A name is how one person is known inside one room. Two unconferences a year
+apart have no business fighting over "Ada", so `event_identities` holds the
+name and enforces `UNIQUE(event_id, display_name)`;
+`identities.display_name` is demoted to the seed a newcomer is offered, and
+follows whatever name they last chose.
+
+Global uniqueness was the tempting one-line version — a `UNIQUE` index and a
+check in `PATCH /me` — and it is worse than the bug it fixes. It makes the
+first person to type a name the owner of it across every event on the instance
+forever, including identities nobody uses any more, and it means entering an
+event where your name is taken forces you to rename yourself in every *other*
+event too.
+
+Two consequences worth knowing:
+
+- **The name is claimed at the gate, before the role is granted.** A clash has
+  to leave you outside the event with a name to change, not inside it nameless.
+  See `claimEventName` in `server/src/eventIdentity.ts`.
+- **It is its own table, not a column on `roles`.** Signing out of an event
+  deletes the `roles` row; that must not hand your name to someone else or
+  strip the authorship from everything you already posted. `NameResolver` takes
+  an event id and resolves against it, so a session's credit follows the name
+  its author uses *there*.
 
 ### Why proposals are a separate table
 
