@@ -9,6 +9,10 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile
+      args:
+        # Stamps the build footer; falls back to the package version if unset.
+        BUILD_TAG: ${BUILD_TAG:-}
+        BUILD_COMMIT: ${BUILD_COMMIT:-}
     restart: unless-stopped
     environment:
       NODE_ENV: production

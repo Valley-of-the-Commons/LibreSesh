@@ -21,6 +21,15 @@ COPY server ./server
 COPY web ./web
 COPY scripts ./scripts
 
+# This stage has no .git, so the footer's version stamp has to be passed in.
+# Without these it falls back to the package.json version and "unknown".
+#   docker build --build-arg BUILD_TAG="$(git describe --tags --abbrev=0)" \
+#                --build-arg BUILD_COMMIT="$(git rev-parse --short HEAD)" .
+ARG BUILD_TAG
+ARG BUILD_COMMIT
+ENV BUILD_TAG=$BUILD_TAG
+ENV BUILD_COMMIT=$BUILD_COMMIT
+
 RUN npm run build
 
 # Drop dev dependencies from the tree we copy into the runtime image.
