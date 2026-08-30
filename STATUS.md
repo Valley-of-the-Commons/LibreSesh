@@ -46,34 +46,19 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 
 ## Medium Priority
 
-- **Grid columns read as tracks, not rooms.** The calendar's column header
-  renders the room name, its capacity, and then the literal words "open track"
-  in emerald (`Calendar.tsx:285`), so a column reads *"Workshop A · 60 seats ·
-  open track"*. The gutter cell above the time axis is empty, so nothing says
-  the columns are rooms at all. `rooms.open_track` means "attendees may
-  schedule here" and has nothing to do with tracks — a room is a place, a
-  track is a thematic strand that can span several rooms and days.
+- **Grid header: the "open track" badge.** Partly done — the room axis is now
+  labelled and visually separated (2026-08-30), which was the bulk of the
+  confusion. What remains is the badge itself: a column still reads
+  "Workshop A · 60 seats · open track" (`Calendar.tsx`), and `open_track`
+  means "attendees may schedule here", nothing to do with tracks. Two small
+  independent pieces:
+  1. Relabel the badge to what the flag means ("anyone may book").
+  2. Rename `rooms.open_track` -> `rooms.open_booking` so the code stops
+     implying a track concept it does not have.
 
-  Proposed in three tiers, cheapest first. They are independent; the first may
-  be the whole fix.
-
-  1. **Relabel, no schema change.** Change the badge from "open track" to what
-     the flag actually means ("anyone may book"), and label the empty gutter
-     cell "Room". This addresses the reported confusion directly and is maybe
-     an hour's work.
-  2. **Rename the column** `rooms.open_track` → `rooms.open_booking`, so the
-     code stops implying a track concept it does not have. Internal clarity
-     only; touches the DTO, the admin toggle and the seed.
-  3. **Tracks as a real concept** — *only if organisers actually ask for it.*
-     A track would be a promoted tag (`tags.kind` of 'label' | 'track'),
-     reusing the existing colour, filter, CRUD and session-tag plumbing rather
-     than adding a third entity, plus a "column by: Room | Track" toggle on
-     the grid. This is the expensive part and the most speculative: nobody has
-     asked to *group* by track, only noted that the header is misleading. If
-     tier 1 resolves that, tier 3 may never be worth building.
-
-  Recommend doing 1 and 2 and stopping there until there is real demand.
-
+  Tracks as a real concept (a promoted tag, plus a column-by-track toggle)
+  stays out of scope: nobody has asked to *group* by track, only noted the
+  header was misleading, and that is now fixed. Revisit only on real demand.
 
 - **No write path under flaky connectivity.** Reads recover well — `EventSource`
   auto-reconnects and `useEventData` refetches the whole bundle on reopen, and
