@@ -1,16 +1,38 @@
 import { Router } from 'express';
-import { hashPassword, requireRole } from '../auth.js';
+import { hashPassword, requireRole, roleForPassword } from '../auth.js';
 import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
 import type { EventRow } from '../db.js';
-import { badRequest } from '../errors.js';
+import { badRequest, forbidden } from '../errors.js';
 import { toEventDto } from '../mappers.js';
 import { limit } from '../ratelimit.js';
 import { getPermissions, setPermissions } from '../permissions.js';
-import { parse, permissionsSchema, settingsSchema } from '../validation.js';
+import { authSchema, parse, permissionsSchema, settingsSchema } from '../validation.js';
 
 export function settingsRoutes(ctx: Ctx): Router {
   const router = Router({ mergeParams: true });
+
+  /**
+   * Confirm the caller knows the organiser password. Grants nothing and
+   * changes nothing — it exists so the UI can put a lock in front of controls
+   * that are damaging to nudge by accident.
+   *
+   * Deliberately not `POST /auth`: that upserts a role, so an organiser who
+   * typed the *viewer* password into a confirmation box would silently demote
+   * themselves out of the page they were standing on.
+   */
+  router.post(
+    '/confirm-admin',
+    requireRole(ctx.db, 'admin'),
+    limit(ctx.limiter, 'auth'),
+    (req, res) => {
+      const { password } = parse(authSchema, req.body);
+      if (roleForPassword(req.event, password) !== 'admin') {
+        throw forbidden('That is not the organiser password');
+      }
+      res.status(204).end();
+    },
+  );
 
   // Deliberately not behind `requireWritable`: un-archiving is how an admin
   // makes an archived event editable again.

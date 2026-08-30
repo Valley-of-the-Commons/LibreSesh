@@ -174,6 +174,9 @@ export const api = {
   setContributionHidden: (slug: string, id: number, hidden: boolean) =>
     request<ContributionDto>('PATCH', `/e/${encode(slug)}/contributions/${id}/hidden`, { hidden }),
 
+  /** Proves the caller knows the organiser password. Grants nothing. */
+  confirmAdmin: (slug: string, password: string) =>
+    request<void>('POST', `/e/${encode(slug)}/confirm-admin`, { password }),
   updateSettings: (slug: string, body: SettingsWrite) =>
     request<EventDto>('PATCH', `/e/${encode(slug)}/settings`, body),
 

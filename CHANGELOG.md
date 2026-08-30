@@ -81,6 +81,13 @@ All notable changes to this project are documented here.
 
 ### Changed
 
+- **The permission matrix opens locked.** Every switch in it saves the instant
+  you click it and there is no undo, so it now greys out until the organiser
+  password is typed. A new `POST /e/:slug/confirm-admin` checks the password
+  and grants nothing — deliberately not the auth endpoint, which upserts a
+  role, so an organiser who typed the *viewer* password into a confirmation box
+  would have quietly demoted themselves out of the page they were standing on.
+
 - **Room cards lead with what you can do in the room.** "Attendees may book
   this room" moves above the capacity rather than trailing it. Capacity is a
   three-digit number in a narrow field now, not a half-width one, and a typed

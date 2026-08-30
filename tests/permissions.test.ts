@@ -195,3 +195,35 @@ describe('room colour palette', () => {
     for (const c of ROOM_COLORS) expect(c).toMatch(/^#[0-9a-fA-F]{6}$/);
   });
 });
+
+describe('confirming the organiser password', () => {
+  let harness: Harness;
+  let admin: Agent;
+
+  beforeEach(async () => {
+    harness = makeHarness();
+    seedEvent(harness.db);
+    admin = await actorWithRole(harness, 'testconf', 'admin-pw');
+  });
+  afterEach(() => harness.close());
+
+  it('accepts the organiser password', async () => {
+    await admin.post('/api/e/testconf/confirm-admin').send({ password: 'admin-pw' }).expect(204);
+  });
+
+  it('rejects another role’s password without touching the caller’s role', async () => {
+    await admin.post('/api/e/testconf/confirm-admin').send({ password: 'viewer-pw' }).expect(403);
+    // The whole point of not reusing POST /auth: that would have demoted them.
+    const res = await admin.get('/api/e/testconf/bundle').expect(200);
+    expect(res.body.role).toBe('admin');
+  });
+
+  it('rejects a wrong password', async () => {
+    await admin.post('/api/e/testconf/confirm-admin').send({ password: 'nope' }).expect(403);
+  });
+
+  it('is closed to non-organisers', async () => {
+    const user = await actorWithRole(harness, 'testconf', 'user-pw');
+    await user.post('/api/e/testconf/confirm-admin').send({ password: 'admin-pw' }).expect(403);
+  });
+});

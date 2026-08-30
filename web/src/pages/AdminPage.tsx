@@ -340,6 +340,19 @@ export function AdminPage() {
         )
       : 1;
 
+  /** Proves the organiser password before the permission matrix will move. */
+  const confirmAdmin = async (password: string): Promise<boolean> => {
+    try {
+      await api.confirmAdmin(slug, password);
+      return true;
+    } catch (err) {
+      toast.show(
+        err instanceof ApiError ? err.message : 'Could not check that password',
+      );
+      return false;
+    }
+  };
+
   const saveSettings = async () => {
     try {
       const updated = await api.updateSettings(slug, {
@@ -671,6 +684,7 @@ export function AdminPage() {
         permissions={bundle.permissions as never}
         userRoleLabel={event.userRoleLabel}
         onChange={savePermissions}
+        onUnlock={confirmAdmin}
       />
 
       <Section title="Event settings" className="mb-6">
