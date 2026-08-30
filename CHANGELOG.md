@@ -2,6 +2,50 @@
 
 All notable changes to this project are documented here.
 
+## [Unreleased]
+
+### Added
+
+- **Per-event permission matrix.** Nine capabilities — commenting, moderating,
+  pitching, voting, starring, creating and editing open sessions, editing your
+  own profile — each assignable to any of the three roles, edited from the
+  admin page and enforced server-side by `requireCapability`. Defaults
+  reproduce the previous fixed matrix exactly, and only differences from them
+  are stored. The organiser column is locked on: an event nobody can moderate
+  would have no way back. Structural rules stay fixed — official sessions
+  remain organiser-only and open sessions still need an open-track room.
+- **Room editing.** Capacity and description are editable after creation. The
+  API had always accepted them; the admin page exposed neither.
+- **Session livestream link.** Optional http(s) link on a session, hidden
+  entirely when unset rather than shown as an empty row.
+- **Demo mode** (`DEMO_MODE=1`, `npm run dev:demo`). The event gate becomes a
+  role picker instead of a password prompt, for public demo deployments. An
+  env var rather than a per-event column, so it cannot survive an event clone
+  or be flipped on a real event by mistake. Off by default, warns at boot.
+- **Build stamp.** The nearest git tag, short commit and build time are stamped
+  at build time and shown bottom-right — outright on demo instances, on hover
+  elsewhere. Dockerfile takes `BUILD_TAG`/`BUILD_COMMIT` build args, since that
+  stage has no `.git`.
+
+### Changed
+
+- **Form layout primitives.** `Field` no longer carries its own bottom margin,
+  which had forced every adjacent button to hardcode a matching `mb-3` to sit
+  on the same baseline — and broke whenever a field grew a hint. Spacing now
+  belongs to `FormStack`/`FormRow`/`FormGrid`. Adds `Section`, `DangerButton`,
+  `IconButton`, `TextLink` and `Toggle`; the admin page moves onto them, losing
+  its underlined-at-rest links and its text-link "delete" actions.
+- **Identity is held in context.** `useMe` fetched `/me` wherever it was
+  called, so a second caller meant a second round trip for the same answer.
+- The demo event's open-track room is called "Unconf Room".
+
+### Fixed
+
+- **The build stamp took the whole app down in dev.** Vite's `define` is only
+  substituted in a production build, so the identifiers survived verbatim and
+  threw `ReferenceError` on render — with no error boundary, that blanked the
+  page. Now read from `import.meta.env`, with defaults rather than assertions.
+
 ## [0.1.0] — 2026-08-29
 
 First release. Everything below is new.

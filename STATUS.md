@@ -3,15 +3,36 @@
 The shared queue: what is in flight, what is blocked, and what is planned.
 Shipped work moves to [CHANGELOG.md](CHANGELOG.md) and is not repeated here.
 
-Last updated: 2026-08-29
+Last updated: 2026-08-30
 
 ## In Progress
 
-_None — 0.1.0 is tagged._
+Working directly on `main` (the `feat/ui-overhaul` branch merged 2026-08-30).
+Shipped work is in CHANGELOG.md under `[Unreleased]`; what is left of that
+plan lives in `_planning/plans/2026-08-29-ui-overhaul-permissions-pitches.md`:
+
+- **Rooms vs tracks.** Tracks become a promoted tag (`tags.kind`), the grid
+  header gets an explicit "Room" label and a column-by-track toggle, and
+  `rooms.open_track` is renamed `open_booking` — the column is about who may
+  schedule, not about tracks. Not started.
+- **Pitch board.** Always show the creator, default the creator as host,
+  up/down votes replacing proposal interest, and a hot/new split. Not started.
+- **Whole-app UI sweep.** The primitives landed and the admin page is done;
+  27 underline usages remain across SchedulePage, ProposalBoard, DetailSheet,
+  ProfilePage, EventListPage, NewEventPage, IdentityPanel and Tour. Links
+  inside rendered markdown keep their underline deliberately.
+- **ARCHITECTURE.md concurrency paragraph.** §Realtime documents broadcast and
+  heartbeats but never states the model: last-write-wins, `assertNotStale`
+  409 on an `updated_at` mismatch, no CRDT by design.
 
 ## Blockers
 
-_None_
+- **Identity and duplicate people needs decisions.**
+  `_planning/specs/identity-and-people.md` sets out the problem and options but
+  takes no decision. Four questions are open: whether a device-transfer code
+  crosses the "no accounts" line, whether a transfer carries the role, whether
+  merge is admin-only, and whether stars transfer at all. The third one shapes
+  the permission matrix, so it wants answering before merge is built.
 
 ---
 
