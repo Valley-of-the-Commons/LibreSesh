@@ -56,6 +56,14 @@ All notable changes to this project are documented here.
 
 ### Changed
 
+- **The room panel's create form matches its editor.** Name, capacity and
+  colour sit on a grid; the booking permission gets its own line below; the
+  button gets its own row. Everything used to share one line, which needed a
+  hand-tuned margin on the colour swatch to fake a baseline. The permission
+  now reads "Attendees may book this room" in all three places it appears, and
+  in the editor it is part of the form — it used to save the instant you
+  clicked it, so Cancel could not undo it.
+
 - **The schedule header is sorted by what each control is for.** Pitches moves
   down beside the grid/list switcher and the Now button — it is another way of
   looking at the programme. Calendar export and Subscribe move into the name

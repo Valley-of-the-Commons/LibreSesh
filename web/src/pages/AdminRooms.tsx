@@ -119,6 +119,7 @@ function RoomRow({
   );
   const [description, setDescription] = useState(room.description);
   const [color, setColor] = useState(room.color);
+  const [openTrack, setOpenTrack] = useState(room.openTrack);
   const [saving, setSaving] = useState(false);
 
   const reset = () => {
@@ -126,13 +127,15 @@ function RoomRow({
     setCapacity(room.capacity === null ? "" : String(room.capacity));
     setDescription(room.description);
     setColor(room.color);
+    setOpenTrack(room.openTrack);
   };
 
   const dirty =
     name.trim() !== room.name ||
     parseCapacity(capacity) !== room.capacity ||
     description.trim() !== room.description ||
-    color !== room.color;
+    color !== room.color ||
+    openTrack !== room.openTrack;
 
   const save = async () => {
     if (!name.trim() || saving) return;
@@ -143,6 +146,7 @@ function RoomRow({
         capacity: parseCapacity(capacity),
         description: description.trim(),
         color,
+        openTrack,
       });
       setOpen(false);
     } finally {
@@ -240,9 +244,9 @@ function RoomRow({
 
           <div className="mt-3">
             <Toggle
-              checked={room.openTrack}
-              onChange={(next) => void onPatch(room, { openTrack: next })}
-              label="Attendees may schedule their own sessions here"
+              checked={openTrack}
+              onChange={setOpenTrack}
+              label="Attendees may book this room"
             />
           </div>
 
@@ -334,40 +338,51 @@ export function AdminRooms({
         )}
       </ul>
 
-      <FormRow>
-        <div className="min-w-40 flex-1">
-          <Field label="New room">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && void add()}
-              maxLength={80}
-              className={inputClass}
+      {/* Same shape as the editor above: fields on a grid, the permission on
+          its own line, then the action. Everything that was crammed onto one
+          row needed a hand-tuned margin to fake a baseline. */}
+      <FormGrid cols={3}>
+        <Field label="New room">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && void add()}
+            maxLength={80}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Capacity" hint="Leave blank if it does not matter.">
+          <input
+            type="number"
+            min={0}
+            value={capacity}
+            onChange={(e) => setCapacity(e.target.value)}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Colour" hint="Assigned on creation; change it any time.">
+          {/* Same border and padding as an input, so it derives the same
+              height rather than hardcoding one. */}
+          <div className="flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm dark:border-stone-600 dark:bg-stone-900">
+            <span
+              aria-hidden
+              className="h-5 w-5 shrink-0 rounded-full border border-stone-300 dark:border-stone-600"
+              style={{ background: suggested }}
             />
-          </Field>
-        </div>
-        <div className="w-24">
-          <Field label="Capacity">
-            <input
-              type="number"
-              min={0}
-              value={capacity}
-              onChange={(e) => setCapacity(e.target.value)}
-              className={inputClass}
-            />
-          </Field>
-        </div>
-        <span
-          aria-label={`New room colour ${suggested}`}
-          title={`New rooms get ${suggested} — change it after creating`}
-          className="mb-2 h-6 w-6 shrink-0 rounded-full border border-stone-300 dark:border-stone-600"
-          style={{ background: suggested }}
-        />
+            <span className="text-stone-500 dark:text-stone-400">{suggested}</span>
+          </div>
+        </Field>
+      </FormGrid>
+
+      <div className="mt-3">
         <Toggle
           checked={openTrack}
           onChange={setOpenTrack}
-          label="attendees may book this room"
+          label="Attendees may book this room"
         />
+      </div>
+
+      <FormRow className="mt-4">
         <PrimaryButton
           onClick={() => void add()}
           disabled={!name.trim() || busy}
