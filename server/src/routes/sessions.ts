@@ -3,7 +3,6 @@ import { requireWritable } from '../auth.js';
 import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
 import type { SessionRow } from '../db.js';
-import { badRequest } from '../errors.js';
 import { loadSessionDto } from '../mappers.js';
 import { getPermissions, requireCapability } from '../permissions.js';
 import { limit } from '../ratelimit.js';
@@ -19,51 +18,8 @@ import {
   getRoom,
   getSession,
 } from '../sessionRules.js';
+import { resolveSpeaker } from '../speakers.js';
 import { parse, sessionPatchSchema, sessionSchema } from '../validation.js';
-
-/**
- * Turn the form's speaker input into a person id. A name that matches nobody
- * creates a fresh unclaimed profile — organisers can tidy the roster later,
- * and the write limits keep that from being abused.
- */
-function resolveSpeaker(
-  ctx: Ctx,
-  eventId: number,
-  body: { speakerId?: number | null; speakerName?: string },
-  current: number | null,
-): number | null {
-  if (body.speakerId !== undefined) {
-    if (body.speakerId === null) return null;
-    const found = ctx.db
-      .prepare<[number, number], { id: number }>(
-        'SELECT id FROM people WHERE id = ? AND event_id = ? AND deleted_at IS NULL',
-      )
-      .get(body.speakerId, eventId);
-    if (!found) throw badRequest('Unknown speaker');
-    return found.id;
-  }
-
-  if (body.speakerName === undefined) return current;
-  const name = body.speakerName.trim();
-  if (name === '') return null;
-
-  const existing = ctx.db
-    .prepare<[number, string], { id: number }>(
-      'SELECT id FROM people WHERE event_id = ? AND name = ? AND deleted_at IS NULL',
-    )
-    .get(eventId, name);
-  if (existing) return existing.id;
-
-  const now = new Date().toISOString();
-  return Number(
-    ctx.db
-      .prepare(
-        `INSERT INTO people (event_id, identity_id, name, bio, links, created_at, updated_at)
-         VALUES (?, NULL, ?, '', '[]', ?, ?)`,
-      )
-      .run(eventId, name, now, now).lastInsertRowid,
-  );
-}
 
 function setTags(ctx: Ctx, sessionId: number, tagIds: number[]): void {
   ctx.db.prepare('DELETE FROM session_tags WHERE session_id = ?').run(sessionId);
@@ -101,7 +57,7 @@ export function sessionRoutes(ctx: Ctx): Router {
 
     const now = new Date().toISOString();
     const id = ctx.db.transaction((): number => {
-      const speakerId = resolveSpeaker(ctx, req.event.id, body, null);
+      const speakerId = resolveSpeaker(ctx.db, req.event.id, body, null);
       const info = ctx.db
         .prepare(
           `INSERT INTO sessions
@@ -170,7 +126,7 @@ export function sessionRoutes(ctx: Ctx): Router {
 
     const now = new Date().toISOString();
     ctx.db.transaction(() => {
-      const speakerId = resolveSpeaker(ctx, req.event.id, body, existing.speaker_id);
+      const speakerId = resolveSpeaker(ctx.db, req.event.id, body, existing.speaker_id);
       ctx.db
         .prepare(
           `UPDATE sessions SET room_id = ?, track_id = ?, type = ?, title = ?, description = ?,

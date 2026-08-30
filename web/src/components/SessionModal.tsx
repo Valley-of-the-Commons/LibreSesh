@@ -3,6 +3,7 @@ import type { PersonDto, RoomDto, Role, SessionDto, TagDto, TrackDto } from '@sh
 import type { SessionWrite } from '../lib/api';
 import { fmtMin, place } from '../lib/format';
 import { zonedTimeToUtc } from '@shared/time';
+import { SpeakerCombobox, type SpeakerChoice } from './SpeakerCombobox';
 import {
   Chip,
   Field,
@@ -64,10 +65,10 @@ export function SessionModal({
 
   const existing = session ? place(session, timezone) : null;
   const [title, setTitle] = useState(session?.title ?? '');
-  const [speakerId, setSpeakerId] = useState<number | null>(session?.speakerId ?? null);
-  // Revealed by the "add someone new" option; a typed name creates a person.
-  const [addingSpeaker, setAddingSpeaker] = useState(false);
-  const [newSpeaker, setNewSpeaker] = useState('');
+  const [speaker, setSpeaker] = useState<SpeakerChoice>({
+    speakerId: session?.speakerId ?? null,
+    newName: '',
+  });
   const [description, setDescription] = useState(session?.description ?? '');
   const [livestreamUrl, setLivestreamUrl] = useState(session?.livestreamUrl ?? '');
   const [roomId, setRoomId] = useState<number>(session?.roomId ?? allowedRooms[0]?.id ?? 0);
@@ -102,12 +103,11 @@ export function SessionModal({
       setError('A livestream link must start with http:// or https://');
       return;
     }
-    const newName = newSpeaker.trim();
     onSave({
       roomId,
       type: isAdmin ? type : undefined,
       title: title.trim(),
-      ...(addingSpeaker && newName ? { speakerName: newName } : { speakerId }),
+      ...(speaker.newName ? { speakerName: speaker.newName } : { speakerId: speaker.speakerId }),
       description: description.trim(),
       livestreamUrl: livestreamUrl.trim(),
       startsAt: zonedTimeToUtc(day, startMin, timezone).toISOString(),
@@ -143,37 +143,7 @@ export function SessionModal({
         />
       </Field>
       <Field label="Speaker / host">
-        <select
-          value={addingSpeaker ? 'new' : speakerId === null ? '' : String(speakerId)}
-          onChange={(e) => {
-            const v = e.target.value;
-            if (v === 'new') {
-              setAddingSpeaker(true);
-              setSpeakerId(null);
-            } else {
-              setAddingSpeaker(false);
-              setSpeakerId(v ? Number(v) : null);
-            }
-          }}
-          className={inputClass}
-        >
-          <option value="">— none —</option>
-          {people.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-          <option value="new">+ Add someone new</option>
-        </select>
-        {addingSpeaker && (
-          <input
-            value={newSpeaker}
-            onChange={(e) => setNewSpeaker(e.target.value)}
-            maxLength={120}
-            placeholder="Their name"
-            className={`${inputClass} mt-1.5`}
-          />
-        )}
+        <SpeakerCombobox people={people} value={speaker} onChange={setSpeaker} />
       </Field>
       <Field label="Description" hint="Markdown is supported.">
         <textarea

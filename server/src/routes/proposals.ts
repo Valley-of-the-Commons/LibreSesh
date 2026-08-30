@@ -12,6 +12,7 @@ import {
 } from '../mappers.js';
 import { getPermissions, requireCapability } from '../permissions.js';
 import { limit } from '../ratelimit.js';
+import { resolveSpeaker } from '../speakers.js';
 import {
   assertMayPlace,
   assertNoOverlap,
@@ -69,33 +70,6 @@ export function proposalRoutes(ctx: Ctx): Router {
     });
   };
 
-  /** Same rule as sessions: a name nobody matches becomes a new person. */
-  const resolveSpeaker = (
-    eventId: number,
-    body: { speakerId?: number | null; speakerName?: string },
-    current: number | null,
-  ): number | null => {
-    if (body.speakerId !== undefined) return body.speakerId;
-    if (body.speakerName === undefined) return current;
-    const name = body.speakerName.trim();
-    if (name === '') return null;
-    const existing = ctx.db
-      .prepare<[number, string], { id: number }>(
-        'SELECT id FROM people WHERE event_id = ? AND name = ? AND deleted_at IS NULL',
-      )
-      .get(eventId, name);
-    if (existing) return existing.id;
-    const now = new Date().toISOString();
-    return Number(
-      ctx.db
-        .prepare(
-          `INSERT INTO people (event_id, identity_id, name, bio, links, created_at, updated_at)
-           VALUES (?, NULL, ?, '', '[]', ?, ?)`,
-        )
-        .run(eventId, name, now, now).lastInsertRowid,
-    );
-  };
-
   const setTags = (proposalId: number, tagIds: number[]) => {
     ctx.db.prepare('DELETE FROM proposal_tags WHERE proposal_id = ?').run(proposalId);
     const insert = ctx.db.prepare(
@@ -116,7 +90,7 @@ export function proposalRoutes(ctx: Ctx): Router {
 
       const now = new Date().toISOString();
       const id = ctx.db.transaction((): number => {
-        const speakerId = resolveSpeaker(req.event.id, body, null);
+        const speakerId = resolveSpeaker(ctx.db, req.event.id, body, null);
         const newId = Number(
           ctx.db
             .prepare(
@@ -169,7 +143,7 @@ export function proposalRoutes(ctx: Ctx): Router {
       if (body.tagIds) assertTagsBelong(ctx.db, req.event.id, body.tagIds);
 
       ctx.db.transaction(() => {
-        const speakerId = resolveSpeaker(req.event.id, body, row.speaker_id);
+        const speakerId = resolveSpeaker(ctx.db, req.event.id, body, row.speaker_id);
         ctx.db
           .prepare(
             `UPDATE proposals SET title = ?, description = ?, speaker_id = ?, updated_at = ?

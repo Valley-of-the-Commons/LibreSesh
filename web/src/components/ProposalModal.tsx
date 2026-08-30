@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { PersonDto, ProposalDto, TagDto } from '@shared/types';
 import type { ProposalWrite } from '../lib/api';
+import { SpeakerCombobox, type SpeakerChoice } from './SpeakerCombobox';
 import {
   Chip,
   DangerButton,
@@ -35,9 +36,10 @@ export function ProposalModal({
 }: ProposalModalProps) {
   const [title, setTitle] = useState(proposal?.title ?? '');
   const [description, setDescription] = useState(proposal?.description ?? '');
-  const [speakerId, setSpeakerId] = useState<number | null>(proposal?.speakerId ?? null);
-  const [addingSpeaker, setAddingSpeaker] = useState(false);
-  const [newSpeaker, setNewSpeaker] = useState('');
+  const [speaker, setSpeaker] = useState<SpeakerChoice>({
+    speakerId: proposal?.speakerId ?? null,
+    newName: '',
+  });
   const [tagIds, setTagIds] = useState<number[]>(proposal?.tagIds ?? []);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,11 +48,10 @@ export function ProposalModal({
       setError('A title is required');
       return;
     }
-    const newName = newSpeaker.trim();
     onSave({
       title: title.trim(),
       description: description.trim(),
-      ...(addingSpeaker && newName ? { speakerName: newName } : { speakerId }),
+      ...(speaker.newName ? { speakerName: speaker.newName } : { speakerId: speaker.speakerId }),
       tagIds,
     });
   };
@@ -72,37 +73,7 @@ export function ProposalModal({
         />
       </Field>
       <Field label="Speaker / host">
-        <select
-          value={addingSpeaker ? 'new' : speakerId === null ? '' : String(speakerId)}
-          onChange={(e) => {
-            const v = e.target.value;
-            if (v === 'new') {
-              setAddingSpeaker(true);
-              setSpeakerId(null);
-            } else {
-              setAddingSpeaker(false);
-              setSpeakerId(v ? Number(v) : null);
-            }
-          }}
-          className={inputClass}
-        >
-          <option value="">— none —</option>
-          {people.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-          <option value="new">+ Add someone new</option>
-        </select>
-        {addingSpeaker && (
-          <input
-            value={newSpeaker}
-            onChange={(e) => setNewSpeaker(e.target.value)}
-            maxLength={120}
-            placeholder="Their name"
-            className={`${inputClass} mt-1.5`}
-          />
-        )}
+        <SpeakerCombobox people={people} value={speaker} onChange={setSpeaker} />
       </Field>
       <Field label="Description" hint="Markdown is supported.">
         <textarea
