@@ -38,8 +38,14 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 
 ## High Priority
 
-- Demo mode: Open Track rename to "Open Room". It should be possible to login w/o password, just click the roles.
-- It should not be possible to enter a username that is already taken.
+- **Display names are not unique.** `PATCH /me` writes
+  `identities.display_name` with no collision check at all (`me.ts:35`), so any
+  number of people can call themselves the same thing — including copying an
+  organiser's name. Note the field is *global*, not per event, so "already
+  taken" needs deciding first: unique per event is what an attendee would
+  expect, but the column is shared across every event an identity attends.
+  Related: [_planning/specs/identity-and-people.md](_planning/specs/identity-and-people.md),
+  where the same column is what a second device cannot reclaim.
 - **People dedupe/merge.** Anyone who can create a session or a pitch can create
   a person by typing a new speaker name, so "A. Lovelace" and "Ada Lovelace" can
   coexist. Right for an unconference, but there is no merge tool.
@@ -51,7 +57,6 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
   only thing carrying the word was `rooms.open_track`, a boolean meaning
   "attendees may schedule here" — a booking permission, not a track. The UI
   wording was removed on 2026-08-30; the column name is the last trace.
-
   - **Rename `rooms.open_track` -> `rooms.open_booking`.** Small and
     self-contained: a migration, `RoomRow`, `RoomDto.openTrack`, the admin
     toggle, the seed and the tests. Removes the last implication of a feature
@@ -66,7 +71,7 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
     "column by: Room | Track" toggle on the grid.
 
   No user has asked to group the schedule by track — the original report was
-  that the grid header was *misleading*, and that is fixed. Do the rename;
+  that the grid header was _misleading_, and that is fixed. Do the rename;
   treat the feature as unproven until someone asks for it.
 
 - **No write path under flaky connectivity.** Reads recover well — `EventSource`
@@ -100,9 +105,12 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
   `deploy/docker-compose.yml` and `deploy/backup.sh` have never actually been
   run. They follow the spec and standard practice, but treat the first VPS
   deploy as the real test.
-- **No UI test coverage.** All 170 tests are server-side. The drag maths, the
-  SSE reducer and the clash detection are the parts most likely to regress
-  silently.
+- **No UI test coverage.** All 210 tests are server-side; there is no
+  jsdom/testing-library stack at all. The drag maths, the SSE reducer and the
+  clash detection are the parts most likely to regress silently — and the
+  build-stamp crash on 2026-08-30 (a component that threw on every render,
+  blanking the page, while the whole suite stayed green) is what that gap
+  costs. A React error boundary would have contained it; there is none.
 
 ## Low Priority / Ideas
 
@@ -128,5 +136,9 @@ Deliberately not built, so nobody re-litigates them by accident:
 
 Dark mode, iCal export and personal "my agenda" starring were on this list
 originally (SPEC §12) and were pulled in deliberately on 2026-08-28.
-Proposal interest counts are close to "session voting" but sit on the pitch
-board rather than the programme, which is the distinction that matters.
+
+"Session voting" stays out for the **programme** — nobody votes a scheduled
+session up or down. Voting on the **pitch board** was pulled in deliberately on
+2026-08-29: up/down votes are replacing proposal interest counts, so organisers
+can see which pitches deserve a room. The board/programme line is the whole of
+the distinction.
