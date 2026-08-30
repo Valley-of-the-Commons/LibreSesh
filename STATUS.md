@@ -54,7 +54,6 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
      identity tokens, and speaker/link codes hashed with **sha256 over a
      ~37-bit phrase**, which is brute-forceable offline.
 
-- It should be possible to change name of the main event. Preferably also the link (subpage).
 - **Merge moves the person, not their history.** `POST /people/:id/merge`
   repoints `sessions.speaker_id` and `proposals.speaker_id` and abandons the
   loser identity — but stars, contributions, `sessions.created_by`,
@@ -62,7 +61,7 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
   `identities.id` and stay behind. So after a merge the notes and questions
   the person wrote on their duplicate device are attributed to an identity with
   no display name in the event, and they can no longer delete their own words.
-  Adoption (the link phrase) has none of this — both devices *are* one identity
+  Adoption (the link phrase) has none of this — both devices _are_ one identity
   — so this only bites the fallback path, where two histories already exist.
   Wants the merge transaction to re-key those five tables onto the survivor,
   de-duplicating the two composite keys (`stars`, `proposal_interest`) as it
@@ -134,7 +133,7 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
   at once, and `deploy/entrypoint.sh` chowns the volume before dropping to
   `node`.
   **Still unproven:** there is no `docker` in this dev container, so the
-  entrypoint's *root* branch and the `gosu` install have never executed — the
+  entrypoint's _root_ branch and the `gosu` install have never executed — the
   next deploy is their first real run. `deploy/docker-compose.yml`, the Caddy
   front end and `deploy/backup.sh` have never been run at all; treat the first
   VPS deploy as their test. Railway notes: `_planning/deployment-guide.md` §10.
@@ -163,18 +162,32 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 
 # Out of scope
 
-Deliberately not built, so nobody re-litigates them by accident:
+Deliberately not built, so nobody re-litigates them by accident. Checked
+against the code on 2026-08-30:
 
-- Session voting, per-room QR codes, email of any kind, multi-language,
-  image uploads, WebSockets, and per-user accounts. The last two matter most:
-  SSE and shared per-event passwords are load-bearing design choices, not
-  placeholders.
+- **Per-user accounts** and **WebSockets**. These two matter most: SSE and
+  shared per-event passwords are load-bearing design choices, not placeholders.
+  The identity model has grown a lot since — profiles, device linking, speaker
+  codes — but every bit of it is deliberately account-free: a speaker code
+  binds a phrase to a person, and never asks for an email or a password.
+- **Email of any kind**, **image uploads**, **multi-language**, and **per-room
+  QR codes**. Still true to the letter — there is no mail, upload, i18n or QR
+  code anywhere in the tree.
+
+## Voting: pitches yes, programme no
+
+**Pitches are votable, and have been since the board shipped.** The
+`proposal.vote` capability (`server/src/shared/capabilities.ts`) is granted to
+every role by default, viewers included; `proposal_interest` stores it and the
+board sorts by the count. Replacing that one-way interest with up/down votes
+and a hot/new split is queued under In Progress, not a new idea.
+
+What stays out is voting on the **programme**: nobody votes a scheduled session
+up or down. The board/programme line is the whole of the distinction, and it is
+the only thing "no session voting" ever meant.
+
+## Pulled in deliberately
 
 Dark mode, iCal export and personal "my agenda" starring were on this list
-originally (SPEC §12) and were pulled in deliberately on 2026-08-28.
-
-"Session voting" stays out for the **programme** — nobody votes a scheduled
-session up or down. Voting on the **pitch board** was pulled in deliberately on
-2026-08-29: up/down votes are replacing proposal interest counts, so organisers
-can see which pitches deserve a room. The board/programme line is the whole of
-the distinction.
+originally (SPEC §12) and were pulled in on 2026-08-28. Pitch-board voting was
+clarified as in-scope on 2026-08-29.
