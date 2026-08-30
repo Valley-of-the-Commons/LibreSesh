@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A production instance refuses to start on storage that will not survive a
+  redeploy.** `openDb` creates the directory it is pointed at, so a container
+  with no volume attached got a working `/data` inside its own filesystem —
+  SQLite wrote to it, migrations ran, the demo event was seeded, every log line
+  looked healthy, and the whole database was discarded on the next build. The
+  first symptom was an event disappearing. The server now checks at boot that
+  the database's directory is a mount point (its `st_dev` differs from its
+  parent's) and exits with instructions if it is not. `ALLOW_EPHEMERAL_DB=1`
+  opts a deliberately disposable instance out; development is unaffected.
+
 ### Changed
 
 - **The event-creation form explains the instance password.** It is the

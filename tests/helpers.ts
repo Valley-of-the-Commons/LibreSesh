@@ -32,6 +32,7 @@ export function makeHarness(overrides: Partial<Config> = {}): Harness {
     serveStatic: false,
     demoMode: false,
     seedDemoEvent: false,
+    allowEphemeralDb: true,
     ...overrides,
   };
   const app = createApp(db, config);

@@ -21,6 +21,12 @@ export interface Config {
    * conference instance, where a fake event on the landing page is noise.
    */
   seedDemoEvent: boolean;
+  /**
+   * Permission to run with a database that will not survive a redeploy. Off by
+   * default in production, where an unmounted data directory is nearly always
+   * a forgotten volume rather than a decision.
+   */
+  allowEphemeralDb: boolean;
 }
 
 function required(name: string, fallback?: string): string {
@@ -52,5 +58,6 @@ export function loadConfig(): Config {
     serveStatic: process.env.SERVE_STATIC === '1' || isProd,
     demoMode: process.env.DEMO_MODE === '1',
     seedDemoEvent: process.env.SEED_DEMO_EVENT !== '0',
+    allowEphemeralDb: !isProd || process.env.ALLOW_EPHEMERAL_DB === '1',
   };
 }

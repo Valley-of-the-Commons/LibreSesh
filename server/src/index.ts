@@ -2,8 +2,20 @@ import { loadConfig } from './config.js';
 import { createApp } from './app.js';
 import { openDb } from './db.js';
 import { DEMO_PASSWORDS, seedDemoEvent } from './seed.js';
+import { checkDurableStorage, ephemeralStorageMessage } from './storage.js';
 
 const config = loadConfig();
+
+// Before openDb, which would otherwise mkdir the directory and make an
+// unmounted path indistinguishable from a mounted one.
+if (!config.allowEphemeralDb && config.databasePath !== ':memory:') {
+  const { durable, directory } = checkDurableStorage(config.databasePath);
+  if (!durable) {
+    console.error(ephemeralStorageMessage(directory));
+    process.exit(1);
+  }
+}
+
 const db = openDb(config.databasePath);
 
 // Only ever creates the event when it is absent — never replaces one — so a
