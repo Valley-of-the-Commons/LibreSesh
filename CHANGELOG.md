@@ -4,7 +4,25 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- **Link another device.** The menu behind your name mints a three-word phrase
+  (`pine-otter-lantern`); typing it at the gate on another device makes that
+  device *you* — same name, role, stars and sessions — closing the "my phone
+  is a stranger" hole. Phrases are single-use, expire after ten minutes, are
+  stored hashed, and guesses share the password rate-limit budget.
+
+- **Speaker search instead of a dropdown.** The speaker field on sessions and
+  pitches is now a combobox that searches the roster case- and
+  whitespace-insensitively; creating a person is an explicit "Add … as someone
+  new" action, never the silent result of a typo. The server matches the same
+  way (and prefers a claimed profile over an unclaimed twin), so "ada lovelace"
+  no longer spawns a duplicate of "Ada Lovelace".
+
+- **Merge duplicate people.** Organisers can fold one profile into another from
+  the profile page: sessions and pitches are repointed, blanks fill from the
+  duplicate, a claim on the duplicate moves to the survivor, and the duplicate
+  is soft-deleted. Audited; not undoable via /trash, hence admin-only.
 
 ## [0.2.0] — 2026-08-30
 

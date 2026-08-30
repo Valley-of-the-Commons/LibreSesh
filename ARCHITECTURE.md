@@ -52,6 +52,7 @@ every failure as `{ error: { code, message } }`.
 | --- | --- |
 | `events` | Three bcrypt password hashes, timezone, day viewport, archive flag |
 | `identities` | Anonymous cookie token, the display-name seed, optional iCal token |
+| `link_codes` | Hashed, single-use, 10-minute phrases for adopting an identity on a second device |
 | `event_identities` | `(event, identity) → display name`, unique within the event |
 | `roles` | `(identity, event) → viewer\|user\|admin` |
 | `rooms`, `tags` | Per event, soft-deleted |
@@ -167,6 +168,7 @@ explicitly *not* built to withstand a targeted attacker with time.
 | Threat | Mitigation |
 | --- | --- |
 | Guessing an event password | bcrypt (cost 10); 5 attempts per 15 min per identity **and** per IP, `Retry-After` on the 6th |
+| Guessing a device-link phrase | Same 5-per-15-min budget as passwords; phrases are single-use, expire after 10 minutes, at most one live per identity, stored hashed |
 | Casual vandalism of the programme | Soft deletes + restore; append-only `audit` log with identity id; `hidden` flag for contributions |
 | Spam / flooding | Token buckets per identity and per IP on every write class; server-enforced max lengths |
 | XSS via session or profile text | HTML escaped before markdown parsing; URL scheme allowlist; no `dangerouslySetInnerHTML` on unescaped input |
@@ -182,8 +184,18 @@ explicitly *not* built to withstand a targeted attacker with time.
   only remedy, and it does not evict existing role grants — those are rows in
   `roles`, deliberately, so a rotation does not sign the whole room out mid-event.
 - **Identity is a cookie, not a person.** Clearing cookies makes you a new
-  attendee. Impersonation by display name is trivial and not defended against.
-  Do not build anything that treats a display name as an identity.
+  attendee. A device-link phrase carries one identity onto a second device, but
+  that is continuity, not authentication: whoever types a live phrase becomes
+  that person, role included. Impersonation by display name is trivial and not
+  defended against. Do not build anything that treats a display name as an
+  identity.
+- **The database file is the room key.** `identities.token` and `ics_token`
+  are stored in clear, so anyone who can read the SQLite file can become any
+  attendee (link phrases are hashed only because they transit screens and
+  shoulders, not because the DB is distrusted). Accepted deliberately: the
+  instance host is trusted, full stop. If that ever stops being true, hash the
+  tokens at rest (they are random, so a plain SHA-256 lookup works) rather
+  than bolting auth onto the trust boundary.
 - **No CSRF tokens.** Cookies are `SameSite=Lax`, which covers the cross-site
   form-post case for the state-changing verbs used here. Any future `GET` that
   mutates state would break that assumption.

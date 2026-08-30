@@ -1,7 +1,8 @@
 # Identity, profiles, and the duplicate-person problem
 
-Status: **analysis, no decision taken.** Drafted 2026-08-30 after the backlog's
-"People dedupe/merge" item was challenged as under-specified.
+Status: **decided and shipped 2026-08-30** (A1 + B1 + B2, in that order, as
+recommended below). Decisions recorded at the end. Drafted 2026-08-30 after the
+backlog's "People dedupe/merge" item was challenged as under-specified.
 
 ## The two problems are one problem
 
@@ -133,3 +134,45 @@ person; otherwise the error should at least not accuse a stranger.
    own claimed profile?
 4. Do stars and proposal interest transfer, or is a personal agenda explicitly
    per-device?
+
+## Decisions (2026-08-30)
+
+A1 + B1 + B2 all shipped, with one refinement to A1: the transfer code is
+encoded as **three words** (`house-dog-erratic`) rather than digits — a phrase
+survives being read across a room or typed on a phone. ~588 words × 3 ≈ 27
+bits, which is plenty for a code that is single-use, dies in ten minutes, is
+stored hashed, and shares the password-guessing rate budget. Endpoints:
+`POST /me/link-code` (mint) and `POST /me/link` (redeem, repoints the cookie).
+
+The open questions resolved as follows:
+
+1. **Transfer code vs "no accounts" — acceptable.** It transfers a browser
+   identity; there is nothing to register, remember, or reset afterwards.
+2. **Does the role transfer — dissolved.** Under token adoption this question
+   does not exist: both devices are one identity row, so the role (and
+   everything else) comes along *by construction*. Stripping it on device B
+   would strip device A too. The safety valve is the code's expiry, not a
+   role fence.
+3. **Merge is admin-only** for now. Self-merge into one's own claimed profile
+   is a plausible later loosening via the permission matrix.
+4. **Do stars transfer — dissolved**, same reason as 2.
+
+When both merge candidates are claimed, picking the survivor *is* picking
+whose claim wins; the other identity ends up profile-less but intact.
+
+## Follow-up direction: speakers
+
+Discussed 2026-08-30, not yet built (see STATUS backlog):
+
+- A fourth **speaker role** between attendee and admin. Prerequisite: the
+  CHECK constraints on `roles.role` / `event_permissions.role` make this the
+  first table-rebuild migration; the runner needs to learn that first.
+- **Speaker codes**: the organiser-on-behalf-of flow ("Speaker A" pitched
+  before Speaker A arrives) gets a dedicated rail — an admin-minted,
+  per-person, long-lived, revocable code bound to a `people` row. Redeeming
+  it claims that profile and grants the speaker role, from any number of
+  devices, because redemption reuses the device-link mechanism: adopt the
+  identity token. Deliberately *not* an email/password account and *not* a
+  fourth shared password — a shared speaker password would defeat the point
+  (anyone holding it could post as any speaker).
+

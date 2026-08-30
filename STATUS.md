@@ -26,16 +26,10 @@ CHANGELOG.md under `[0.2.0]`. What is left of the UI-overhaul plan lives in
 
 ## Blockers
 
-- **Identity and duplicate people needs decisions.**
-  `_planning/specs/identity-and-people.md` sets out the problem and options but
-  takes no decision. Four questions are open: whether a device-transfer code
-  crosses the "no accounts" line, whether a transfer carries the role, whether
-  merge is admin-only, and whether stars transfer at all. The third one shapes
-  the permission matrix, so it wants answering before merge is built.
-  Migration 009 moved the ground under this: a display name now belongs to
-  `(event, identity)` and is unique inside the event, so "the name a second
-  device cannot reclaim" is now per event rather than global. The spec's
-  options want rereading against that.
+- None. The identity blocker was decided and shipped 2026-08-30 (A1 device
+  linking, B1 speaker matching, B2 admin merge — see the spec's Decisions
+  section and CHANGELOG). Two of its four questions dissolved: adopting the
+  identity token carries role and stars by construction.
 
 ---
 
@@ -46,9 +40,20 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 ## High Priority
 
 - It should be possible to change name of the main event. Preferably also the link (subpage).
-- **People dedupe/merge.** Anyone who can create a session or a pitch can create
-  a person by typing a new speaker name, so "A. Lovelace" and "Ada Lovelace" can
-  coexist. Right for an unconference, but there is no merge tool.
+- **Speaker role.** A fourth role between attendee and admin. Blocked on the
+  item below: `roles.role` and `event_permissions.role` carry CHECK
+  constraints, and SQLite cannot alter a CHECK — adding 'speaker' is the first
+  table-rebuild migration. Grant it via speaker codes, not a fourth shared
+  password (a shared password would defeat "nobody posts as the speaker").
+- **Migration runner hardening.** Three pieces before the first breaking
+  migration: (1) a rebuild recipe that works with `foreign_keys = ON` inside
+  the per-file transaction; (2) a downgrade guard — refuse to boot when the
+  `migrations` table names a file not on disk; (3) `VACUUM INTO` a timestamped
+  backup before applying pending migrations.
+- **Speaker codes.** Admin-minted, per-person, long-lived, revocable link
+  codes: redeeming one claims that person's profile (and later the speaker
+  role) from any device. Same redemption rail as device linking — a
+  `link_codes` row with no expiry and a `person_id`, additive migration.
 
 ## Medium Priority
 
