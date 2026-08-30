@@ -1,11 +1,12 @@
 /**
- * Creates the "DemoConf 2026" demo event used by local development.
- * Idempotent: re-running wipes and recreates the demo event only.
+ * Creates a demo event for local development. Idempotent per slug: re-running
+ * wipes and recreates that event only, leaving every other event alone.
  *
- *   npm run seed
+ *   npm run seed        DemoConf 2026 — two days, the everyday fixture
+ *   npm run seed:long   LongConf 2026 — a fortnight, for the long-event cases
  *
- * Days default to today + tomorrow so the now-line and "happening now" filters
- * have something to point at. Override with SEED_START_DATE=YYYY-MM-DD.
+ * Days start today so the now-line and "happening now" filters have something
+ * to point at. Override with SEED_START_DATE, SEED_DAYS, SEED_SLUG, SEED_NAME.
  */
 import { hashPassword } from '../server/src/auth.js';
 import { loadConfig } from '../server/src/config.js';
@@ -14,7 +15,10 @@ import { ROOM_COLORS } from '../server/src/shared/roomColors.js';
 import { newDisplayName, newIdentityToken } from '../server/src/identity.js';
 import { localDate, zonedTimeToUtc } from '../server/src/shared/time.js';
 
-const SLUG = 'democonf-2026';
+const SLUG = process.env.SEED_SLUG ?? 'democonf-2026';
+const NAME = process.env.SEED_NAME ?? 'DemoConf 2026';
+/** Two days unless asked otherwise. Clamped: the grid is per-day, not per-year. */
+const DAY_COUNT = Math.min(Math.max(Number(process.env.SEED_DAYS ?? 2), 1), 90);
 const TIMEZONE = 'Europe/Berlin';
 const PASSWORDS = { viewer: 'viewer2026', user: 'user2026', admin: 'admin2026' };
 
@@ -149,19 +153,29 @@ function main(): void {
   const now = new Date().toISOString();
 
   const startDate = process.env.SEED_START_DATE ?? localDate(new Date(), TIMEZONE);
-  const endParts = new Date(`${startDate}T12:00:00Z`);
-  endParts.setUTCDate(endParts.getUTCDate() + 1);
-  const endDate = endParts.toISOString().slice(0, 10);
+  const dayList = Array.from({ length: DAY_COUNT }, (_, i) => {
+    const d = new Date(`${startDate}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + i);
+    return d.toISOString().slice(0, 10);
+  });
+  const endDate = dayList[dayList.length - 1] as string;
 
   db.transaction(() => {
     // Wipe any previous demo event, leaving other events untouched.
     const prior = db.prepare<[string], { id: number }>('SELECT id FROM events WHERE slug = ?').get(SLUG);
     if (prior) {
+      // Children first. `people`, `proposals` and `event_identities` were
+      // missing here, so every reseed left rows pointing at a deleted event.
       db.prepare('DELETE FROM session_tags WHERE session_id IN (SELECT id FROM sessions WHERE event_id = ?)').run(prior.id);
+      db.prepare('DELETE FROM stars WHERE session_id IN (SELECT id FROM sessions WHERE event_id = ?)').run(prior.id);
       db.prepare('DELETE FROM contributions WHERE session_id IN (SELECT id FROM sessions WHERE event_id = ?)').run(prior.id);
+      db.prepare('DELETE FROM proposal_interest WHERE proposal_id IN (SELECT id FROM proposals WHERE event_id = ?)').run(prior.id);
+      db.prepare('DELETE FROM proposals WHERE event_id = ?').run(prior.id);
       db.prepare('DELETE FROM sessions WHERE event_id = ?').run(prior.id);
+      db.prepare('DELETE FROM people WHERE event_id = ?').run(prior.id);
       db.prepare('DELETE FROM rooms WHERE event_id = ?').run(prior.id);
       db.prepare('DELETE FROM tags WHERE event_id = ?').run(prior.id);
+      db.prepare('DELETE FROM event_identities WHERE event_id = ?').run(prior.id);
       db.prepare('DELETE FROM roles WHERE event_id = ?').run(prior.id);
       db.prepare('DELETE FROM audit WHERE event_id = ?').run(prior.id);
       db.prepare('DELETE FROM events WHERE id = ?').run(prior.id);
@@ -177,7 +191,7 @@ function main(): void {
         )
         .run(
           SLUG,
-          'DemoConf 2026',
+          NAME,
           TIMEZONE,
           startDate,
           endDate,
@@ -240,7 +254,22 @@ function main(): void {
       'INSERT INTO roles (identity_id, event_id, role, granted_at) VALUES (?, ?, ?, ?)',
     ).run(organiser, eventId, 'admin', now);
 
-    const days = [startDate, endDate];
+    const days = dayList;
+    // A fortnight does not run at conference intensity throughout: weekends
+    // stay clear, which is realistic and gives the day navigator the empty
+    // days it has to represent. A one- or two-day event is left exactly as it
+    // was — every day full, titles used once.
+    const long = days.length > 2;
+    const isWeekend = (iso: string): boolean => {
+      const wd = new Date(`${iso}T12:00:00Z`).getUTCDay();
+      return wd === 0 || wd === 6;
+    };
+    // The first and last day always run, whatever weekday they land on — an
+    // event that opens onto an empty grid is a poor demo, and arrival and
+    // closing days are real anyway.
+    const programmeDays = long
+      ? days.filter((d, i) => i === 0 || i === days.length - 1 || !isWeekend(d))
+      : days;
     const insertSession = db.prepare(
       `INSERT INTO sessions
         (event_id, room_id, type, title, description, speaker, speaker_id, starts_at, ends_at,
@@ -256,10 +285,10 @@ function main(): void {
     // Official sessions: fill the three fixed rooms on a tidy grid.
     const officialRooms = roomIds.filter((id) => id !== openRoomId);
     let titleIndex = 0;
-    for (const day of days) {
+    for (const day of programmeDays) {
       for (const roomId of officialRooms) {
         let minute = 9 * 60;
-        while (minute < 17 * 60 && titleIndex < OFFICIAL_TITLES.length) {
+        while (minute < 17 * 60 && (long || titleIndex < OFFICIAL_TITLES.length)) {
           const durationMin = pick([45, 60, 60, 90]);
           const startsAt = zonedTimeToUtc(day, minute, TIMEZONE);
           const endsAt = zonedTimeToUtc(day, minute + durationMin, TIMEZONE);
@@ -268,7 +297,7 @@ function main(): void {
               eventId,
               roomId,
               'official',
-              OFFICIAL_TITLES[titleIndex],
+              OFFICIAL_TITLES[titleIndex % OFFICIAL_TITLES.length],
               'A short description of the session. Written in **markdown**, rendered safely.',
               pick(speakerChoices),
               startsAt.toISOString(),
@@ -290,7 +319,9 @@ function main(): void {
     // Open sessions: attendee-created, in the open track only.
     OPEN_TITLES.forEach((title, i) => {
       const day = days[i % days.length] as string;
-      const minute = 10 * 60 + i * 75;
+      // Over many days the pitches spread one per day, so the slot has to
+      // count rounds rather than titles or it walks off the end of the grid.
+      const minute = 10 * 60 + (long ? Math.floor(i / days.length) : i) * 75;
       const startsAt = zonedTimeToUtc(day, minute, TIMEZONE);
       const endsAt = zonedTimeToUtc(day, minute + 45, TIMEZONE);
       const author = attendees[1 + (i % (attendees.length - 1))] as number;
@@ -335,7 +366,10 @@ function main(): void {
       }
     }
 
-    console.log(`Seeded "${SLUG}" — ${sessionIds.length} sessions, ${days.length} days`);
+    console.log(
+      `Seeded "${SLUG}" — ${sessionIds.length} sessions over ${days.length} days ` +
+        `(${startDate} → ${endDate})`,
+    );
   })();
 
   db.close();

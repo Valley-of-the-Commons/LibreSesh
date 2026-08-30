@@ -6,6 +6,11 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- **A fortnight-long demo event.** `npm run seed:long` builds "LongConf 2026"
+  — fourteen days from today, weekends clear, alongside the two-day DemoConf
+  rather than replacing it. The seed takes `SEED_SLUG`, `SEED_NAME` and
+  `SEED_DAYS`, so any length is one command away; `npm run seed` is unchanged.
+
 - **Tag editing.** A tag's name was fixed at creation — the API had accepted a
   rename since the beginning, the admin page just never offered one, and the
   only editable thing was a colour swatch that saved on blur with no way back.
