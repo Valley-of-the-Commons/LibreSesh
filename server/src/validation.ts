@@ -25,6 +25,49 @@ export const slugSchema = z
   .string()
   .regex(/^[a-z0-9-]{3,40}$/, 'Slug must be 3–40 characters of a–z, 0–9 or -');
 export const passwordSchema = z.string().min(6, 'Passwords must be at least 6 characters');
+
+/**
+ * The three event passwords are the only thing telling the roles apart, and
+ * `roleForPassword` checks admin, then user, then viewer — so two roles sharing
+ * a password silently grants the *higher* one. An organiser who sets the same
+ * word for viewer and admin has not made one password for everybody; they have
+ * made everybody an admin. Reject it at the door rather than explain it later.
+ */
+type PasswordTrio = {
+  viewerPassword?: string | undefined;
+  userPassword?: string | undefined;
+  adminPassword?: string | undefined;
+};
+
+const ROLE_OF_FIELD = {
+  viewerPassword: 'viewer',
+  userPassword: 'attendee',
+  adminPassword: 'organiser',
+} as const;
+
+/** Names the first colliding pair, or undefined when they are all distinct. */
+export function collidingPasswords(v: PasswordTrio): [keyof typeof ROLE_OF_FIELD, keyof typeof ROLE_OF_FIELD] | undefined {
+  const fields = ['viewerPassword', 'userPassword', 'adminPassword'] as const;
+  for (let i = 0; i < fields.length; i++) {
+    for (let j = i + 1; j < fields.length; j++) {
+      const a = v[fields[i]];
+      const b = v[fields[j]];
+      if (a !== undefined && b !== undefined && a === b) return [fields[i], fields[j]];
+    }
+  }
+  return undefined;
+}
+
+export function distinctPasswordsRefinement(v: PasswordTrio, ctx: z.RefinementCtx): void {
+  const clash = collidingPasswords(v);
+  if (!clash) return;
+  const [first, second] = clash;
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    path: [second],
+    message: `The ${ROLE_OF_FIELD[second]} and ${ROLE_OF_FIELD[first]} passwords must be different — a shared password grants whichever role is higher`,
+  });
+}
 export const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD');
 export const timezoneSchema = z
   .string()
@@ -67,7 +110,8 @@ export const createEventSchema = z
   .refine((v) => (v.dayEndMin ?? 1320) > (v.dayStartMin ?? 480), {
     message: 'Day end must be after day start',
     path: ['dayEndMin'],
-  });
+  })
+  .superRefine(distinctPasswordsRefinement);
 
 export const cloneEventSchema = z
   .object({
@@ -82,7 +126,8 @@ export const cloneEventSchema = z
   .refine((v) => v.endDate >= v.startDate, {
     message: 'End date must not be before the start date',
     path: ['endDate'],
-  });
+  })
+  .superRefine(distinctPasswordsRefinement);
 
 /** Demo instances hand out a role on a click; there is no password to check. */
 export const demoAuthSchema = z.object({
@@ -255,7 +300,11 @@ export const settingsSchema = z
     userRoleLabel: roleLabelSchema.optional(),
     archived: z.boolean().optional(),
   })
-  .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
+  .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' })
+  // Only the passwords actually being changed are visible here; a new password
+  // colliding with one that is staying put is caught in the settings route,
+  // which can compare against the stored hashes.
+  .superRefine(distinctPasswordsRefinement);
 
 /** Parse with a schema, converting a zod failure into a 400 with a readable message. */
 export function parse<T extends z.ZodTypeAny>(schema: T, value: unknown): z.infer<T> {

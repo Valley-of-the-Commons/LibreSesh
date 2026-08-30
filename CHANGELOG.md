@@ -4,6 +4,17 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Fixed
+
+- **An event's three passwords must now be different from each other.** They
+  are the only thing telling the roles apart, and `roleForPassword` checks
+  admin first — so an organiser who set one password for all three was not
+  giving everyone the same access, they were making every attendee an
+  organiser, silently. Creating an event, cloning one, and changing passwords
+  in settings all reject a collision now; the settings check compares against
+  the stored hashes too, so a new password cannot quietly land on a role that
+  is staying put. Swapping two passwords in a single request still works.
+
 ### Added
 
 - **The demo event ships in production.** The DemoConf fixture moved from

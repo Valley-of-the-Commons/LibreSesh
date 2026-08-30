@@ -3,6 +3,7 @@ import { hashPassword, requireRole, roleForPassword } from '../auth.js';
 import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
 import type { EventRow } from '../db.js';
+import type { Role } from '../shared/types.js';
 import { badRequest, forbidden } from '../errors.js';
 import { toEventDto } from '../mappers.js';
 import { limit } from '../ratelimit.js';
@@ -50,6 +51,34 @@ export function settingsRoutes(ctx: Ctx): Router {
       const dayStartMin = body.dayStartMin ?? current.day_start_min;
       const dayEndMin = body.dayEndMin ?? current.day_end_min;
       if (dayEndMin <= dayStartMin) throw badRequest('Day end must be after day start');
+
+      // The schema catches two *new* passwords matching each other, but not a
+      // new one matching a role's existing password — only the stored hashes
+      // can answer that. Leaving it would put two roles on one password, which
+      // silently grants the higher of the two.
+      // Only these three have passwords; `speaker` is granted by a code.
+      const ROLE_LABELS: Partial<Record<Role, string>> = {
+        viewer: 'viewer',
+        user: 'attendee',
+        admin: 'organiser',
+      };
+      const changes = [
+        ['viewer', body.viewerPassword],
+        ['user', body.userPassword],
+        ['admin', body.adminPassword],
+      ] as const;
+      const alsoBeingReplaced = new Set<Role>(changes.filter(([, pw]) => pw).map(([role]) => role));
+      for (const [role, password] of changes) {
+        if (!password) continue;
+        const held = roleForPassword(current, password);
+        // A clash with a role whose password is being replaced in this same
+        // request resolves itself, so only a role that is staying put matters.
+        if (held && held !== role && !alsoBeingReplaced.has(held)) {
+          throw badRequest(
+            `That is already the ${ROLE_LABELS[held]} password — the ${ROLE_LABELS[role]} password must be different`,
+          );
+        }
+      }
 
       ctx.db
         .prepare(
