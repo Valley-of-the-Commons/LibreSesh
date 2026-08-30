@@ -14,22 +14,21 @@ CHANGELOG.md under `[0.2.0]`. What is left of the UI-overhaul plan lives in
 - **Pitch board.** Always show the creator, default the creator as host,
   up/down votes replacing proposal interest, and a hot/new split. Not started.
 - **Whole-app UI sweep.** The primitives landed and the admin page is done;
-  20 underline usages remain across SchedulePage (4), ProposalBoard (4),
-  DetailSheet (4), ProfilePage (5), EventListPage (1), NewEventPage (1) and
-  Tour (1). The count excludes the three `[&_a]:underline` in prose wrappers —
-  links inside rendered markdown keep their underline deliberately — and
-  IdentityPanel, which was deleted on 2026-08-30 when the identity modal became
-  a menu.
+  21 underline usages remain across ProfilePage (5), SchedulePage (4),
+  ProposalBoard (4), DetailSheet (4), EventListPage (1), NewEventPage (1),
+  Tour (1) and Gate (1, the "already here on another device" link added with
+  device linking). The count excludes the `[&_a]:underline` in prose wrappers —
+  links inside rendered markdown keep their underline deliberately — and the
+  five in `ui.tsx`, which are the primitives themselves.
 - **ARCHITECTURE.md concurrency paragraph.** §Realtime documents broadcast and
   heartbeats but never states the model: last-write-wins, `assertNotStale`
   409 on an `updated_at` mismatch, no CRDT by design.
 
 ## Blockers
 
-- None. The identity blocker was decided and shipped 2026-08-30 (A1 device
-  linking, B1 speaker matching, B2 admin merge — see the spec's Decisions
-  section and CHANGELOG). Two of its four questions dissolved: adopting the
-  identity token carries role and stars by construction.
+_None._ The identity design question that sat here is decided and shipped —
+see `_planning/specs/identity-and-people.md` §Decisions for the reasoning and
+CHANGELOG `[Unreleased]` for what landed.
 
 ---
 
@@ -40,6 +39,19 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 ## High Priority
 
 - It should be possible to change name of the main event. Preferably also the link (subpage).
+- **Merge moves the person, not their history.** `POST /people/:id/merge`
+  repoints `sessions.speaker_id` and `proposals.speaker_id` and abandons the
+  loser identity — but stars, contributions, `sessions.created_by`,
+  `proposals.created_by` and proposal interest are all keyed on
+  `identities.id` and stay behind. So after a merge the notes and questions
+  the person wrote on their duplicate device are attributed to an identity with
+  no display name in the event, and they can no longer delete their own words.
+  Adoption (the link phrase) has none of this — both devices *are* one identity
+  — so this only bites the fallback path, where two histories already exist.
+  Wants the merge transaction to re-key those five tables onto the survivor,
+  de-duplicating the two composite keys (`stars`, `proposal_interest`) as it
+  goes.
+
 - **Old migration backups pile up.** Each upgrade with pending migrations
   leaves a `*.backup-<stamp>` file beside the DB and nothing prunes them.
   Fine for now (one file per deploy); wants a keep-last-N sweep eventually.
@@ -83,7 +95,7 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
   `deploy/docker-compose.yml` and `deploy/backup.sh` have never actually been
   run. They follow the spec and standard practice, but treat the first VPS
   deploy as the real test.
-- **No component test coverage, and no error boundary.** 255 tests, and the
+- **No component test coverage, and no error boundary.** 287 tests, and the
   only web-side ones (`format.test.ts`, `calendar.test.ts`) cover pure
   functions — there is no jsdom/testing-library stack, so nothing renders a
   component. The drag maths, the SSE reducer and the clash detection are the
