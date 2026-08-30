@@ -41,7 +41,7 @@ const capacityLabel = (capacity: number | null): string =>
   capacity === null ? 'no capacity set' : `${capacity} seat${capacity === 1 ? '' : 's'}`;
 
 /**
- * One venue. Collapsed it is a summary row; expanded it is a real form.
+ * One room. Collapsed it is a summary row; expanded it is a real form.
  *
  * The previous version put a borderless input in the row that saved on blur,
  * which gave no hint it was editable and no way to cancel — and left capacity
@@ -141,7 +141,7 @@ function RoomRow({
       {open && (
         <div className="border-t border-stone-200 px-3 py-3 dark:border-stone-700">
           <FormGrid>
-            <Field label="Venue name">
+            <Field label="Room name">
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -182,7 +182,7 @@ function RoomRow({
 
           <FormRow className="mt-4">
             <PrimaryButton onClick={() => void save()} disabled={!dirty || !name.trim() || saving}>
-              {saving ? 'Saving…' : 'Save venue'}
+              {saving ? 'Saving…' : 'Save room'}
             </PrimaryButton>
             <SecondaryButton
               onClick={() => {
@@ -202,7 +202,7 @@ function RoomRow({
   );
 }
 
-/** Venues (rooms in the data model) — create, edit, reorder, delete. */
+/** Rooms — create, edit, reorder, delete. */
 export function AdminRooms({
   rooms,
   reordering,
@@ -236,8 +236,8 @@ export function AdminRooms({
 
   return (
     <Section
-      title="Venues"
-      description="The physical spaces sessions happen in. Their order is the order of the schedule's columns."
+      title="Rooms"
+      description="Where sessions happen. Their order is the order of the schedule's columns."
       className="mb-6"
     >
       <ul className="mb-4 space-y-2">
@@ -254,13 +254,13 @@ export function AdminRooms({
           />
         ))}
         {rooms.length === 0 && (
-          <li className="text-sm text-stone-400 dark:text-stone-500">No venues yet.</li>
+          <li className="text-sm text-stone-400 dark:text-stone-500">No rooms yet.</li>
         )}
       </ul>
 
       <FormRow>
         <div className="min-w-40 flex-1">
-          <Field label="New venue">
+          <Field label="New room">
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -287,7 +287,7 @@ export function AdminRooms({
           label="attendees may book"
         />
         <PrimaryButton onClick={() => void add()} disabled={!name.trim() || busy}>
-          Add venue
+          Add room
         </PrimaryButton>
       </FormRow>
     </Section>

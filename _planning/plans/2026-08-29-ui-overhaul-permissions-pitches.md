@@ -23,24 +23,26 @@ milestone is one commit (commit policy: milestones).
 - [ ] Replace invisible blur-to-save with an explicit edit affordance.
 - [ ] Apply new primitives across AdminPage; remove every `underline`.
 
-## M2b — Venues vs tracks (DECIDED 2026-08-29)
+## M2b — Rooms vs tracks (DECIDED 2026-08-29)
 
 Today `rooms.open_track` is a boolean meaning "attendees may schedule here", so
-"track" is an adjective on a room. Tracks and venues are separate things — one
-venue hosts many tracks over a day.
+"track" is an adjective on a room. Tracks and rooms are separate things — one
+room hosts many tracks over a day.
+
+Naming: **rooms stay "rooms"**, in the UI and in the code. An earlier draft of
+this plan renamed them "venues"; that did not follow from the tracks insight
+and was reverted 2026-08-30.
 
 - [ ] Migration: `tags.kind TEXT NOT NULL DEFAULT 'label'` ('label' | 'track').
       A track is a promoted tag — reuses colour, filters, CRUD, session-tag
       join. No third entity.
-- [ ] Migration: rename `rooms.open_track` -> `rooms.open_booking`. The old
-      name now reads as track-related and is not.
-- [ ] Grid: columns stay venues, header row explicitly labelled **Venue**
-      (currently ambiguous). Add a "column by: Venue | Track" toggle.
+- [ ] Migration: rename `rooms.open_track` -> `rooms.open_booking`. The column
+      is about who may schedule, not about tracks.
+- [ ] Grid: columns stay rooms, header row explicitly labelled **Room**
+      (currently unlabelled and so ambiguous). Add a "column by: Room | Track"
+      toggle.
 - [ ] Track colour renders as a spine on session blocks.
 - [ ] Admin: tags section splits into Tracks and Labels.
-- [ ] UI vocabulary becomes "Venue" throughout; code keeps `rooms`/`RoomDto`/
-      `room.created` (renaming touches the SSE protocol + 14 test files).
-      Mapping documented in ARCHITECTURE.md. Full rename = separate decision.
 
 ## M3 — Permissions matrix (server)
 
