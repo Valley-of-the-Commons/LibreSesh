@@ -145,8 +145,26 @@ export function openDb(databasePath: string): Db {
   return db;
 }
 
-/** Apply numbered .sql files in order, once each, tracked in `migrations`. */
-export function migrate(db: Db): void {
+/**
+ * Apply numbered .sql files in order, once each, tracked in `migrations`.
+ *
+ * Hardened for instances that are already running somewhere (SPEC follow-up):
+ *
+ * - **Downgrade guard.** If the `migrations` table names a file this build
+ *   does not ship, the database is from a *newer* version and an older binary
+ *   would corrupt semantics silently, one unknown column at a time. Refuse to
+ *   start instead.
+ * - **Backup first.** When there is pending work on a database that has lived
+ *   before, `VACUUM INTO` a timestamped sibling file. Each file still runs in
+ *   its own transaction, so a failure is clean to the file boundary — the
+ *   backup is for the migration that succeeds and turns out to be wrong.
+ * - **Rebuilds allowed.** Migrations run with `foreign_keys` off (SQLite's
+ *   documented recipe for the drop-and-recreate dance a CHECK or NOT NULL
+ *   change requires — the pragma cannot change inside a transaction, so it
+ *   must happen out here). Each file must leave `PRAGMA foreign_key_check`
+ *   clean or its transaction is rolled back.
+ */
+export function migrate(db: Db, migrationsDir = MIGRATIONS_DIR): void {
   db.exec(`CREATE TABLE IF NOT EXISTS migrations (
     name TEXT PRIMARY KEY,
     applied_at TEXT NOT NULL
@@ -155,17 +173,43 @@ export function migrate(db: Db): void {
   const applied = new Set(
     db.prepare<[], { name: string }>('SELECT name FROM migrations').all().map((r) => r.name),
   );
-  const files = readdirSync(MIGRATIONS_DIR)
+  const files = readdirSync(migrationsDir)
     .filter((f) => f.endsWith('.sql'))
     .sort();
 
+  const unknown = [...applied].filter((name) => !files.includes(name)).sort();
+  if (unknown.length > 0) {
+    throw new Error(
+      `This database was migrated by a newer build (unknown migration${
+        unknown.length > 1 ? 's' : ''
+      }: ${unknown.join(', ')}). Refusing to start — upgrade the app, or restore the backup taken before those migrations ran.`,
+    );
+  }
+
+  const pending = files.filter((f) => !applied.has(f));
+  if (pending.length === 0) return;
+
+  // A fresh database has nothing worth copying; an established one does.
+  if (applied.size > 0 && !db.memory && db.name !== '') {
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..+/, 'Z');
+    db.prepare('VACUUM INTO ?').run(`${db.name}.backup-${stamp}`);
+  }
+
   const record = db.prepare('INSERT INTO migrations (name, applied_at) VALUES (?, ?)');
-  for (const file of files) {
-    if (applied.has(file)) continue;
-    const sql = readFileSync(join(MIGRATIONS_DIR, file), 'utf8');
-    db.transaction(() => {
-      db.exec(sql);
-      record.run(file, new Date().toISOString());
-    })();
+  db.pragma('foreign_keys = OFF');
+  try {
+    for (const file of pending) {
+      const sql = readFileSync(join(migrationsDir, file), 'utf8');
+      db.transaction(() => {
+        db.exec(sql);
+        const broken = db.pragma('foreign_key_check') as unknown[];
+        if (broken.length > 0) {
+          throw new Error(`Migration ${file} left ${broken.length} broken foreign key reference(s)`);
+        }
+        record.run(file, new Date().toISOString());
+      })();
+    }
+  } finally {
+    db.pragma('foreign_keys = ON');
   }
 }
