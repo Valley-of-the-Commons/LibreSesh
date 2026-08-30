@@ -87,15 +87,28 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
     `deserializeErrors` issue does not apply (no SSR). Every navigation we
     build is prefixed with a literal `/e/`, so a path cannot start `//` or
     `\\`. Fix is react-router-dom@7 (breaking).
+- **Cloning still demands all three passwords.** Creating an event lets you
+  leave any of them blank — a four-word phrase is generated and shown once on
+  a confirmation screen — but `POST /events/:slug/clone` kept the old
+  all-required schema. Deliberate for now: the clone UI has nowhere to reveal
+  a generated secret, and an organiser who never sees one cannot hand it out.
+  Wants the same reveal screen, then `resolveEventPasswords` wired into the
+  clone route so the two creation paths stop disagreeing.
+
 - **Manual browser pass.** Automated coverage is server-side; the drag, now-line
   and 360px checks still want a human look — now more so, with dark mode, the
   proposal board and the agenda banner added.
-- **Deploy paths are written but unverified.** Neither `docker` nor the
-  `sqlite3` CLI exists in this dev container, so `deploy/Dockerfile`,
-  `deploy/docker-compose.yml` and `deploy/backup.sh` have never actually been
-  run. They follow the spec and standard practice, but treat the first VPS
-  deploy as the real test.
-- **No component test coverage, and no error boundary.** 287 tests, and the
+- **Deploy paths are now only *partly* unverified.** `deploy/Dockerfile` is
+  real as of 2026-08-30: a Railway instance builds from it (`railway.json`
+  pins the builder, since Railway's Node autodetection runs a plain `npm ci`
+  that honours our `ignore-scripts=true` and so never builds better-sqlite3).
+  That exercises the image, the migrations and the boot-time demo seed. The
+  compose path is still untried — neither `docker` nor the `sqlite3` CLI
+  exists in this dev container — so `deploy/docker-compose.yml`, the Caddy
+  front end and `deploy/backup.sh` have never actually been run. Treat the
+  first VPS deploy as their real test.
+  Railway-specific notes live in `_planning/deployment-guide.md` §10.
+- **No component test coverage, and no error boundary.** 305 tests, and the
   only web-side ones (`format.test.ts`, `calendar.test.ts`) cover pure
   functions — there is no jsdom/testing-library stack, so nothing renders a
   component. The drag maths, the SSE reducer and the clash detection are the
