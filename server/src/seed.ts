@@ -19,6 +19,14 @@ import { localDate, zonedTimeToUtc } from './shared/time.js';
 export const DEMO_SLUG = 'democonf-2026';
 export const DEMO_NAME = 'DemoConf 2026';
 
+/**
+ * The second fixture: a fortnight rather than two days, which is what brings
+ * tracks, the week rail and empty weekend days into play. A demo instance
+ * seeds both, because the two shapes exercise genuinely different screens.
+ * Kept in step with the `seed:long` script in package.json.
+ */
+export const LONG_DEMO = { slug: 'longconf-2026', name: 'LongConf 2026', days: 14 } as const;
+
 /** Published in the README — the demo is a demo, not a secret. */
 export const DEMO_PASSWORDS = { viewer: 'viewer2026', user: 'user2026', admin: 'admin2026' };
 

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { openDb, type Db } from '../server/src/db.js';
-import { DEMO_SLUG, seedDemoEvent } from '../server/src/seed.js';
+import { DEMO_SLUG, LONG_DEMO, seedDemoEvent } from '../server/src/seed.js';
 
 const countFor = (db: Db, table: string, eventId: number): number =>
   db
@@ -69,5 +69,33 @@ describe('demo event seeding', () => {
     expect(eventId(db)).toBeUndefined();
     // A long event gets tracks; a two-day one deliberately does not.
     expect(countFor(db, 'tracks', eventId(db, 'longconf')!)).toBeGreaterThan(0);
+  });
+});
+
+describe('the long fixture', () => {
+  let db: Db;
+  beforeEach(() => {
+    db = openDb(':memory:');
+  });
+  afterEach(() => db.close());
+
+  // What a demo instance seeds alongside DemoConf: the two-day event has no
+  // tracks and no week rail to speak of, so only this one exercises them.
+  it('is a fortnight with tracks, and sits beside the short one', () => {
+    const short = seedDemoEvent(db)!;
+    const long = seedDemoEvent(db, { ...LONG_DEMO })!;
+
+    expect(long.slug).toBe('longconf-2026');
+    expect(long.sessionCount).toBeGreaterThan(short.sessionCount);
+    expect(countFor(db, 'tracks', eventId(db, LONG_DEMO.slug)!)).toBeGreaterThan(0);
+    expect(countFor(db, 'tracks', eventId(db, DEMO_SLUG)!)).toBe(0);
+
+    const days =
+      (new Date(long.endDate).getTime() - new Date(long.startDate).getTime()) / 86_400_000;
+    expect(days).toBe(LONG_DEMO.days - 1);
+
+    expect(
+      db.prepare<[], { n: number }>('SELECT COUNT(*) AS n FROM events').get()!.n,
+    ).toBe(2);
   });
 });

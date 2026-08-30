@@ -173,7 +173,7 @@ Display names are unique within an event, so nobody can take an organiser's.
 | `TRUST_PROXY`             | off              | Set `1` behind Caddy so rate limits see real IPs   |
 | `SERVE_STATIC`            | on in production | Serves `web/dist` from the API process             |
 | `DEMO_MODE`               | off              | Set `1` and the gate becomes a role picker — public demos only |
-| `SEED_DEMO_EVENT`         | on               | Creates DemoConf at boot if absent; set `0` on a real conference instance |
+| `SEED_DEMO_EVENT`         | on               | Creates DemoConf at boot if absent — plus LongConf when `DEMO_MODE=1`; set `0` on a real conference instance |
 | `ALLOW_EPHEMERAL_DB`      | off in prod      | Permits a database directory that is not a mounted volume — a disposable instance only |
 
 ## Deployment

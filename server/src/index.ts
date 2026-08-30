@@ -1,7 +1,7 @@
 import { loadConfig } from './config.js';
 import { createApp } from './app.js';
 import { openDb } from './db.js';
-import { DEMO_PASSWORDS, seedDemoEvent } from './seed.js';
+import { DEMO_PASSWORDS, LONG_DEMO, seedDemoEvent } from './seed.js';
 import { formatPreflight, preflight } from './preflight.js';
 
 // Before loadConfig — which throws on the first missing variable it meets —
@@ -24,12 +24,21 @@ const db = openDb(config.databasePath);
 // redeploy cannot wipe what people added to the demo, and deleting it in the
 // admin UI is not undone on the next restart.
 if (config.seedDemoEvent) {
-  const seeded = seedDemoEvent(db);
-  if (seeded) {
+  const seeded = [seedDemoEvent(db)];
+  // A demo instance gets the long fixture too: a fortnight with tracks, a week
+  // rail and empty weekends exercises screens a two-day event never reaches.
+  // A real instance does not — one sample event on the landing page is a
+  // courtesy, two is clutter.
+  if (config.demoMode) seeded.push(seedDemoEvent(db, { ...LONG_DEMO }));
+
+  for (const event of seeded) {
+    if (!event) continue;
+    console.log(`seeded the demo event "${event.slug}" (${event.sessionCount} sessions)`);
+  }
+  if (seeded.some(Boolean)) {
     console.log(
-      `seeded the demo event "${seeded.slug}" (${seeded.sessionCount} sessions). ` +
-        `Passwords: viewer=${DEMO_PASSWORDS.viewer} user=${DEMO_PASSWORDS.user} ` +
-        `admin=${DEMO_PASSWORDS.admin}. Set SEED_DEMO_EVENT=0 to stop creating it.`,
+      `Demo passwords: viewer=${DEMO_PASSWORDS.viewer} user=${DEMO_PASSWORDS.user} ` +
+        `admin=${DEMO_PASSWORDS.admin}. Set SEED_DEMO_EVENT=0 to stop creating these.`,
     );
   }
 }
