@@ -52,7 +52,6 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 
 ## Medium Priority
 
-- Tags should editable.
 - **"Tracks" are named but do not exist.** There is no track anywhere in the
   system: no table, no column, no API, nothing an organiser can define. The
   only thing carrying the word was `rooms.open_track`, a boolean meaning

@@ -8,6 +8,7 @@ import { AdminRooms, type RoomDraft } from './AdminRooms';
 import { AdminPermissions } from './AdminPermissions';
 import {
   DangerButton,
+  Modal,
   EmptyState,
   Field,
   FormGrid,
@@ -23,6 +24,9 @@ import {
 } from '../components/ui';
 
 const DEFAULT_TAG_COLOR = '#6B7280';
+
+const plural = (n: number, one: string, many = `${one}s`): string =>
+  `${n} ${n === 1 ? one : many}`;
 
 const slugify = (value: string): string =>
   value
@@ -40,6 +44,7 @@ export function AdminPage() {
 
   const [reordering, setReordering] = useState(false);
   const [tagName, setTagName] = useState('');
+  const [editingTag, setEditingTag] = useState<TagDto | null>(null);
   const [tagColor, setTagColor] = useState(DEFAULT_TAG_COLOR);
   const [personName, setPersonName] = useState('');
 
@@ -197,23 +202,27 @@ export function AdminPage() {
     }
   };
 
-  const patchTag = async (tag: TagDto, patch: Partial<TagDto>) => {
+  const patchTag = async (tag: TagDto, patch: Partial<TagDto>): Promise<boolean> => {
     try {
       data.apply({ type: 'tag.updated', entity: await api.updateTag(slug, tag.id, patch) });
+      return true;
     } catch (err) {
       fail(err);
+      return false;
     }
   };
 
-  const removeTag = async (tag: TagDto) => {
+  const removeTag = async (tag: TagDto): Promise<boolean> => {
     if (!window.confirm(`Delete the “${tag.name}” tag? It will be removed from every session.`)) {
-      return;
+      return false;
     }
     try {
       await api.deleteTag(slug, tag.id);
       data.apply({ type: 'tag.deleted', entity: { id: tag.id } });
+      return true;
     } catch (err) {
       fail(err);
+      return false;
     }
   };
 
@@ -386,22 +395,19 @@ export function AdminPage() {
       >
         <ul className="mb-4 flex flex-wrap gap-2">
           {bundle.tags.map((tag) => (
-            <li key={tag.id} className="flex items-center gap-2 rounded-full bg-stone-50 dark:bg-stone-800 py-1 pl-2 pr-3">
-              <input
-                type="color"
-                value={tag.color}
-                onChange={(e) => void patchTag(tag, { color: e.target.value })}
-                className="h-5 w-5 cursor-pointer rounded border-none bg-transparent p-0"
-                aria-label={`Colour for ${tag.name}`}
-              />
-              <span className="text-xs font-medium">{tag.name}</span>
+            <li key={tag.id}>
               <button
                 type="button"
-                onClick={() => void removeTag(tag)}
-                className="text-xs text-red-500 dark:text-red-400"
-                aria-label={`Delete ${tag.name}`}
+                onClick={() => setEditingTag(tag)}
+                className="flex items-center gap-2 rounded-full bg-stone-50 py-1 pl-2 pr-3 hover:bg-stone-100 dark:bg-stone-800 dark:hover:bg-stone-700"
               >
-                ✕
+                <span
+                  aria-hidden="true"
+                  style={{ backgroundColor: tag.color }}
+                  className="h-3.5 w-3.5 shrink-0 rounded-full"
+                />
+                <span className="text-xs font-medium">{tag.name}</span>
+                <span className="sr-only">— edit this tag</span>
               </button>
             </li>
           ))}
@@ -430,6 +436,17 @@ export function AdminPage() {
           </PrimaryButton>
         </FormRow>
       </Section>
+
+      {editingTag && (
+        <TagEditor
+          tag={editingTag}
+          sessions={bundle.sessions.filter((x) => x.tagIds.includes(editingTag.id)).length}
+          pitches={bundle.proposals.filter((x) => x.tagIds.includes(editingTag.id)).length}
+          onPatch={patchTag}
+          onDelete={removeTag}
+          onClose={() => setEditingTag(null)}
+        />
+      )}
 
       <Section
         title="People"
@@ -688,5 +705,97 @@ export function AdminPage() {
         )}
       </Section>
     </div>
+  );
+}
+
+/**
+ * Rename and recolour one tag. A modal rather than a borderless input in the
+ * pill, for the reason `RoomRow` gives: an input that saves on blur advertises
+ * nothing and offers no way back out. It also gives the name clash somewhere
+ * to be reported — tag names are unique per event.
+ */
+function TagEditor({
+  tag,
+  sessions,
+  pitches,
+  onPatch,
+  onDelete,
+  onClose,
+}: {
+  tag: TagDto;
+  /** What carries this tag, so deleting it is an informed choice. */
+  sessions: number;
+  pitches: number;
+  onPatch: (tag: TagDto, patch: Partial<TagDto>) => Promise<boolean>;
+  onDelete: (tag: TagDto) => Promise<boolean>;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState(tag.name);
+  const [color, setColor] = useState(tag.color);
+  const [busy, setBusy] = useState(false);
+
+  const dirty = name.trim() !== tag.name || color !== tag.color;
+
+  const save = async () => {
+    if (!name.trim() || busy) return;
+    setBusy(true);
+    try {
+      if (await onPatch(tag, { name: name.trim(), color })) onClose();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (await onDelete(tag)) onClose();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal title="Edit tag" onClose={onClose}>
+      <FormStack>
+        <Field label="Name">
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && void save()}
+            maxLength={40}
+            className={inputClass}
+            autoFocus
+          />
+        </Field>
+        <Field label="Colour">
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="h-9 w-16 cursor-pointer rounded border border-stone-300 bg-white p-1 dark:border-stone-600 dark:bg-stone-900"
+          />
+        </Field>
+      </FormStack>
+
+      <p className="mt-3 text-xs text-stone-500 dark:text-stone-400">
+        {sessions + pitches === 0
+          ? 'Nothing carries this tag yet. Deleting it affects nothing.'
+          : `Carried by ${plural(sessions, 'session')} and ${plural(pitches, 'pitch', 'pitches')}. Deleting the tag removes it from all of them.`}
+      </p>
+
+      <div className="mt-4 flex items-center justify-between gap-2">
+        <DangerButton onClick={() => void remove()} disabled={busy}>
+          Delete
+        </DangerButton>
+        <div className="flex gap-2">
+          <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
+          <PrimaryButton onClick={() => void save()} disabled={!name.trim() || !dirty || busy}>
+            Save
+          </PrimaryButton>
+        </div>
+      </div>
+    </Modal>
   );
 }

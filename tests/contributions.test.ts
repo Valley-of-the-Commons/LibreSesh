@@ -291,6 +291,49 @@ describe('rooms and tags', () => {
     expect(revived.body.color).toBe('#123456');
   });
 
+  it('renames a tag and recolours it', async () => {
+    const tag = await admin.post('/api/e/testconf/tags').send({ name: 'AI' }).expect(201);
+    const patched = await admin
+      .patch(`/api/e/testconf/tags/${tag.body.id}`)
+      .send({ name: 'Machine learning', color: '#123456' })
+      .expect(200);
+    expect(patched.body).toMatchObject({
+      id: tag.body.id,
+      name: 'Machine learning',
+      color: '#123456',
+    });
+  });
+
+  it('leaves the colour alone when only the name is patched', async () => {
+    const tag = await admin
+      .post('/api/e/testconf/tags')
+      .send({ name: 'AI', color: '#abcdef' })
+      .expect(201);
+    const patched = await admin
+      .patch(`/api/e/testconf/tags/${tag.body.id}`)
+      .send({ name: 'ML' })
+      .expect(200);
+    expect(patched.body.color).toBe('#abcdef');
+  });
+
+  it('refuses to rename a tag onto another tag’s name', async () => {
+    await admin.post('/api/e/testconf/tags').send({ name: 'AI' }).expect(201);
+    const other = await admin.post('/api/e/testconf/tags').send({ name: 'Web' }).expect(201);
+    const res = await admin
+      .patch(`/api/e/testconf/tags/${other.body.id}`)
+      .send({ name: 'AI' })
+      .expect(409);
+    expect(res.body.error.code).toBe('tag_exists');
+  });
+
+  it('lets a tag keep its own name on an unrelated patch', async () => {
+    const tag = await admin.post('/api/e/testconf/tags').send({ name: 'AI' }).expect(201);
+    await admin
+      .patch(`/api/e/testconf/tags/${tag.body.id}`)
+      .send({ name: 'AI', color: '#000000' })
+      .expect(200);
+  });
+
   it('drops a deleted tag from its sessions', async () => {
     const roomId = seedRoom(harness.db, eventId, { openTrack: 1 });
     const tag = await admin.post('/api/e/testconf/tags').send({ name: 'Web' }).expect(201);

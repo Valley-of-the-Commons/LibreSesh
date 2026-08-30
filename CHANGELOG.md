@@ -6,6 +6,12 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- **Tag editing.** A tag's name was fixed at creation — the API had accepted a
+  rename since the beginning, the admin page just never offered one, and the
+  only editable thing was a colour swatch that saved on blur with no way back.
+  Clicking a tag now opens an editor with name, colour, and a delete that first
+  says how many sessions and pitches carry it.
+
 - **Display names are unique per event.** `PATCH /me` wrote the name with no
   check at all, so anyone could take an organiser's. The name now belongs to
   `(event, identity)` and is unique inside the event — not across the instance,
