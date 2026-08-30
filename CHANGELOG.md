@@ -6,6 +6,15 @@ All notable changes to this project are documented here.
 
 ### Changed
 
+- **Manage Event is five tabs instead of one long page.** Rooms, tracks and
+  tags sit under **Programme**; people, permissions, event settings and the bin
+  each get their own tab. Nine stacked panels meant scrolling past four
+  unrelated jobs to reach the fifth. The open tab lives in the URL (`?tab=`),
+  so a reload or a link to a co-organiser lands on the same one, and the bin is
+  only fetched when its tab is opened. The header's **Proposal pool** link is
+  gone — the pitch board is a click away on the schedule, where people actually
+  are.
+
 - **A pitch is upvoted with an arrow, not a star.** The interest button on the
   pitch board wore the same ★ as "on my agenda" on the schedule, so the one
   glyph stood for two different acts — backing a pitch that may never be

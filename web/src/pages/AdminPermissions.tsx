@@ -75,7 +75,6 @@ export function AdminPermissions({
     <Section
       title="Permissions"
       description="What each role may do at this event. Organisers always keep every capability — an event nobody can moderate has no way back."
-      className="mb-6"
       actions={
         unlocked ? (
           <SecondaryButton className="shrink-0 py-1.5" onClick={() => setUnlocked(false)}>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { PersonDto, RoomDto, TagDto, TrackDto } from '@shared/types';
 import { ApiError, api, type TrashDto } from '../lib/api';
 import { fmtMin, relativeTime } from '../lib/format';
@@ -26,6 +26,16 @@ import {
 
 const DEFAULT_TAG_COLOR = '#6B7280';
 
+const TABS = [
+  { id: 'programme', label: 'Programme' },
+  { id: 'people', label: 'People' },
+  { id: 'permissions', label: 'Permissions' },
+  { id: 'settings', label: 'Settings' },
+  { id: 'trash', label: 'Trash' },
+] as const;
+
+type TabId = (typeof TABS)[number]['id'];
+
 const plural = (n: number, one: string, many = `${one}s`): string =>
   `${n} ${n === 1 ? one : many}`;
 
@@ -41,6 +51,7 @@ export function AdminPage() {
   const { slug = '' } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
   const data = useEventData(slug);
 
   const [reordering, setReordering] = useState(false);
@@ -86,6 +97,24 @@ export function AdminPage() {
   const [trash, setTrash] = useState<TrashDto | null>(null);
   const isAdmin = bundle?.role === 'admin';
 
+  const tabParam = searchParams.get('tab');
+  const tab: TabId = TABS.some((t) => t.id === tabParam) ? (tabParam as TabId) : 'programme';
+  const setTab = useCallback(
+    (next: TabId) => {
+      // replace, not push: flicking through tabs shouldn't fill the back button.
+      setSearchParams(
+        (prev) => {
+          const params = new URLSearchParams(prev);
+          if (next === 'programme') params.delete('tab');
+          else params.set('tab', next);
+          return params;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
   const loadTrash = useCallback(async () => {
     try {
       setTrash(await api.trash(slug));
@@ -94,9 +123,11 @@ export function AdminPage() {
     }
   }, [slug, toast]);
 
+  // Only when its tab is open — the bin is the one section most visits never
+  // look at, and it is a request of its own.
   useEffect(() => {
-    if (isAdmin) void loadTrash();
-  }, [isAdmin, loadTrash]);
+    if (isAdmin && tab === 'trash') void loadTrash();
+  }, [isAdmin, tab, loadTrash]);
 
   if (event && loadedForSlug !== event.slug) {
     setLoadedForSlug(event.slug);
@@ -470,455 +501,507 @@ export function AdminPage() {
           ← Schedule
         </button>
         <h1 className="text-lg font-semibold tracking-tight">Manage {event.name}</h1>
-        <Link to={`/e/${slug}/proposals`} className={`ml-auto text-xs ${linkClass}`}>
-          Proposal pool
-        </Link>
       </div>
 
-      <AdminRooms
-        rooms={bundle.rooms}
-        reordering={reordering}
-        onCreate={addRoom}
-        onPatch={patchRoom}
-        onMove={moveRoom}
-        onDelete={removeRoom}
-      />
-
-      <Section
-        title="Tracks"
-        description="Thematic strands running across rooms and days. Optional — with none, the schedule lays its columns out by room and never mentions them. Their order is the order of the columns."
-        className="mb-6"
+      {/* Manage is five unrelated jobs on one page. Tabs keep each of them a
+          screenful, and the choice lives in the URL so a reload — or a link
+          sent to a co-organiser — lands on the same one. */}
+      <div
+        role="tablist"
+        aria-label="Manage sections"
+        className="mb-6 flex flex-wrap gap-0.5 rounded-lg border border-stone-300 bg-white p-0.5 dark:border-stone-600 dark:bg-stone-900"
       >
-        <FormStack>
-          {bundle.tracks.length > 0 && (
-            <ul className="space-y-2">
-              {bundle.tracks.map((track, index) => (
-                <li
-                  key={track.id}
-                  className="flex items-center gap-2 rounded-lg bg-stone-50 px-3 py-2 dark:bg-stone-800"
-                >
-                  <div className="flex shrink-0">
-                    <IconButton
-                      onClick={() => void moveTrack(index, -1)}
-                      disabled={index === 0 || movingTracks}
-                      aria-label={`Move ${track.name} up`}
+        {TABS.map((t, i) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            id={`admin-tab-${t.id}`}
+            aria-selected={tab === t.id}
+            aria-controls={`admin-panel-${t.id}`}
+            tabIndex={tab === t.id ? 0 : -1}
+            onClick={() => setTab(t.id)}
+            onKeyDown={(e) => {
+              const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+              if (step === 0) return;
+              e.preventDefault();
+              const next = TABS[(i + step + TABS.length) % TABS.length]!;
+              setTab(next.id);
+              document.getElementById(`admin-tab-${next.id}`)?.focus();
+            }}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium ${
+              tab === t.id
+                ? 'bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900'
+                : 'text-stone-600 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'programme' && (
+        <div role="tabpanel" id="admin-panel-programme" aria-labelledby="admin-tab-programme">
+          <AdminRooms
+            rooms={bundle.rooms}
+            reordering={reordering}
+            onCreate={addRoom}
+            onPatch={patchRoom}
+            onMove={moveRoom}
+            onDelete={removeRoom}
+          />
+
+          <Section
+            title="Tracks"
+            description="Thematic strands running across rooms and days. Optional — with none, the schedule lays its columns out by room and never mentions them. Their order is the order of the columns."
+            className="mb-6"
+          >
+            <FormStack>
+              {bundle.tracks.length > 0 && (
+                <ul className="space-y-2">
+                  {bundle.tracks.map((track, index) => (
+                    <li
+                      key={track.id}
+                      className="flex items-center gap-2 rounded-lg bg-stone-50 px-3 py-2 dark:bg-stone-800"
                     >
-                      ↑
-                    </IconButton>
-                    <IconButton
-                      onClick={() => void moveTrack(index, 1)}
-                      disabled={index === bundle.tracks.length - 1 || movingTracks}
-                      aria-label={`Move ${track.name} down`}
-                    >
-                      ↓
-                    </IconButton>
-                  </div>
-                  <span
-                    aria-hidden
-                    className="h-5 w-5 shrink-0 rounded-full border border-stone-300 dark:border-stone-600"
-                    style={{ background: track.color }}
-                  />
-                  <p className="min-w-0 flex-1 truncate text-sm font-medium">{track.name}</p>
-                  <span className="shrink-0 text-xs text-stone-500 dark:text-stone-400">
-                    {plural(
-                      bundle.sessions.filter((x) => x.trackId === track.id).length,
-                      'session',
-                    )}
-                  </span>
-                  <SecondaryButton
-                    className="shrink-0 px-3 py-1.5"
-                    onClick={() => setEditingTrack(track)}
+                      <div className="flex shrink-0">
+                        <IconButton
+                          onClick={() => void moveTrack(index, -1)}
+                          disabled={index === 0 || movingTracks}
+                          aria-label={`Move ${track.name} up`}
+                        >
+                          ↑
+                        </IconButton>
+                        <IconButton
+                          onClick={() => void moveTrack(index, 1)}
+                          disabled={index === bundle.tracks.length - 1 || movingTracks}
+                          aria-label={`Move ${track.name} down`}
+                        >
+                          ↓
+                        </IconButton>
+                      </div>
+                      <span
+                        aria-hidden
+                        className="h-5 w-5 shrink-0 rounded-full border border-stone-300 dark:border-stone-600"
+                        style={{ background: track.color }}
+                      />
+                      <p className="min-w-0 flex-1 truncate text-sm font-medium">{track.name}</p>
+                      <span className="shrink-0 text-xs text-stone-500 dark:text-stone-400">
+                        {plural(
+                          bundle.sessions.filter((x) => x.trackId === track.id).length,
+                          'session',
+                        )}
+                      </span>
+                      <SecondaryButton
+                        className="shrink-0 px-3 py-1.5"
+                        onClick={() => setEditingTrack(track)}
+                      >
+                        Edit
+                      </SecondaryButton>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {bundle.tracks.length === 0 && (
+                <p className="text-sm text-stone-400 dark:text-stone-500">
+                  No tracks. Add one and the schedule gains a Room / Track switch.
+                </p>
+              )}
+
+              <FormRow>
+                <div className="min-w-40 flex-1">
+                  <Field label="New track">
+                    <input
+                      value={trackName}
+                      onChange={(e) => setTrackName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && void addTrack()}
+                      maxLength={60}
+                      className={inputClass}
+                    />
+                  </Field>
+                </div>
+                <PrimaryButton onClick={() => void addTrack()} disabled={!trackName.trim()}>
+                  Add track
+                </PrimaryButton>
+              </FormRow>
+            </FormStack>
+          </Section>
+
+          {editingTrack && (
+            <TrackEditor
+              track={editingTrack}
+              sessions={bundle.sessions.filter((x) => x.trackId === editingTrack.id).length}
+              onPatch={patchTrack}
+              onDelete={removeTrack}
+              onClose={() => setEditingTrack(null)}
+            />
+          )}
+
+          <Section
+            title="Tags"
+            description="Labels for sessions and pitches. Attendees filter the schedule by them."
+            className="mb-6"
+          >
+            <ul className="mb-4 flex flex-wrap gap-2">
+              {bundle.tags.map((tag) => (
+                <li key={tag.id}>
+                  <button
+                    type="button"
+                    onClick={() => setEditingTag(tag)}
+                    className="flex items-center gap-2 rounded-full bg-stone-50 py-1 pl-2 pr-3 hover:bg-stone-100 dark:bg-stone-800 dark:hover:bg-stone-700"
                   >
-                    Edit
-                  </SecondaryButton>
+                    <span
+                      aria-hidden="true"
+                      style={{ backgroundColor: tag.color }}
+                      className="h-3.5 w-3.5 shrink-0 rounded-full"
+                    />
+                    <span className="text-xs font-medium">{tag.name}</span>
+                    <span className="sr-only">— edit this tag</span>
+                  </button>
                 </li>
               ))}
+              {bundle.tags.length === 0 && <li className="text-sm text-stone-400 dark:text-stone-500">No tags yet.</li>}
             </ul>
-          )}
-          {bundle.tracks.length === 0 && (
-            <p className="text-sm text-stone-400 dark:text-stone-500">
-              No tracks. Add one and the schedule gains a Room / Track switch.
-            </p>
-          )}
+            <FormRow>
+              <div className="min-w-40 flex-1">
+                <Field label="New tag">
+                  <input
+                    value={tagName}
+                    onChange={(e) => setTagName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && void addTag()}
+                    className={inputClass}
+                  />
+                </Field>
+              </div>
+              <input
+                type="color"
+                value={tagColor}
+                onChange={(e) => setTagColor(e.target.value)}
+                className="h-9 w-12 cursor-pointer rounded border border-stone-300 bg-white p-1 dark:border-stone-600 dark:bg-stone-900"
+                aria-label="New tag colour"
+              />
+              <PrimaryButton onClick={() => void addTag()} disabled={!tagName.trim()}>
+                Add tag
+              </PrimaryButton>
+            </FormRow>
+          </Section>
 
-          <FormRow>
-            <div className="min-w-40 flex-1">
-              <Field label="New track">
+          {editingTag && (
+            <TagEditor
+              tag={editingTag}
+              sessions={bundle.sessions.filter((x) => x.tagIds.includes(editingTag.id)).length}
+              pitches={bundle.proposals.filter((x) => x.tagIds.includes(editingTag.id)).length}
+              onPatch={patchTag}
+              onDelete={removeTag}
+              onClose={() => setEditingTag(null)}
+            />
+          )}
+        </div>
+      )}
+
+      {tab === 'people' && (
+        <div role="tabpanel" id="admin-panel-people" aria-labelledby="admin-tab-people">
+          <Section
+            title="People"
+            description="Speaker and host profiles. Anyone can claim their own from the schedule."
+          >
+            <ul className="mb-4 space-y-2">
+              {bundle.people.map((person) => (
+                <li
+                  key={person.id}
+                  className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 dark:bg-stone-800 px-3 py-2"
+                >
+                  <span className="min-w-32 flex-1 text-sm font-medium">{person.name}</span>
+                  {person.claimed && (
+                    <span className="rounded-full bg-stone-200 dark:bg-stone-700 px-2 py-0.5 text-xs text-stone-600 dark:text-stone-300">
+                      claimed
+                    </span>
+                  )}
+                  <Link
+                    to={`/e/${slug}/p/${person.id}`}
+                    className="shrink-0 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 hover:border-stone-500 dark:border-stone-600 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-stone-400"
+                  >
+                    Edit
+                  </Link>
+                  <DangerButton className="shrink-0 px-3 py-1.5" onClick={() => void removePerson(person)}>
+                    Delete
+                  </DangerButton>
+                </li>
+              ))}
+              {bundle.people.length === 0 && (
+                <li className="text-sm text-stone-400 dark:text-stone-500">No people yet.</li>
+              )}
+            </ul>
+            <FormRow>
+              <div className="min-w-40 flex-1">
+                <Field label="New person">
+                  <input
+                    value={personName}
+                    onChange={(e) => setPersonName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && void addPerson()}
+                    maxLength={120}
+                    className={inputClass}
+                  />
+                </Field>
+              </div>
+              <PrimaryButton onClick={() => void addPerson()} disabled={!personName.trim()}>
+                Add person
+              </PrimaryButton>
+            </FormRow>
+          </Section>
+        </div>
+      )}
+
+      {tab === 'permissions' && (
+        <div role="tabpanel" id="admin-panel-permissions" aria-labelledby="admin-tab-permissions">
+          <AdminPermissions
+            permissions={bundle.permissions as never}
+            userRoleLabel={event.userRoleLabel}
+            onChange={savePermissions}
+            onUnlock={confirmAdmin}
+          />
+        </div>
+      )}
+
+      {tab === 'settings' && (
+        <div role="tabpanel" id="admin-panel-settings" aria-labelledby="admin-tab-settings">
+          <Section title="Event settings" className="mb-6">
+            <FormStack>
+            <Field label="Name">
+              <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
+            </Field>
+            <FormGrid>
+              <Field label="Start date">
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
+              </Field>
+              <Field label="End date">
+                <input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} className={inputClass} />
+              </Field>
+              <Field label="Day starts">
+                <input type="time" step={300} value={dayStart} onChange={(e) => setDayStart(e.target.value)} className={inputClass} />
+              </Field>
+              <Field label="Day ends">
+                <input type="time" step={300} value={dayEnd} onChange={(e) => setDayEnd(e.target.value)} className={inputClass} />
+              </Field>
+            </FormGrid>
+            <Field
+              label="Group days into weeks past"
+              hint={`Up to this many days the schedule shows one row of day tabs. Longer than this and they split into a rail of weeks. This event runs ${eventDays} day${eventDays === 1 ? '' : 's'}.`}
+            >
+              <div className="flex items-center gap-2">
                 <input
-                  value={trackName}
-                  onChange={(e) => setTrackName(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && void addTrack()}
-                  maxLength={60}
+                  type="number"
+                  min={1}
+                  max={90}
+                  value={weekRailFrom}
+                  onChange={(e) => setWeekRailFrom(e.target.value)}
+                  className={`${inputClass} w-24`}
+                />
+                <span className="text-xs text-stone-500 dark:text-stone-400">
+                  days
+                  {eventDays > (Number(weekRailFrom) || 8)
+                    ? ' · the rail is on for this event'
+                    : ' · one row of tabs for this event'}
+                </span>
+              </div>
+            </Field>
+            <Field
+              label="What you call your participants"
+              hint="Shown on role badges and in prompts. “attendee”, “participant”, “member”…"
+            >
+              <input
+                value={userRoleLabel}
+                onChange={(e) => setUserRoleLabel(e.target.value)}
+                maxLength={24}
+                className={inputClass}
+              />
+            </Field>
+
+            <div className="mt-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
+                Change passwords
+              </p>
+              <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+                Leave blank to keep the current one.
+              </p>
+            </div>
+            <FormGrid cols={3}>
+              <Field label="Viewer">
+                <input value={viewerPassword} onChange={(e) => setViewerPassword(e.target.value)} className={inputClass} />
+              </Field>
+              <Field label={userRoleLabel.trim() || 'User'}>
+                <input value={userPassword} onChange={(e) => setUserPassword(e.target.value)} className={inputClass} />
+              </Field>
+              <Field label="Admin">
+                <input value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className={inputClass} />
+              </Field>
+            </FormGrid>
+            <div>
+              <PrimaryButton onClick={() => void saveSettings()}>Save settings</PrimaryButton>
+            </div>
+            </FormStack>
+          </Section>
+
+          <Section
+            title="Duplicate Event/Conf"
+            description="Rooms and tags carry over to the new event; sessions and contributions do not."
+            className="mb-6"
+            actions={
+              <SecondaryButton
+                className="shrink-0 py-1.5"
+                onClick={() => setCloneOpen(!cloneOpen)}
+                aria-expanded={cloneOpen}
+              >
+                {cloneOpen ? 'Close' : 'Duplicate…'}
+              </SecondaryButton>
+            }
+          >
+            {cloneOpen && (
+              <FormStack>
+              <Field label="New name">
+                <input value={cloneName} onChange={(e) => setCloneName(e.target.value)} className={inputClass} />
+              </Field>
+              <Field
+                label="New slug"
+                hint={`Used in the URL: /e/${cloneSlugValue || 'your-event'}`}
+              >
+                <input
+                  value={cloneSlug}
+                  onChange={(e) => setCloneSlug(slugify(e.target.value))}
+                  placeholder={slugify(cloneName) || 'your-event'}
                   className={inputClass}
                 />
               </Field>
-            </div>
-            <PrimaryButton onClick={() => void addTrack()} disabled={!trackName.trim()}>
-              Add track
-            </PrimaryButton>
-          </FormRow>
-        </FormStack>
-      </Section>
+              <FormGrid>
+                <Field label="Start date">
+                  <input
+                    type="date"
+                    value={cloneStart}
+                    onChange={(e) => {
+                      setCloneStart(e.target.value);
+                      if (cloneEnd < e.target.value) setCloneEnd(e.target.value);
+                    }}
+                    className={inputClass}
+                  />
+                </Field>
+                <Field label="End date">
+                  <input
+                    type="date"
+                    value={cloneEnd}
+                    min={cloneStart}
+                    onChange={(e) => setCloneEnd(e.target.value)}
+                    className={inputClass}
+                  />
+                </Field>
+              </FormGrid>
+              <div className="mt-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
+                  New passwords
+                </p>
+                <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">At least 6 characters each.</p>
+              </div>
+              <FormGrid cols={3}>
+                <Field label="Viewer">
+                  <input value={cloneViewer} onChange={(e) => setCloneViewer(e.target.value)} className={inputClass} />
+                </Field>
+                <Field label="User">
+                  <input value={cloneUser} onChange={(e) => setCloneUser(e.target.value)} className={inputClass} />
+                </Field>
+                <Field label="Admin">
+                  <input value={cloneAdmin} onChange={(e) => setCloneAdmin(e.target.value)} className={inputClass} />
+                </Field>
+              </FormGrid>
+              <div>
+                <PrimaryButton onClick={() => void cloneEvent()} disabled={!cloneReady || cloning}>
+                  {cloning ? 'Duplicating…' : 'Duplicate Event/Conf'}
+                </PrimaryButton>
+              </div>
+              </FormStack>
+            )}
+          </Section>
 
-      {editingTrack && (
-        <TrackEditor
-          track={editingTrack}
-          sessions={bundle.sessions.filter((x) => x.trackId === editingTrack.id).length}
-          onPatch={patchTrack}
-          onDelete={removeTrack}
-          onClose={() => setEditingTrack(null)}
-        />
+          <Section
+            title="Archive"
+            description="An archived event stays readable with the viewer password, but nobody can change anything."
+          >
+            {event.archived ? (
+              <SecondaryButton onClick={() => void setArchived(false)}>Un-archive event</SecondaryButton>
+            ) : (
+              <SecondaryButton onClick={() => void setArchived(true)}>Archive event</SecondaryButton>
+            )}
+          </Section>
+        </div>
       )}
 
-      <Section
-        title="Tags"
-        description="Labels for sessions and pitches. Attendees filter the schedule by them."
-        className="mb-6"
-      >
-        <ul className="mb-4 flex flex-wrap gap-2">
-          {bundle.tags.map((tag) => (
-            <li key={tag.id}>
-              <button
-                type="button"
-                onClick={() => setEditingTag(tag)}
-                className="flex items-center gap-2 rounded-full bg-stone-50 py-1 pl-2 pr-3 hover:bg-stone-100 dark:bg-stone-800 dark:hover:bg-stone-700"
-              >
-                <span
-                  aria-hidden="true"
-                  style={{ backgroundColor: tag.color }}
-                  className="h-3.5 w-3.5 shrink-0 rounded-full"
-                />
-                <span className="text-xs font-medium">{tag.name}</span>
-                <span className="sr-only">— edit this tag</span>
-              </button>
-            </li>
-          ))}
-          {bundle.tags.length === 0 && <li className="text-sm text-stone-400 dark:text-stone-500">No tags yet.</li>}
-        </ul>
-        <FormRow>
-          <div className="min-w-40 flex-1">
-            <Field label="New tag">
-              <input
-                value={tagName}
-                onChange={(e) => setTagName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && void addTag()}
-                className={inputClass}
-              />
-            </Field>
-          </div>
-          <input
-            type="color"
-            value={tagColor}
-            onChange={(e) => setTagColor(e.target.value)}
-            className="h-9 w-12 cursor-pointer rounded border border-stone-300 bg-white p-1 dark:border-stone-600 dark:bg-stone-900"
-            aria-label="New tag colour"
-          />
-          <PrimaryButton onClick={() => void addTag()} disabled={!tagName.trim()}>
-            Add tag
-          </PrimaryButton>
-        </FormRow>
-      </Section>
-
-      {editingTag && (
-        <TagEditor
-          tag={editingTag}
-          sessions={bundle.sessions.filter((x) => x.tagIds.includes(editingTag.id)).length}
-          pitches={bundle.proposals.filter((x) => x.tagIds.includes(editingTag.id)).length}
-          onPatch={patchTag}
-          onDelete={removeTag}
-          onClose={() => setEditingTag(null)}
-        />
+      {tab === 'trash' && (
+        <div role="tabpanel" id="admin-panel-trash" aria-labelledby="admin-tab-trash">
+          <Section
+            title="Trash"
+            description="Deleted sessions and contributions. Restoring puts them back for everyone."
+          >
+            {trash === null ? (
+              <p className="text-sm text-stone-400 dark:text-stone-500">Loading…</p>
+            ) : trashEmpty ? (
+              <p className="text-sm text-stone-400 dark:text-stone-500">Nothing has been deleted.</p>
+            ) : (
+              <div className="space-y-4">
+                {trash.sessions.length > 0 && (
+                  <div>
+                    <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
+                      Sessions
+                    </h3>
+                    <ul className="space-y-2">
+                      {trash.sessions.map((s) => (
+                        <li
+                          key={s.id}
+                          className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 dark:bg-stone-800 px-3 py-2"
+                        >
+                          <span className="min-w-32 flex-1 text-sm font-medium">{s.title}</span>
+                          <span className="text-xs text-stone-400 dark:text-stone-500">
+                            deleted {relativeTime(s.deletedAt)} · {s.deletedByName}
+                          </span>
+                          <SecondaryButton className="py-1" onClick={() => void restoreSession(s.id)}>
+                            Restore
+                          </SecondaryButton>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {trash.contributions.length > 0 && (
+                  <div>
+                    <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
+                      Contributions
+                    </h3>
+                    <ul className="space-y-2">
+                      {trash.contributions.map((c) => (
+                        <li
+                          key={c.id}
+                          className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 dark:bg-stone-800 px-3 py-2"
+                        >
+                          <span className="min-w-32 flex-1 truncate text-sm">
+                            <span className="text-stone-400 dark:text-stone-500">{c.kind}: </span>
+                            {c.body}
+                          </span>
+                          <span className="text-xs text-stone-400 dark:text-stone-500">
+                            deleted {relativeTime(c.deletedAt)} · {c.createdByName}
+                          </span>
+                          <SecondaryButton
+                            className="py-1"
+                            onClick={() => void restoreContribution(c.id)}
+                          >
+                            Restore
+                          </SecondaryButton>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </Section>
+        </div>
       )}
-
-      <Section
-        title="People"
-        description="Speaker and host profiles. Anyone can claim their own from the schedule."
-        className="mb-6"
-      >
-        <ul className="mb-4 space-y-2">
-          {bundle.people.map((person) => (
-            <li
-              key={person.id}
-              className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 dark:bg-stone-800 px-3 py-2"
-            >
-              <span className="min-w-32 flex-1 text-sm font-medium">{person.name}</span>
-              {person.claimed && (
-                <span className="rounded-full bg-stone-200 dark:bg-stone-700 px-2 py-0.5 text-xs text-stone-600 dark:text-stone-300">
-                  claimed
-                </span>
-              )}
-              <Link
-                to={`/e/${slug}/p/${person.id}`}
-                className="shrink-0 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 hover:border-stone-500 dark:border-stone-600 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-stone-400"
-              >
-                Edit
-              </Link>
-              <DangerButton className="shrink-0 px-3 py-1.5" onClick={() => void removePerson(person)}>
-                Delete
-              </DangerButton>
-            </li>
-          ))}
-          {bundle.people.length === 0 && (
-            <li className="text-sm text-stone-400 dark:text-stone-500">No people yet.</li>
-          )}
-        </ul>
-        <FormRow>
-          <div className="min-w-40 flex-1">
-            <Field label="New person">
-              <input
-                value={personName}
-                onChange={(e) => setPersonName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && void addPerson()}
-                maxLength={120}
-                className={inputClass}
-              />
-            </Field>
-          </div>
-          <PrimaryButton onClick={() => void addPerson()} disabled={!personName.trim()}>
-            Add person
-          </PrimaryButton>
-        </FormRow>
-      </Section>
-
-      <AdminPermissions
-        permissions={bundle.permissions as never}
-        userRoleLabel={event.userRoleLabel}
-        onChange={savePermissions}
-        onUnlock={confirmAdmin}
-      />
-
-      <Section title="Event settings" className="mb-6">
-        <FormStack>
-        <Field label="Name">
-          <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
-        </Field>
-        <FormGrid>
-          <Field label="Start date">
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
-          </Field>
-          <Field label="End date">
-            <input type="date" value={endDate} min={startDate} onChange={(e) => setEndDate(e.target.value)} className={inputClass} />
-          </Field>
-          <Field label="Day starts">
-            <input type="time" step={300} value={dayStart} onChange={(e) => setDayStart(e.target.value)} className={inputClass} />
-          </Field>
-          <Field label="Day ends">
-            <input type="time" step={300} value={dayEnd} onChange={(e) => setDayEnd(e.target.value)} className={inputClass} />
-          </Field>
-        </FormGrid>
-        <Field
-          label="Group days into weeks past"
-          hint={`Up to this many days the schedule shows one row of day tabs. Longer than this and they split into a rail of weeks. This event runs ${eventDays} day${eventDays === 1 ? '' : 's'}.`}
-        >
-          <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min={1}
-              max={90}
-              value={weekRailFrom}
-              onChange={(e) => setWeekRailFrom(e.target.value)}
-              className={`${inputClass} w-24`}
-            />
-            <span className="text-xs text-stone-500 dark:text-stone-400">
-              days
-              {eventDays > (Number(weekRailFrom) || 8)
-                ? ' · the rail is on for this event'
-                : ' · one row of tabs for this event'}
-            </span>
-          </div>
-        </Field>
-        <Field
-          label="What you call your participants"
-          hint="Shown on role badges and in prompts. “attendee”, “participant”, “member”…"
-        >
-          <input
-            value={userRoleLabel}
-            onChange={(e) => setUserRoleLabel(e.target.value)}
-            maxLength={24}
-            className={inputClass}
-          />
-        </Field>
-
-        <div className="mt-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
-            Change passwords
-          </p>
-          <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
-            Leave blank to keep the current one.
-          </p>
-        </div>
-        <FormGrid cols={3}>
-          <Field label="Viewer">
-            <input value={viewerPassword} onChange={(e) => setViewerPassword(e.target.value)} className={inputClass} />
-          </Field>
-          <Field label={userRoleLabel.trim() || 'User'}>
-            <input value={userPassword} onChange={(e) => setUserPassword(e.target.value)} className={inputClass} />
-          </Field>
-          <Field label="Admin">
-            <input value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className={inputClass} />
-          </Field>
-        </FormGrid>
-        <div>
-          <PrimaryButton onClick={() => void saveSettings()}>Save settings</PrimaryButton>
-        </div>
-        </FormStack>
-      </Section>
-
-      <Section
-        title="Duplicate Event/Conf"
-        description="Rooms and tags carry over to the new event; sessions and contributions do not."
-        className="mb-6"
-        actions={
-          <SecondaryButton
-            className="shrink-0 py-1.5"
-            onClick={() => setCloneOpen(!cloneOpen)}
-            aria-expanded={cloneOpen}
-          >
-            {cloneOpen ? 'Close' : 'Duplicate…'}
-          </SecondaryButton>
-        }
-      >
-        {cloneOpen && (
-          <FormStack>
-          <Field label="New name">
-            <input value={cloneName} onChange={(e) => setCloneName(e.target.value)} className={inputClass} />
-          </Field>
-          <Field
-            label="New slug"
-            hint={`Used in the URL: /e/${cloneSlugValue || 'your-event'}`}
-          >
-            <input
-              value={cloneSlug}
-              onChange={(e) => setCloneSlug(slugify(e.target.value))}
-              placeholder={slugify(cloneName) || 'your-event'}
-              className={inputClass}
-            />
-          </Field>
-          <FormGrid>
-            <Field label="Start date">
-              <input
-                type="date"
-                value={cloneStart}
-                onChange={(e) => {
-                  setCloneStart(e.target.value);
-                  if (cloneEnd < e.target.value) setCloneEnd(e.target.value);
-                }}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="End date">
-              <input
-                type="date"
-                value={cloneEnd}
-                min={cloneStart}
-                onChange={(e) => setCloneEnd(e.target.value)}
-                className={inputClass}
-              />
-            </Field>
-          </FormGrid>
-          <div className="mt-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
-              New passwords
-            </p>
-            <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">At least 6 characters each.</p>
-          </div>
-          <FormGrid cols={3}>
-            <Field label="Viewer">
-              <input value={cloneViewer} onChange={(e) => setCloneViewer(e.target.value)} className={inputClass} />
-            </Field>
-            <Field label="User">
-              <input value={cloneUser} onChange={(e) => setCloneUser(e.target.value)} className={inputClass} />
-            </Field>
-            <Field label="Admin">
-              <input value={cloneAdmin} onChange={(e) => setCloneAdmin(e.target.value)} className={inputClass} />
-            </Field>
-          </FormGrid>
-          <div>
-            <PrimaryButton onClick={() => void cloneEvent()} disabled={!cloneReady || cloning}>
-              {cloning ? 'Duplicating…' : 'Duplicate Event/Conf'}
-            </PrimaryButton>
-          </div>
-          </FormStack>
-        )}
-      </Section>
-
-      <Section
-        title="Trash"
-        description="Deleted sessions and contributions. Restoring puts them back for everyone."
-        className="mb-6"
-      >
-        {trash === null ? (
-          <p className="text-sm text-stone-400 dark:text-stone-500">Loading…</p>
-        ) : trashEmpty ? (
-          <p className="text-sm text-stone-400 dark:text-stone-500">Nothing has been deleted.</p>
-        ) : (
-          <div className="space-y-4">
-            {trash.sessions.length > 0 && (
-              <div>
-                <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
-                  Sessions
-                </h3>
-                <ul className="space-y-2">
-                  {trash.sessions.map((s) => (
-                    <li
-                      key={s.id}
-                      className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 dark:bg-stone-800 px-3 py-2"
-                    >
-                      <span className="min-w-32 flex-1 text-sm font-medium">{s.title}</span>
-                      <span className="text-xs text-stone-400 dark:text-stone-500">
-                        deleted {relativeTime(s.deletedAt)} · {s.deletedByName}
-                      </span>
-                      <SecondaryButton className="py-1" onClick={() => void restoreSession(s.id)}>
-                        Restore
-                      </SecondaryButton>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {trash.contributions.length > 0 && (
-              <div>
-                <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
-                  Contributions
-                </h3>
-                <ul className="space-y-2">
-                  {trash.contributions.map((c) => (
-                    <li
-                      key={c.id}
-                      className="flex flex-wrap items-center gap-2 rounded-lg bg-stone-50 dark:bg-stone-800 px-3 py-2"
-                    >
-                      <span className="min-w-32 flex-1 truncate text-sm">
-                        <span className="text-stone-400 dark:text-stone-500">{c.kind}: </span>
-                        {c.body}
-                      </span>
-                      <span className="text-xs text-stone-400 dark:text-stone-500">
-                        deleted {relativeTime(c.deletedAt)} · {c.createdByName}
-                      </span>
-                      <SecondaryButton
-                        className="py-1"
-                        onClick={() => void restoreContribution(c.id)}
-                      >
-                        Restore
-                      </SecondaryButton>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-      </Section>
-
-      <Section
-        title="Archive"
-        description="An archived event stays readable with the viewer password, but nobody can change anything."
-      >
-        {event.archived ? (
-          <SecondaryButton onClick={() => void setArchived(false)}>Un-archive event</SecondaryButton>
-        ) : (
-          <SecondaryButton onClick={() => void setArchived(true)}>Archive event</SecondaryButton>
-        )}
-      </Section>
     </div>
   );
 }
