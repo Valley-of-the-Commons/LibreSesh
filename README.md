@@ -64,11 +64,26 @@ Tracks switch.
 Open <http://localhost:3000>. The demo passwords are `viewer2026`, `user2026`
 and `admin2026`; the instance password defaults to `dev-instance-password`.
 
-When you create your own event, the three password fields are optional: leave
-one blank and a four-word phrase is generated for it and shown once, on the
+### Two kinds of password
+
+LibreSesh has one password that belongs to the **server** and three that belong
+to each **event**, and they do different jobs:
+
+- The **instance password** (`INSTANCE_ADMIN_PASSWORD`) is set by whoever
+  deploys the instance and is shared by everyone allowed to create events on
+  it. It gates exactly two things: creating an event, and cloning one you are
+  not already an admin of. It grants nothing *inside* any event — holding it
+  does not make you an organiser of anything.
+- The **event passwords** — viewer, attendee and organiser — are chosen per
+  event and handed out to the people coming. They decide what each person can
+  do once they are in. All three must differ from each other: they are the only
+  thing telling the roles apart, so two roles sharing one password would grant
+  whichever is higher.
+
+The three event password fields are optional when you create one: leave any of
+them blank and a four-word phrase is generated for it and shown once, on the
 confirmation screen. They are stored hashed, so that screen is the only place
-they can be read. All three must differ from each other — they are the only
-thing telling the roles apart.
+they can ever be read.
 
 In development the Vite dev server owns port 3000 and proxies `/api` to the API
 on 3001, so the port you open is the same in dev and in production — where a

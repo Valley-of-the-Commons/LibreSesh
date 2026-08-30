@@ -4,6 +4,14 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- **The event-creation form explains the instance password.** It is the
+  server's password, not an event's, and the page never said so — a new
+  organiser had no way to tell which of the four password fields in front of
+  them was which. The form now names the two kinds and says where to get the
+  instance one; the README gained a section on the same distinction.
+
 ### Added
 
 - **Event passwords can be left blank.** Inventing three passwords at the

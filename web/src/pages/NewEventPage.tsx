@@ -15,7 +15,10 @@ const browserTimezone = (): string => {
 
 const todayIso = (): string => new Date().toISOString().slice(0, 10);
 
-/** Creating an event needs the instance password (SPEC §3.3). */
+/**
+ * Creating an event needs the instance password (SPEC §3.3) — the server's own
+ * password, not an event's. See the copy below for what that means to a user.
+ */
 export function NewEventPage() {
   const navigate = useNavigate();
   const toast = useToast();
@@ -119,12 +122,18 @@ export function NewEventPage() {
       </Link>
       <h1 className="mb-1 mt-3 text-lg font-semibold tracking-tight">Create an event</h1>
       <p className="mb-5 text-sm text-stone-500 dark:text-stone-400">
-        You’ll need the instance password. The three event passwords are what attendees use.
+        Two different kinds of password are involved. The{' '}
+        <strong>instance password</strong> belongs to this server and lets you create an
+        event at all. The three <strong>event passwords</strong> are the ones you hand out
+        afterwards, and they decide what each person can do inside your event.
       </p>
 
       <div className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
         <FormStack>
-        <Field label="Instance password">
+        <Field
+          label="Instance password"
+          hint="Set by whoever runs this server, shared by everyone allowed to create events here. It is not one of your event’s passwords and grants nothing inside an event — if you don’t have it, ask the person hosting this instance."
+        >
           <input
             type="password"
             value={instanceKey}
