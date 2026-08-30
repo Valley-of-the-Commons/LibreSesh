@@ -6,12 +6,18 @@ import { fmtMin, relativeTime } from '../lib/format';
 import { useEventData } from '../lib/useEventData';
 import { AdminRooms, type RoomDraft } from './AdminRooms';
 import {
+  DangerButton,
   EmptyState,
   Field,
+  FormGrid,
+  FormRow,
+  FormStack,
   PrimaryButton,
   SecondaryButton,
+  Section,
   Spinner,
   inputClass,
+  linkClass,
   useToast,
 } from '../components/ui';
 
@@ -104,7 +110,7 @@ export function AdminPage() {
     return (
       <EmptyState>
         You need the admin password for this event.{' '}
-        <Link to={`/e/${slug}`} className="underline">
+        <Link to={`/e/${slug}`} className={linkClass}>
           Go to the schedule
         </Link>
       </EmptyState>
@@ -114,7 +120,7 @@ export function AdminPage() {
     return (
       <EmptyState>
         Only organisers can manage this event.{' '}
-        <Link to={`/e/${slug}`} className="underline">
+        <Link to={`/e/${slug}`} className={linkClass}>
           Back to the schedule
         </Link>
       </EmptyState>
@@ -343,15 +349,12 @@ export function AdminPage() {
         <button
           type="button"
           onClick={() => navigate(`/e/${slug}`)}
-          className="text-xs text-stone-500 dark:text-stone-400 underline"
+          className={`text-xs ${linkClass}`}
         >
           ← Schedule
         </button>
         <h1 className="text-lg font-semibold tracking-tight">Manage {event.name}</h1>
-        <Link
-          to={`/e/${slug}/proposals`}
-          className="ml-auto text-xs text-stone-500 dark:text-stone-400 underline"
-        >
+        <Link to={`/e/${slug}/proposals`} className={`ml-auto text-xs ${linkClass}`}>
           Proposal pool
         </Link>
       </div>
@@ -365,8 +368,11 @@ export function AdminPage() {
         onDelete={removeRoom}
       />
 
-      <section className="mb-6 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold">Tags</h2>
+      <Section
+        title="Tags"
+        description="Labels for sessions and pitches. Attendees filter the schedule by them."
+        className="mb-6"
+      >
         <ul className="mb-4 flex flex-wrap gap-2">
           {bundle.tags.map((tag) => (
             <li key={tag.id} className="flex items-center gap-2 rounded-full bg-stone-50 dark:bg-stone-800 py-1 pl-2 pr-3">
@@ -390,30 +396,35 @@ export function AdminPage() {
           ))}
           {bundle.tags.length === 0 && <li className="text-sm text-stone-400 dark:text-stone-500">No tags yet.</li>}
         </ul>
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
+        <FormRow>
+          <div className="min-w-40 flex-1">
             <Field label="New tag">
-              <input value={tagName} onChange={(e) => setTagName(e.target.value)} className={inputClass} />
+              <input
+                value={tagName}
+                onChange={(e) => setTagName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && void addTag()}
+                className={inputClass}
+              />
             </Field>
           </div>
           <input
             type="color"
             value={tagColor}
             onChange={(e) => setTagColor(e.target.value)}
-            className="mb-3 h-9 w-12 cursor-pointer rounded border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 p-1"
+            className="h-9 w-12 cursor-pointer rounded border border-stone-300 bg-white p-1 dark:border-stone-600 dark:bg-stone-900"
             aria-label="New tag colour"
           />
-          <PrimaryButton className="mb-3" onClick={() => void addTag()}>
+          <PrimaryButton onClick={() => void addTag()} disabled={!tagName.trim()}>
             Add tag
           </PrimaryButton>
-        </div>
-      </section>
+        </FormRow>
+      </Section>
 
-      <section className="mb-6 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
-        <h2 className="mb-1 text-sm font-semibold">People</h2>
-        <p className="mb-3 text-xs text-stone-500 dark:text-stone-400">
-          Speaker and host profiles. Anyone can claim their own from the schedule.
-        </p>
+      <Section
+        title="People"
+        description="Speaker and host profiles. Anyone can claim their own from the schedule."
+        className="mb-6"
+      >
         <ul className="mb-4 space-y-2">
           {bundle.people.map((person) => (
             <li
@@ -426,45 +437,45 @@ export function AdminPage() {
                   claimed
                 </span>
               )}
-              <Link to={`/e/${slug}/p/${person.id}`} className="text-xs text-stone-500 dark:text-stone-400 underline">
-                edit
-              </Link>
-              <button
-                type="button"
-                onClick={() => void removePerson(person)}
-                className="text-xs text-red-500 dark:text-red-400 underline"
+              <Link
+                to={`/e/${slug}/p/${person.id}`}
+                className="shrink-0 rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 hover:border-stone-500 dark:border-stone-600 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-stone-400"
               >
-                delete
-              </button>
+                Edit
+              </Link>
+              <DangerButton className="shrink-0 px-3 py-1.5" onClick={() => void removePerson(person)}>
+                Delete
+              </DangerButton>
             </li>
           ))}
           {bundle.people.length === 0 && (
             <li className="text-sm text-stone-400 dark:text-stone-500">No people yet.</li>
           )}
         </ul>
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
+        <FormRow>
+          <div className="min-w-40 flex-1">
             <Field label="New person">
               <input
                 value={personName}
                 onChange={(e) => setPersonName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && void addPerson()}
                 maxLength={120}
                 className={inputClass}
               />
             </Field>
           </div>
-          <PrimaryButton className="mb-3" onClick={() => void addPerson()}>
+          <PrimaryButton onClick={() => void addPerson()} disabled={!personName.trim()}>
             Add person
           </PrimaryButton>
-        </div>
-      </section>
+        </FormRow>
+      </Section>
 
-      <section className="mb-6 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold">Event settings</h2>
+      <Section title="Event settings" className="mb-6">
+        <FormStack>
         <Field label="Name">
           <input value={name} onChange={(e) => setName(e.target.value)} className={inputClass} />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
+        <FormGrid>
           <Field label="Start date">
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
           </Field>
@@ -477,7 +488,7 @@ export function AdminPage() {
           <Field label="Day ends">
             <input type="time" step={300} value={dayEnd} onChange={(e) => setDayEnd(e.target.value)} className={inputClass} />
           </Field>
-        </div>
+        </FormGrid>
         <Field
           label="What you call your participants"
           hint="Shown on role badges and in prompts. “attendee”, “participant”, “member”…"
@@ -490,11 +501,15 @@ export function AdminPage() {
           />
         </Field>
 
-        <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
-          Change passwords
-        </p>
-        <p className="mb-3 text-xs text-stone-500 dark:text-stone-400">Leave blank to keep the current one.</p>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="mt-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
+            Change passwords
+          </p>
+          <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+            Leave blank to keep the current one.
+          </p>
+        </div>
+        <FormGrid cols={3}>
           <Field label="Viewer">
             <input value={viewerPassword} onChange={(e) => setViewerPassword(e.target.value)} className={inputClass} />
           </Field>
@@ -504,15 +519,19 @@ export function AdminPage() {
           <Field label="Admin">
             <input value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className={inputClass} />
           </Field>
+        </FormGrid>
+        <div>
+          <PrimaryButton onClick={() => void saveSettings()}>Save settings</PrimaryButton>
         </div>
-        <PrimaryButton onClick={() => void saveSettings()}>Save settings</PrimaryButton>
-      </section>
+        </FormStack>
+      </Section>
 
-      <section className="mb-6 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
-        <h2 className="mb-1 text-sm font-semibold">Duplicate event</h2>
-        <p className="mb-3 text-xs text-stone-500 dark:text-stone-400">
-          Rooms and tags carry over to the new event; sessions and contributions do not.
-        </p>
+      <Section
+        title="Duplicate event"
+        description="Rooms and tags carry over to the new event; sessions and contributions do not."
+        className="mb-6"
+      >
+        <FormStack>
         <Field label="New name">
           <input value={cloneName} onChange={(e) => setCloneName(e.target.value)} className={inputClass} />
         </Field>
@@ -527,7 +546,7 @@ export function AdminPage() {
             className={inputClass}
           />
         </Field>
-        <div className="grid grid-cols-2 gap-3">
+        <FormGrid>
           <Field label="Start date">
             <input
               type="date"
@@ -548,12 +567,14 @@ export function AdminPage() {
               className={inputClass}
             />
           </Field>
+        </FormGrid>
+        <div className="mt-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
+            New passwords
+          </p>
+          <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">At least 6 characters each.</p>
         </div>
-        <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
-          New passwords
-        </p>
-        <p className="mb-3 text-xs text-stone-500 dark:text-stone-400">At least 6 characters each.</p>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <FormGrid cols={3}>
           <Field label="Viewer">
             <input value={cloneViewer} onChange={(e) => setCloneViewer(e.target.value)} className={inputClass} />
           </Field>
@@ -563,17 +584,20 @@ export function AdminPage() {
           <Field label="Admin">
             <input value={cloneAdmin} onChange={(e) => setCloneAdmin(e.target.value)} className={inputClass} />
           </Field>
+        </FormGrid>
+        <div>
+          <PrimaryButton onClick={() => void cloneEvent()} disabled={!cloneReady || cloning}>
+            {cloning ? 'Duplicating…' : 'Duplicate event'}
+          </PrimaryButton>
         </div>
-        <PrimaryButton onClick={() => void cloneEvent()} disabled={!cloneReady || cloning}>
-          {cloning ? 'Duplicating…' : 'Duplicate event'}
-        </PrimaryButton>
-      </section>
+        </FormStack>
+      </Section>
 
-      <section className="mb-6 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
-        <h2 className="mb-1 text-sm font-semibold">Trash</h2>
-        <p className="mb-3 text-xs text-stone-500 dark:text-stone-400">
-          Deleted sessions and contributions. Restoring puts them back for everyone.
-        </p>
+      <Section
+        title="Trash"
+        description="Deleted sessions and contributions. Restoring puts them back for everyone."
+        className="mb-6"
+      >
         {trash === null ? (
           <p className="text-sm text-stone-400 dark:text-stone-500">Loading…</p>
         ) : trashEmpty ? (
@@ -634,19 +658,18 @@ export function AdminPage() {
             )}
           </div>
         )}
-      </section>
+      </Section>
 
-      <section className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
-        <h2 className="mb-1 text-sm font-semibold">Archive</h2>
-        <p className="mb-3 text-xs text-stone-500 dark:text-stone-400">
-          An archived event stays readable with the viewer password, but nobody can change anything.
-        </p>
+      <Section
+        title="Archive"
+        description="An archived event stays readable with the viewer password, but nobody can change anything."
+      >
         {event.archived ? (
           <SecondaryButton onClick={() => void setArchived(false)}>Un-archive event</SecondaryButton>
         ) : (
           <SecondaryButton onClick={() => void setArchived(true)}>Archive event</SecondaryButton>
         )}
-      </section>
+      </Section>
     </div>
   );
 }
