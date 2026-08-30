@@ -2,7 +2,8 @@ import { mkdtempSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { checkDurableStorage, ephemeralStorageMessage, isMountPoint } from '../server/src/storage.js';
+import { chmodSync, mkdirSync } from 'node:fs';
+import { checkDurableStorage, isMountPoint, isWritableDirectory } from '../server/src/storage.js';
 
 const dirs: string[] = [];
 const scratch = (): string => {
@@ -38,11 +39,30 @@ describe('durable storage check', () => {
     expect(check.directory).toBe(dir);
     expect(check.durable).toBe(false);
   });
+});
 
-  it('names the path and both escape hatches in the failure message', () => {
-    const message = ephemeralStorageMessage('/data');
-    expect(message).toContain('/data');
-    expect(message).toContain('ALLOW_EPHEMERAL_DB=1');
-    expect(message).toContain('DATABASE_PATH');
+describe('writability probe', () => {
+  it('accepts a directory it can write to', () => {
+    expect(isWritableDirectory(scratch())).toBe(true);
+  });
+
+  // openDb mkdirs the data directory, so "does not exist yet" must not read as
+  // "cannot write" — the question is whether the nearest real ancestor allows it.
+  it('accepts a directory that does not exist yet but can be created', () => {
+    expect(isWritableDirectory(join(scratch(), 'a', 'b', 'c'))).toBe(true);
+  });
+
+  // The shape of the Railway crash: the volume is there, owned by someone else.
+  it('rejects a directory it cannot write to', () => {
+    const dir = join(scratch(), 'readonly');
+    mkdirSync(dir);
+    chmodSync(dir, 0o500);
+    try {
+      // Running the suite as root would defeat the permission bits entirely.
+      if (typeof process.getuid === 'function' && process.getuid() === 0) return;
+      expect(isWritableDirectory(dir)).toBe(false);
+    } finally {
+      chmodSync(dir, 0o700);
+    }
   });
 });

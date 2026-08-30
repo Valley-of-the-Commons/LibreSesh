@@ -204,6 +204,28 @@ docker compose up --build
 The DB lives in `deploy/data/`, mounted into the container, so it survives
 rebuilds. On the VPS the only change is `SITE_ADDRESS`.
 
+### Railway (or another PaaS)
+
+`railway.json` pins the build to `deploy/Dockerfile`. That matters: a plain
+`npm ci` honours this repo's `.npmrc` (`ignore-scripts=true`), skips
+`better-sqlite3`'s install step, and the app dies at boot with
+`Could not locate the bindings file`. The Dockerfile already runs
+`npm ci --ignore-scripts=false` for exactly that reason.
+
+Two things **cannot** live in `railway.json` — it carries build and deploy
+settings only, while both of these are service-level resources the platform
+owns:
+
+1. **A volume mounted at `/data`.** Without it the database sits in the
+   container's own filesystem and is destroyed on the next deploy, with nothing
+   looking wrong until the schedule disappears.
+2. **The environment variables.** `deploy/railway.env.example` lists them with
+   what each one is for.
+
+You do not have to get either right in advance. A production instance runs a
+preflight check at boot and refuses to start with every problem listed at once
+and a fix beside each — one round of corrections rather than one per redeploy.
+
 ### systemd
 
 ```sh

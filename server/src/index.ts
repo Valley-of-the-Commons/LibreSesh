@@ -2,20 +2,22 @@ import { loadConfig } from './config.js';
 import { createApp } from './app.js';
 import { openDb } from './db.js';
 import { DEMO_PASSWORDS, seedDemoEvent } from './seed.js';
-import { checkDurableStorage, ephemeralStorageMessage } from './storage.js';
+import { formatPreflight, preflight } from './preflight.js';
 
-const config = loadConfig();
-
-// Before openDb, which would otherwise mkdir the directory and make an
+// Before loadConfig — which throws on the first missing variable it meets —
+// and before openDb, which would mkdir the data directory and make an
 // unmounted path indistinguishable from a mounted one.
-if (!config.allowEphemeralDb && config.databasePath !== ':memory:') {
-  const { durable, directory } = checkDurableStorage(config.databasePath);
-  if (!durable) {
-    console.error(ephemeralStorageMessage(directory));
+const problems = preflight(process.env);
+if (problems.length > 0) {
+  const report = formatPreflight(problems);
+  if (problems.some((p) => p.severity === 'fatal')) {
+    console.error(report);
     process.exit(1);
   }
+  console.warn(report);
 }
 
+const config = loadConfig();
 const db = openDb(config.databasePath);
 
 // Only ever creates the event when it is absent — never replaces one — so a

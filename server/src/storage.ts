@@ -13,8 +13,8 @@
  * a mount point. That is a Unix-wide property, not a Railway one, so this
  * catches the same mistake on any host.
  */
-import { statSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 
 /** True when `path` sits on a different filesystem than its parent — i.e. something is mounted there. */
 export function isMountPoint(path: string): boolean {
@@ -39,16 +39,38 @@ export function checkDurableStorage(databasePath: string): DurabilityCheck {
   return { durable: isMountPoint(directory), directory };
 }
 
-export function ephemeralStorageMessage(directory: string): string {
-  return [
-    `Refusing to start: ${directory} is not a mounted volume, so the database`,
-    'would live inside this container and be destroyed on the next deploy.',
-    '',
-    'Attach a volume mounted at that path (on Railway: the service’s Volumes',
-    'tab; with Docker Compose: the `./data:/data` bind in deploy/docker-compose.yml),',
-    'or point DATABASE_PATH at one that is already mounted.',
-    '',
-    'If this instance is meant to be disposable — a demo or a preview build —',
-    'set ALLOW_EPHEMERAL_DB=1 to say so deliberately.',
-  ].join('\n');
+/**
+ * Can this process actually create the database at this path?
+ *
+ * A mounted volume usually arrives owned by root while the app runs
+ * unprivileged, and the resulting failure surfaces as `SQLITE_CANTOPEN` from
+ * inside better-sqlite3 — a message that says nothing about ownership. Probing
+ * with a real file is the honest test; `access(W_OK)` can lie under some
+ * container filesystems.
+ *
+ * The directory may not exist yet (openDb mkdirs it), so the probe walks up to
+ * the nearest ancestor that does: being able to write there is what determines
+ * whether the rest can be created.
+ */
+export function isWritableDirectory(directory: string): boolean {
+  let target = resolve(directory);
+  for (;;) {
+    try {
+      statSync(target);
+      break;
+    } catch {
+      const parent = dirname(target);
+      if (parent === target) return false;
+      target = parent;
+    }
+  }
+
+  const probe = join(target, `.libresesh-write-probe-${process.pid}`);
+  try {
+    writeFileSync(probe, '');
+    unlinkSync(probe);
+    return true;
+  } catch {
+    return false;
+  }
 }

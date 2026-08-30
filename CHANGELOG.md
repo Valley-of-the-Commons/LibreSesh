@@ -6,6 +6,18 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- **A production instance checks its whole deployment at boot, once.**
+  `loadConfig` threw on the first missing variable it met, so a fresh deploy
+  with three things wrong took three rounds of edit-redeploy-read-the-log,
+  each revealing exactly one more problem. A preflight now collects them all —
+  missing `COOKIE_SECRET`, missing `INSTANCE_ADMIN_PASSWORD`, a data directory
+  that is not a mounted volume, and a missing `TRUST_PROXY` behind a
+  platform proxy (a warning, not a failure) — and prints each with the fix
+  beside it, tailored to whether it is running on a PaaS. Volumes and
+  variables cannot be declared in `railway.json`, so the instructions live in
+  the program instead: `deploy/railway.env.example` documents the variables,
+  and the boot output tells you the rest.
+
 - **A production instance refuses to start on storage that will not survive a
   redeploy.** `openDb` creates the directory it is pointed at, so a container
   with no volume attached got a working `/data` inside its own filesystem —
