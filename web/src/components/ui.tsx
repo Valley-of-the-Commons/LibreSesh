@@ -149,17 +149,18 @@ export function PrimaryButton({
   );
 }
 
+/** Exported so a download `<a>` can look like the button it stands in for. */
+export const secondaryButtonClass =
+  'inline-flex items-center rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-xs font-semibold text-stone-700 hover:border-stone-500 disabled:opacity-40 ' +
+  'dark:border-stone-600 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-stone-400';
+
 export function SecondaryButton({
   children,
   className = '',
   ...rest
 }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
-    <button
-      type="button"
-      {...rest}
-      className={`rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-xs font-semibold text-stone-700 hover:border-stone-500 disabled:opacity-40 dark:border-stone-600 dark:bg-stone-900 dark:text-stone-200 dark:hover:border-stone-400 ${className}`}
-    >
+    <button type="button" {...rest} className={`${secondaryButtonClass} ${className}`}>
       {children}
     </button>
   );

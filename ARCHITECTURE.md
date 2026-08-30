@@ -230,6 +230,7 @@ explicitly *not* built to withstand a targeted attacker with time.
 | Reading a schedule you were not given | Viewing requires the viewer password; there is no public event view |
 | Leaking one person's agenda | Stars and interest are never broadcast and never attributed in any payload; only aggregate counts are exposed |
 | A leaked calendar URL | The token grants only what its owner's role already allows, and only for that one event; revoking the role kills the feed |
+| A leaked whole-database backup | Never leaves the server unencrypted: AES-256-GCM under a scrypt key (N=2^15) from a passphrase typed at download time, gated by the instance password and the 5-per-15-min auth budget |
 
 **Out of scope, accepted:**
 
@@ -266,8 +267,16 @@ explicitly *not* built to withstand a targeted attacker with time.
   production that would reset the whole room's names and roles mid-conference.
 - **`TRUST_PROXY=1` behind a reverse proxy**, or every request appears to come
   from the proxy and the per-IP rate limit becomes a single shared bucket.
-- **The instance password gates event creation** and is compared in constant
-  time. It is not a user account; it is a deploy-level secret.
+- **The instance password gates event creation** and the whole-database
+  backup, and is compared in constant time. It is not a user account; it is a
+  deploy-level secret.
+- **A whole-database backup is a credential, not a document.** It is the file
+  the point above calls the room key, so the download encrypts it and the UI
+  says so in as many words. The per-event JSON export is the opposite by
+  construction — `exportEvent` builds a shape that has nowhere to put a hash or
+  a token, rather than filtering secrets out of DTOs, so a new secret column
+  cannot leak into it by being added. That asymmetry is deliberate: one file is
+  for sharing, the other is for a safe.
 - **Rate limits are in-process memory.** They reset on restart and do not span
   instances — which is fine, because there is only ever one instance.
 

@@ -26,6 +26,10 @@ CHANGELOG.md under `[0.2.0]`. What is left of the UI-overhaul plan lives in
   device linking). The count excludes the `[&_a]:underline` in prose wrappers —
   links inside rendered markdown keep their underline deliberately — and the
   five in `ui.tsx`, which are the primitives themselves.
+- **Backups shipped, one loose end.** Both shapes landed in Manage Event →
+  Backup (CHANGELOG `[Unreleased]`). Not covered: nothing *imports* an export
+  back, so the JSON is an archive and a hand-off format, not a restore path —
+  the whole-DB backup is the restore path.
 - **ARCHITECTURE.md concurrency paragraph.** §Realtime documents broadcast and
   heartbeats but never states the model: last-write-wins, `assertNotStale`
   409 on an `updated_at` mismatch, no CRDT by design.
@@ -43,22 +47,6 @@ CHANGELOG `[Unreleased]` for what landed.
 _The only queue of future work, priority-ordered. Top High-Priority item = next up._
 
 ## High Priority
-
-- **Two backups, chosen 2026-08-30, deferred until the deploy was solid.** The
-  user picked both shapes and asked for the deployment work first:
-  1. **Per-event JSON export** (`GET /api/e/:slug/export.json`, event admin) —
-     rooms, sessions, tags, tracks, people, contributions and pitches, with no
-     password hashes, no identity tokens and no code hashes. Safe to hand to an
-     organiser rather than only the instance owner. Do this one first: it is
-     the smaller piece and the one with a safe blast radius.
-  2. **Encrypted whole-DB download** (instance-password gated) — `VACUUM INTO`
-     a temp file, AES-256-GCM under a passphrase typed at download time with a
-     scrypt-derived key (node crypto, no new deps), stream it, delete the temp.
-     Must ship with `scripts/decrypt-backup.ts`: the framing is custom, so
-     `openssl` alone will not open it, and a backup you cannot restore is not
-     one. Note the artifact is a credential, not a document — it carries live
-     identity tokens, and speaker/link codes hashed with **sha256 over a
-     ~37-bit phrase**, which is brute-forceable offline.
 
 - **Merge moves the person, not their history.** `POST /people/:id/merge`
   repoints `sessions.speaker_id` and `proposals.speaker_id` and abandons the

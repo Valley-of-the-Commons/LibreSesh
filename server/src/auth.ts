@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
+import { timingSafeEqual } from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
 import type { Role } from './shared/types.js';
+import type { Config } from './config.js';
 import type { Db, EventRow } from './db.js';
 import { conflict, forbidden, notFound, unauthorized } from './errors.js';
 
@@ -12,6 +14,22 @@ const RANK: Record<Role, number> = { viewer: 1, user: 2, speaker: 3, admin: 4 };
 export const atLeast = (role: Role, min: Role): boolean => RANK[role] >= RANK[min];
 
 export const hashPassword = (plain: string): string => bcrypt.hashSync(plain, BCRYPT_COST);
+
+function constantTimeEquals(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return timingSafeEqual(ab, bb);
+}
+
+/**
+ * Instance-level operations — creating an event, downloading the whole
+ * database — are gated by one shared env password sent as `X-Instance-Key`.
+ * It is not a role: nobody earns it by being an admin somewhere.
+ */
+export function hasInstanceKey(config: Config, header: unknown): boolean {
+  return typeof header === 'string' && constantTimeEquals(header, config.instanceAdminPassword);
+}
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace

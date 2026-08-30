@@ -6,6 +6,7 @@ import { fmtMin, relativeTime } from '../lib/format';
 import { useEventData } from '../lib/useEventData';
 import { AdminRooms, type RoomDraft } from './AdminRooms';
 import { AdminPermissions } from './AdminPermissions';
+import { AdminBackup } from './AdminBackup';
 import {
   DangerButton,
   Modal,
@@ -32,6 +33,7 @@ const TABS = [
   { id: 'people', label: 'People' },
   { id: 'permissions', label: 'Permissions' },
   { id: 'settings', label: 'Settings' },
+  { id: 'backup', label: 'Backup' },
   { id: 'trash', label: 'Trash' },
 ] as const;
 
@@ -504,7 +506,7 @@ export function AdminPage() {
         <h1 className="text-lg font-semibold tracking-tight">Manage {event.name}</h1>
       </div>
 
-      {/* Manage is five unrelated jobs on one page. Tabs keep each of them a
+      {/* Manage is six unrelated jobs on one page. Tabs keep each of them a
           screenful, and the choice lives in the URL so a reload — or a link
           sent to a co-organiser — lands on the same one. */}
       <div
@@ -931,6 +933,12 @@ export function AdminPage() {
               <SecondaryButton onClick={() => void setArchived(true)}>Archive event</SecondaryButton>
             )}
           </Section>
+        </div>
+      )}
+
+      {tab === 'backup' && (
+        <div role="tabpanel" id="admin-panel-backup" aria-labelledby="admin-tab-backup">
+          <AdminBackup slug={slug} eventName={event.name} />
         </div>
       )}
 

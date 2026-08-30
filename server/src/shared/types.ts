@@ -180,6 +180,95 @@ export interface BundleDto {
   permissions: Record<string, Role[]>;
 }
 
+/**
+ * The per-event JSON export (`GET /api/e/:slug/export.json`). Its own shape
+ * rather than a bag of DTOs: a DTO answers "what does this viewer see now"
+ * and changes whenever the UI does, while this is an archive format that has
+ * to keep opening in five years. `version` moves when the shape does.
+ *
+ * Carries no secrets by construction — see `exportEvent` for the list.
+ */
+export interface EventExport {
+  format: 'libresesh.event';
+  version: 1;
+  exportedAt: string;
+  event: {
+    slug: string;
+    name: string;
+    timezone: string;
+    startDate: string;
+    endDate: string;
+    dayStartMin: number;
+    dayEndMin: number;
+    weekRailFrom: number;
+    userRoleLabel: string;
+    archived: boolean;
+    createdAt: string;
+  };
+  rooms: {
+    id: number;
+    name: string;
+    description: string;
+    capacity: number | null;
+    color: string;
+    openBooking: boolean;
+    sortOrder: number;
+  }[];
+  tracks: { id: number; name: string; color: string; sortOrder: number }[];
+  tags: { id: number; name: string; color: string }[];
+  people: {
+    id: number;
+    name: string;
+    bio: string;
+    links: PersonLink[];
+    /** Whether someone holds this profile — never *who*. */
+    claimed: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }[];
+  sessions: {
+    id: number;
+    roomId: number;
+    trackId: number | null;
+    type: SessionType;
+    title: string;
+    description: string;
+    speakerId: number | null;
+    speaker: string;
+    livestreamUrl: string;
+    startsAt: string;
+    endsAt: string;
+    tagIds: number[];
+    createdByName: string;
+    createdAt: string;
+    updatedAt: string;
+    starCount: number;
+  }[];
+  proposals: {
+    id: number;
+    title: string;
+    description: string;
+    speakerId: number | null;
+    speaker: string;
+    tagIds: number[];
+    placedSessionId: number | null;
+    createdByName: string;
+    createdAt: string;
+    updatedAt: string;
+    interestCount: number;
+  }[];
+  contributions: {
+    id: number;
+    sessionId: number;
+    kind: ContributionKind;
+    body: string;
+    url: string | null;
+    createdByName: string;
+    createdAt: string;
+    hidden: boolean;
+  }[];
+}
+
 export interface SessionDetailDto {
   session: SessionDto;
   contributions: ContributionDto[];

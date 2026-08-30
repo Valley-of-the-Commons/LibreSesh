@@ -227,6 +227,41 @@ export const api = {
   restoreContribution: (slug: string, id: number) =>
     request<ContributionDto>('POST', `/e/${encode(slug)}/contributions/${id}/restore`),
 
+  /** The per-event JSON export is a plain authenticated GET, so the link in
+   *  Manage Event downloads it directly — no fetch, no blob, no wrapper. */
+  exportUrl: (slug: string) => `/api/e/${encode(slug)}/export.json`,
+
+  /**
+   * Encrypted whole-instance backup. Outside `request` deliberately: the
+   * response is binary, and the passphrase must go in a POST body rather than
+   * a URL that would land in an access log.
+   */
+  downloadBackup: async (
+    instanceKey: string,
+    passphrase: string,
+  ): Promise<{ blob: Blob; filename: string }> => {
+    const res = await fetch('/api/backup', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-Instance-Key': instanceKey },
+      body: JSON.stringify({ passphrase }),
+    });
+    if (!res.ok) {
+      const payload = (await res.json().catch(() => undefined)) as
+        | { error?: { code?: string; message?: string } }
+        | undefined;
+      throw new ApiError(
+        res.status,
+        payload?.error?.code ?? 'unknown',
+        payload?.error?.message ?? 'The backup could not be made',
+        Number(res.headers.get('Retry-After')) || undefined,
+      );
+    }
+    const disposition = res.headers.get('Content-Disposition') ?? '';
+    const named = /filename="([^"]+)"/.exec(disposition);
+    return { blob: await res.blob(), filename: named?.[1] ?? 'libresesh-backup.lsbk' };
+  },
+
   // Personal agenda. Both calls are idempotent server-side and stay allowed on
   // archived events — a bookmark is not event content — so there is no SSE echo.
   starSession: (slug: string, id: number) =>

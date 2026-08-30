@@ -4,6 +4,29 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **Two backups, in Manage Event → Backup.** Neither existed; the only backup
+  was a cron job on the host, which is no use to an organiser who has never
+  seen a shell.
+  - **Export this event** (`GET /api/e/:slug/export.json`, event admin) — the
+    programme as one JSON document: rooms, tracks, tags, people, sessions,
+    pitches and contributions, with star and interest counts but never who
+    starred what. It is its own archive shape rather than a bag of DTOs, and
+    it has nowhere to put a password hash, an identity token or a code hash —
+    so a future secret column cannot leak into it by being added. Safe to hand
+    to a co-organiser, which is the point of it existing separately.
+  - **Back up the whole instance** (`POST /api/backup`, instance password) —
+    `VACUUM INTO` a snapshot, seal it with AES-256-GCM under a scrypt key
+    (N=2^15) from a passphrase typed at download time, stream it, delete the
+    snapshot. The header carries its own KDF parameters, so a file written
+    today still opens after we raise the cost. `npm run decrypt-backup --
+    backup.lsbk restored.db` opens one, and the test suite runs that script
+    against a real download rather than a re-implementation of it — a backup
+    nobody has ever restored is a guess. The UI says plainly that the file is a
+    credential: it carries every identity token in clear and the hashes of
+    every device and speaker code.
+
 ### Changed
 
 - **Manage Event is five tabs instead of one long page.** Rooms, tracks and

@@ -21,6 +21,7 @@
     "seed:long": "SEED_SLUG=longconf-2026 SEED_NAME='LongConf 2026' SEED_DAYS=14 tsx scripts/seed.ts",
     "rebuild:native": "node-gyp rebuild --release --directory=node_modules/better-sqlite3 --nodedir=\"$(node -p \"process.execPath.replace(/\\/bin\\/node$/, \\\"\\\")\")\"",
     "create-event": "tsx scripts/create-event.ts",
+    "decrypt-backup": "tsx scripts/decrypt-backup.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint . && tsc -p server/tsconfig.json --noEmit && tsc -p web/tsconfig.json --noEmit",

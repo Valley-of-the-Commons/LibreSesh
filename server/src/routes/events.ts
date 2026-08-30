@@ -1,7 +1,6 @@
 import { Router } from 'express';
-import { timingSafeEqual } from 'node:crypto';
 import type { EventRow } from '../db.js';
-import { getEventBySlug, getRole, hashPassword, setRole } from '../auth.js';
+import { getEventBySlug, getRole, hasInstanceKey, hashPassword, setRole } from '../auth.js';
 import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
 import { badRequest, conflict, forbidden, notFound } from '../errors.js';
@@ -9,18 +8,6 @@ import { toEventSummary } from '../mappers.js';
 import { limit } from '../ratelimit.js';
 import { cloneEventSchema, createEventSchema, parse } from '../validation.js';
 import { resolveEventPasswords } from '../eventPasswords.js';
-
-function constantTimeEquals(a: string, b: string): boolean {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ab.length !== bb.length) return false;
-  return timingSafeEqual(ab, bb);
-}
-
-/** Instance-level operations are gated by a single shared env password. */
-function hasInstanceKey(ctx: Ctx, header: unknown): boolean {
-  return typeof header === 'string' && constantTimeEquals(header, ctx.config.instanceAdminPassword);
-}
 
 export function eventRoutes(ctx: Ctx): Router {
   const router = Router();
@@ -34,7 +21,7 @@ export function eventRoutes(ctx: Ctx): Router {
   });
 
   router.post('/events', limit(ctx.limiter, 'write'), (req, res) => {
-    if (!hasInstanceKey(ctx, req.get('X-Instance-Key'))) {
+    if (!hasInstanceKey(ctx.config, req.get('X-Instance-Key'))) {
       throw forbidden('Wrong instance password');
     }
     const body = parse(createEventSchema, req.body);
@@ -90,7 +77,7 @@ export function eventRoutes(ctx: Ctx): Router {
     if (!source) throw notFound('No such event');
 
     const isEventAdmin = getRole(ctx.db, req.identity.id, source.id) === 'admin';
-    if (!isEventAdmin && !hasInstanceKey(ctx, req.get('X-Instance-Key'))) {
+    if (!isEventAdmin && !hasInstanceKey(ctx.config, req.get('X-Instance-Key'))) {
       throw forbidden('Only this event’s admins can clone it');
     }
 

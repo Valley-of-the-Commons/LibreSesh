@@ -112,6 +112,7 @@ In Docker the build stage passes `--ignore-scripts=false`, so this is handled.
 | `npm run seed`          | Recreates the two-day demo event                    |
 | `npm run seed:long`     | A fortnight-long demo event, with tracks            |
 | `npm run create-event`  | Interactive CLI to create a real event              |
+| `npm run decrypt-backup`| Opens an encrypted `.lsbk` backup                   |
 | `npm test`              | Vitest suite                                        |
 | `npm run test:watch`    | The suite in watch mode                             |
 | `npm run lint`          | ESLint + both TypeScript projects                   |
@@ -244,7 +245,23 @@ streams get cut.
 
 ### Backups
 
-`VACUUM INTO` is safe against a live WAL database:
+Two of them are reachable from the browser, in **Manage Event → Backup**, for
+organisers with no shell on the box:
+
+- **Export this event** — the programme as JSON: rooms, tracks, tags, people,
+  sessions, pitches and contributions, with star and interest counts. No
+  passwords, no identity tokens, no speaker codes, so it is safe to email to a
+  co-organiser. Any admin of that event can take one.
+- **Back up the whole instance** — the entire database, AES-256-GCM under a
+  passphrase typed at download time, gated by the instance password. Open one
+  with `npm run decrypt-backup -- backup.lsbk restored.db` on the server; the
+  framing is ours, so `openssl` alone will not do it. **Treat the file as a
+  credential**: it carries every identity token in clear and the hashes of
+  every device and speaker code, so whoever holds it can become anyone here.
+
+Neither replaces a scheduled backup on the host, which is the one that runs
+when nobody remembers to click anything. `VACUUM INTO` is safe against a live
+WAL database:
 
 ```sh
 sqlite3 "$DATABASE_PATH" "VACUUM INTO '/backups/app-$(date +%F).db'"

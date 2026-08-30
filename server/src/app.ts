@@ -11,6 +11,7 @@ import { errorHandler, notFound } from './errors.js';
 import { identityMiddleware } from './identity.js';
 import { RateLimiter } from './ratelimit.js';
 import { agendaRoutes, calendarRoutes } from './routes/agenda.js';
+import { backupRoutes, exportRoutes } from './routes/backup.js';
 import { bundleRoutes } from './routes/bundle.js';
 import { contributionRoutes } from './routes/contributions.js';
 import { eventAuthRoutes } from './routes/eventAuth.js';
@@ -50,6 +51,7 @@ export function createApp(db: Db, config: Config): App {
   api.use(identityMiddleware(db, process.env.NODE_ENV === 'production'));
   api.use(meRoutes(ctx));
   api.use(eventRoutes(ctx));
+  api.use(backupRoutes(ctx));
 
   const event = Router({ mergeParams: true });
   event.use(loadEvent(db));
@@ -71,6 +73,7 @@ export function createApp(db: Db, config: Config): App {
   event.use(agendaRoutes(ctx));
   event.use(settingsRoutes(ctx));
   event.use(trashRoutes(ctx));
+  event.use(exportRoutes(ctx));
   api.use('/e/:slug', event);
 
   api.use((_req, _res, next) => next(notFound('No such endpoint')));
