@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import type { GeneratedPasswords } from '../../../server/src/shared/types';
 import { Field, FormGrid, FormStack, PrimaryButton, inputClass } from '../components/ui';
 import { useToast } from '../components/ui';
 
@@ -30,6 +31,10 @@ export function NewEventPage() {
   const [adminPassword, setAdminPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [created, setCreated] = useState<{
+    slug: string;
+    generated: GeneratedPasswords;
+  } | null>(null);
 
   const slugify = (value: string): string =>
     value
@@ -48,11 +53,21 @@ export function NewEventPage() {
         timezone,
         startDate,
         endDate,
-        viewerPassword,
-        userPassword,
-        adminPassword,
+        // Blank means "generate one" — sending '' would fail the 6-character
+        // minimum instead.
+        ...(viewerPassword ? { viewerPassword } : {}),
+        ...(userPassword ? { userPassword } : {}),
+        ...(adminPassword ? { adminPassword } : {}),
         userRoleLabel: userRoleLabel.trim() || 'attendee',
       });
+      const generated = created.generatedPasswords ?? {};
+      if (Object.keys(generated).length > 0) {
+        // Hashed on the way in, so this screen is the only chance to read
+        // them. Don't navigate away from it on the creator's behalf.
+        setCreated({ slug: created.slug, generated });
+        setBusy(false);
+        return;
+      }
       toast.show('Event created — you are its admin');
       navigate(`/e/${created.slug}`);
     } catch (err) {
@@ -60,6 +75,42 @@ export function NewEventPage() {
       setBusy(false);
     }
   };
+
+  if (created) {
+    const rows: [string, string | undefined][] = [
+      ['Viewer', created.generated.viewerPassword],
+      [userRoleLabel.trim() || 'Attendee', created.generated.userPassword],
+      ['Admin', created.generated.adminPassword],
+    ];
+    return (
+      <div className="mx-auto max-w-lg px-4 py-10">
+        <h1 className="mb-1 text-lg font-semibold tracking-tight">Event created</h1>
+        <p className="mb-5 text-sm text-stone-500 dark:text-stone-400">
+          You are its admin already. These passwords were generated for the roles you
+          left blank — <strong>write them down now</strong>. They are stored hashed, so
+          this screen is the only place they can be read.
+        </p>
+        <dl className="rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
+          {rows.map(([label, value]) =>
+            value ? (
+              <div key={label} className="mb-3 last:mb-0">
+                <dt className="text-xs font-medium text-stone-600 dark:text-stone-300">
+                  {label}
+                </dt>
+                <dd className="mt-1 select-all break-all font-mono text-sm">{value}</dd>
+              </div>
+            ) : null,
+          )}
+        </dl>
+        <PrimaryButton
+          className="mt-4 w-full py-2 text-sm"
+          onClick={() => navigate(`/e/${created.slug}`)}
+        >
+          I have written them down — open the event
+        </PrimaryButton>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-lg px-4 py-10">
@@ -147,21 +198,28 @@ export function NewEventPage() {
         <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
           Event passwords
         </p>
-        <Field label="Viewer — read the schedule">
+        <p className="-mt-2 text-xs text-stone-500 dark:text-stone-400">
+          Leave any of them blank and one is generated for you, shown once on the next
+          screen. All three must differ — they are what tell the roles apart.
+        </p>
+        <Field label="Viewer — read the schedule" hint="Optional — blank generates one.">
           <input
             value={viewerPassword}
             onChange={(e) => setViewerPassword(e.target.value)}
             className={inputClass}
           />
         </Field>
-        <Field label={`${userRoleLabel.trim() || 'Attendee'} — add contributions and open sessions`}>
+        <Field
+          label={`${userRoleLabel.trim() || 'Attendee'} — add contributions and open sessions`}
+          hint="Optional — blank generates one."
+        >
           <input
             value={userPassword}
             onChange={(e) => setUserPassword(e.target.value)}
             className={inputClass}
           />
         </Field>
-        <Field label="Admin — full control">
+        <Field label="Admin — full control" hint="Optional — blank generates one.">
           <input
             value={adminPassword}
             onChange={(e) => setAdminPassword(e.target.value)}

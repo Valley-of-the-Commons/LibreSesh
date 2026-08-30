@@ -21,6 +21,16 @@ export interface LinkCodeDto {
   expiresAt: string;
 }
 
+/**
+ * Passwords the server invented for roles the creator left blank. Returned
+ * once, on creation: they are stored hashed and cannot be read back later.
+ */
+export interface GeneratedPasswords {
+  viewerPassword?: string;
+  userPassword?: string;
+  adminPassword?: string;
+}
+
 export interface EventSummary {
   slug: string;
   name: string;

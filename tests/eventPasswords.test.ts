@@ -121,3 +121,93 @@ describe('event passwords must tell the roles apart', () => {
     });
   });
 });
+
+describe('blank passwords are filled in', () => {
+  let harness: Harness;
+  let admin: Agent;
+
+  const create = (body: Record<string, unknown>) =>
+    admin.post('/api/events').set('X-Instance-Key', 'instance-pw').send(body);
+
+  const signIn = async (slug: string, password: string) => {
+    const someone = agentFor(harness);
+    await someone.get('/api/me').expect(200);
+    return someone.post(`/api/e/${slug}/auth`).send({ password });
+  };
+
+  afterEach(() => harness.close());
+
+  describe('on a normal instance', () => {
+    beforeEach(async () => {
+      harness = makeHarness();
+      seedEvent(harness.db);
+      admin = await actorWithRole(harness, 'testconf', 'admin-pw');
+    });
+
+    it('generates all three and returns them once', async () => {
+      const res = await create({ ...BASE, slug: 'blank-conf' }).expect(201);
+      const generated = res.body.generatedPasswords;
+      expect(Object.keys(generated).sort()).toEqual([
+        'adminPassword',
+        'userPassword',
+        'viewerPassword',
+      ]);
+      // Distinct, and each one really opens its own role.
+      expect(new Set(Object.values(generated)).size).toBe(3);
+      expect((await signIn('blank-conf', generated.viewerPassword)).body.role).toBe('viewer');
+      expect((await signIn('blank-conf', generated.userPassword)).body.role).toBe('user');
+      expect((await signIn('blank-conf', generated.adminPassword)).body.role).toBe('admin');
+    });
+
+    it('never uses the published demo passwords off a demo instance', async () => {
+      const res = await create({ ...BASE, slug: 'not-demo' }).expect(201);
+      expect(Object.values(res.body.generatedPasswords)).not.toContain('admin2026');
+    });
+
+    it('fills in only what was left blank', async () => {
+      const res = await create({
+        ...BASE,
+        slug: 'partial-conf',
+        adminPassword: 'chosen-by-hand',
+      }).expect(201);
+      const generated = res.body.generatedPasswords;
+      expect(generated.adminPassword).toBeUndefined();
+      expect(generated.viewerPassword).toBeDefined();
+      expect((await signIn('partial-conf', 'chosen-by-hand')).body.role).toBe('admin');
+    });
+
+    it('still rejects a password below the length minimum', async () => {
+      await create({ ...BASE, slug: 'short-conf', viewerPassword: 'abc' }).expect(400);
+    });
+  });
+
+  describe('on a demo instance', () => {
+    beforeEach(async () => {
+      harness = makeHarness({ demoMode: true });
+      seedEvent(harness.db);
+      admin = agentFor(harness);
+      await admin.get('/api/me').expect(200);
+      await admin.post('/api/e/testconf/auth').send({ role: 'admin' }).expect(200);
+    });
+
+    it('uses the published demo passwords, so the docs keep working', async () => {
+      const res = await create({ ...BASE, slug: 'demo-conf' }).expect(201);
+      expect(res.body.generatedPasswords).toEqual({
+        viewerPassword: 'viewer2026',
+        userPassword: 'user2026',
+        adminPassword: 'admin2026',
+      });
+    });
+
+    // Predictability is not worth handing out the wrong role.
+    it('generates instead when a demo default would collide with a typed one', async () => {
+      const res = await create({
+        ...BASE,
+        slug: 'demo-clash',
+        adminPassword: 'viewer2026',
+      }).expect(201);
+      expect(res.body.generatedPasswords.viewerPassword).not.toBe('viewer2026');
+      expect(res.body.generatedPasswords.userPassword).toBe('user2026');
+    });
+  });
+});

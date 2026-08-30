@@ -98,9 +98,11 @@ export const createEventSchema = z
     endDate: dateSchema,
     dayStartMin: minuteOfDaySchema.optional(),
     dayEndMin: minuteOfDaySchema.optional(),
-    viewerPassword: passwordSchema,
-    userPassword: passwordSchema,
-    adminPassword: passwordSchema,
+    // Optional: a blank field is filled in by resolveEventPasswords rather
+    // than rejected, so nobody has to invent three passwords on the spot.
+    viewerPassword: passwordSchema.optional(),
+    userPassword: passwordSchema.optional(),
+    adminPassword: passwordSchema.optional(),
     userRoleLabel: roleLabelSchema.optional(),
   })
   .refine((v) => v.endDate >= v.startDate, {

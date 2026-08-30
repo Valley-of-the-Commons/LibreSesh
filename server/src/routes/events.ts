@@ -8,6 +8,7 @@ import { badRequest, conflict, forbidden, notFound } from '../errors.js';
 import { toEventSummary } from '../mappers.js';
 import { limit } from '../ratelimit.js';
 import { cloneEventSchema, createEventSchema, parse } from '../validation.js';
+import { resolveEventPasswords } from '../eventPasswords.js';
 
 function constantTimeEquals(a: string, b: string): boolean {
   const ab = Buffer.from(a);
@@ -39,6 +40,10 @@ export function eventRoutes(ctx: Ctx): Router {
     const body = parse(createEventSchema, req.body);
     if (getEventBySlug(ctx.db, body.slug)) throw conflict('That slug is already taken', 'slug_taken');
 
+    // Blank password fields are filled in, not rejected; `generated` is the
+    // subset this instance invented, which the creator is shown once.
+    const { passwords, generated } = resolveEventPasswords(body, ctx.config.demoMode);
+
     const now = new Date().toISOString();
     const info = ctx.db
       .prepare(
@@ -55,9 +60,9 @@ export function eventRoutes(ctx: Ctx): Router {
         body.endDate,
         body.dayStartMin ?? 480,
         body.dayEndMin ?? 1320,
-        hashPassword(body.viewerPassword),
-        hashPassword(body.userPassword),
-        hashPassword(body.adminPassword),
+        hashPassword(passwords.viewerPassword),
+        hashPassword(passwords.userPassword),
+        hashPassword(passwords.adminPassword),
         body.userRoleLabel ?? 'attendee',
         now,
       );
@@ -74,7 +79,9 @@ export function eventRoutes(ctx: Ctx): Router {
     });
 
     const row = ctx.db.prepare<[number], EventRow>('SELECT * FROM events WHERE id = ?').get(eventId);
-    res.status(201).json(toEventSummary(row as EventRow));
+    // The only time these leave the server: they are hashed on the way in and
+    // unrecoverable afterwards, so the creator has to see them now or never.
+    res.status(201).json({ ...toEventSummary(row as EventRow), generatedPasswords: generated });
   });
 
   /** Copy rooms and tags into a fresh event — never sessions or contributions. */

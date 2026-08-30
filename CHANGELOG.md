@@ -4,6 +4,18 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Added
+
+- **Event passwords can be left blank.** Inventing three passwords at the
+  moment of creating an event is a chore that invites bad ones, so a blank
+  field is filled in rather than rejected. A real instance generates a
+  four-word phrase per role and shows it once on creation — it is stored
+  hashed and unreadable afterwards. A demo instance (`DEMO_MODE=1`) uses the
+  published DemoConf values instead, where the gate ignores passwords anyway
+  and predictable ones keep the docs and screenshots honest; it falls back to
+  generating one if a published value would collide with something the
+  creator typed.
+
 ### Fixed
 
 - **An event's three passwords must now be different from each other.** They

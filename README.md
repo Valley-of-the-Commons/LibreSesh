@@ -64,6 +64,12 @@ Tracks switch.
 Open <http://localhost:3000>. The demo passwords are `viewer2026`, `user2026`
 and `admin2026`; the instance password defaults to `dev-instance-password`.
 
+When you create your own event, the three password fields are optional: leave
+one blank and a four-word phrase is generated for it and shown once, on the
+confirmation screen. They are stored hashed, so that screen is the only place
+they can be read. All three must differ from each other — they are the only
+thing telling the roles apart.
+
 In development the Vite dev server owns port 3000 and proxies `/api` to the API
 on 3001, so the port you open is the same in dev and in production — where a
 single process serves both.

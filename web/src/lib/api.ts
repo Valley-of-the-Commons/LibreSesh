@@ -4,6 +4,7 @@ import type {
   ContributionKind,
   EventDto,
   EventSummary,
+  GeneratedPasswords,
   LinkCodeDto,
   Me,
   PersonDetailDto,
@@ -81,12 +82,20 @@ export const api = {
       timezone: string;
       startDate: string;
       endDate: string;
-      viewerPassword: string;
-      userPassword: string;
-      adminPassword: string;
+      // Omit one and the server generates it, returning it in
+      // `generatedPasswords` — the only time it is ever readable.
+      viewerPassword?: string;
+      userPassword?: string;
+      adminPassword?: string;
       userRoleLabel?: string;
     },
-  ) => request<EventSummary>('POST', '/events', body, { 'X-Instance-Key': instanceKey }),
+  ) =>
+    request<EventSummary & { generatedPasswords: GeneratedPasswords }>(
+      'POST',
+      '/events',
+      body,
+      { 'X-Instance-Key': instanceKey },
+    ),
   cloneEvent: (
     slug: string,
     body: {
