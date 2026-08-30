@@ -58,10 +58,25 @@ COPY --from=build /app/web/dist ./web/dist
 # nothing here: with a bind mount it is a no-op, and without one it quietly
 # conjures an anonymous volume that hides the fact you forgot to mount anything.
 RUN mkdir -p /data && chown -R node:node /data /app
-USER node
+
+# gosu drops privileges without the signal-forwarding and TTY problems `su`
+# brings; the app must stay PID 1 for its graceful shutdown to see SIGTERM.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends gosu \
+  && apt-get clean \
+  && find /var/lib/apt/lists -mindepth 1 -delete
+
+COPY deploy/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Deliberately NOT `USER node`. The mounted volume arrives owned by root, and a
+# container that has already dropped privileges cannot chown it — which is the
+# SQLITE_CANTOPEN crash. The entrypoint starts as root, fixes the volume, and
+# then execs the app as `node`, so the app itself never runs privileged.
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||3000)+'/api/events').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["node", "server/dist/index.js"]
