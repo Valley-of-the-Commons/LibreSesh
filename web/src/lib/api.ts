@@ -4,6 +4,7 @@ import type {
   ContributionKind,
   EventDto,
   EventSummary,
+  LinkCodeDto,
   Me,
   PersonDetailDto,
   PersonDto,
@@ -66,6 +67,10 @@ const encode = encodeURIComponent;
 
 export const api = {
   me: () => request<Me>('GET', '/me'),
+  /** Mint a phrase this device shows so another device can become this identity. */
+  mintLinkCode: () => request<LinkCodeDto>('POST', '/me/link-code'),
+  /** Redeem a phrase from another device — the cookie switches to that identity. */
+  linkDevice: (phrase: string) => request<Me>('POST', '/me/link', { phrase }),
 
   listEvents: () => request<EventSummary[]>('GET', '/events'),
   createEvent: (

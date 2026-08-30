@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { PersonDto, Role } from '@shared/types';
 import { api } from '../lib/api';
+import { DeviceLinkModal } from './DeviceLink';
 import { RoleBadge, useToast } from './ui';
 
 const itemClass =
@@ -43,6 +44,7 @@ export function ProfileMenu({
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [linking, setLinking] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -158,6 +160,17 @@ export function ProfileMenu({
           >
             Subscribe
           </button>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={() => {
+              setOpen(false);
+              setLinking(true);
+            }}
+            className={itemClass}
+          >
+            Link another device
+          </button>
           <div
             role="separator"
             className="my-1 border-t border-stone-200 dark:border-stone-700"
@@ -175,6 +188,8 @@ export function ProfileMenu({
           </button>
         </div>
       )}
+
+      {linking && <DeviceLinkModal onClose={() => setLinking(false)} />}
     </div>
   );
 }

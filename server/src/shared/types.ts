@@ -15,6 +15,12 @@ export interface Me {
   demoMode: boolean;
 }
 
+/** A short-lived phrase that lets another device adopt this identity. */
+export interface LinkCodeDto {
+  phrase: string;
+  expiresAt: string;
+}
+
 export interface EventSummary {
   slug: string;
   name: string;

@@ -17,6 +17,19 @@ function randomString(length: number, alphabet: string): string {
 }
 
 export const newIdentityToken = (): string => randomString(TOKEN_LENGTH, BASE62);
+
+/** One place for the cookie's attributes: minting on first contact and
+ *  adopting another device's identity must set exactly the same cookie. */
+export function setIdentityCookie(res: Response, token: string, isProd: boolean): void {
+  res.cookie(COOKIE_NAME, token, {
+    httpOnly: true,
+    signed: true,
+    sameSite: 'lax',
+    secure: isProd,
+    maxAge: COOKIE_MAX_AGE_MS,
+    path: '/',
+  });
+}
 /** Suffixed so two people in the same room can tell each other apart. */
 export const newDisplayName = (): string => `attendee_${randomString(5, LOWER36)}`;
 
@@ -64,14 +77,7 @@ export function identityMiddleware(db: Db, isProd: boolean) {
         last_seen_at: now,
         ics_token: null,
       };
-      res.cookie(COOKIE_NAME, token, {
-        httpOnly: true,
-        signed: true,
-        sameSite: 'lax',
-        secure: isProd,
-        maxAge: COOKIE_MAX_AGE_MS,
-        path: '/',
-      });
+      setIdentityCookie(res, token, isProd);
     } else if (identity.last_seen_at.slice(0, 16) !== now.slice(0, 16)) {
       // Throttle the write to once a minute — this runs on every request.
       touch.run(now, identity.id);

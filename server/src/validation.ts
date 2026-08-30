@@ -41,6 +41,8 @@ export const isoInstantSchema = z
 
 export const renameSchema = z.object({ displayName: displayNameSchema });
 
+export const linkPhraseSchema = z.object({ phrase: z.string().min(1).max(120) });
+
 export const createEventSchema = z
   .object({
     name: trimmed(120),

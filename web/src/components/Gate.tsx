@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Me, Role } from '@shared/types';
 import { ApiError, api } from '../lib/api';
+import { useMe } from '../lib/useMe';
 import { Field, PrimaryButton, SecondaryButton, inputClass } from './ui';
 
 export interface GateProps {
@@ -12,10 +13,34 @@ export interface GateProps {
 
 /** Full-screen password gate — an event's schedule is never public (SPEC §3.2). */
 export function Gate({ slug, eventName, me, onEntered }: GateProps) {
+  const { refresh } = useMe();
   const [password, setPassword] = useState('');
   const [name, setName] = useState(me?.displayName ?? '');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // The device-link path: type the phrase your other device shows, become it.
+  const [linkMode, setLinkMode] = useState(false);
+  const [phrase, setPhrase] = useState('');
+
+  const link = async () => {
+    if (!phrase.trim() || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.linkDevice(phrase.trim());
+      // The cookie now points at the other device's identity; its roles come
+      // with it, so a re-fetch usually walks straight through the gate.
+      await refresh();
+      onEntered();
+    } catch (err) {
+      setError(
+        err instanceof ApiError && err.status !== 403
+          ? err.message
+          : 'That phrase didn’t match — codes work once and expire after 10 minutes.',
+      );
+      setBusy(false);
+    }
+  };
 
   const submit = async () => {
     if (!password.trim() || busy) return;
@@ -108,7 +133,9 @@ export function Gate({ slug, eventName, me, onEntered }: GateProps) {
             className={`${inputClass} ${error ? 'border-red-400' : ''}`}
           />
         </Field>
-        {error && <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{error}</p>}
+        {error && !linkMode && (
+          <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{error}</p>
+        )}
 
         <PrimaryButton className="mt-4 w-full py-2 text-sm" onClick={() => void submit()} disabled={busy}>
           {busy ? 'Checking…' : 'Enter schedule'}
@@ -125,6 +152,47 @@ export function Gate({ slug, eventName, me, onEntered }: GateProps) {
               className={inputClass}
             />
           </Field>
+        </div>
+
+        <div className="mt-4 border-t border-stone-100 dark:border-stone-800 pt-4">
+          {linkMode ? (
+            <>
+              <Field
+                label="Link phrase"
+                hint="On your other device, open the menu behind your name and choose “Link another device”."
+              >
+                <input
+                  value={phrase}
+                  onChange={(e) => setPhrase(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && void link()}
+                  placeholder="house-dog-erratic"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  className={inputClass}
+                />
+              </Field>
+              {error && <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{error}</p>}
+              <PrimaryButton
+                className="mt-3 w-full py-2 text-sm"
+                onClick={() => void link()}
+                disabled={busy}
+              >
+                {busy ? 'Linking…' : 'Link this device'}
+              </PrimaryButton>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setLinkMode(true);
+                setError(null);
+              }}
+              className="text-xs text-stone-500 underline hover:text-stone-700 dark:text-stone-400 dark:hover:text-stone-200"
+            >
+              I’m already here on another device
+            </button>
+          )}
         </div>
       </div>
     </div>

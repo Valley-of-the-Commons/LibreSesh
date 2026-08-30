@@ -1,9 +1,13 @@
 import { Router } from 'express';
 import type { Me, Role } from '../shared/types.js';
+import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
+import { mintLinkCode, redeemLinkCode } from '../deviceLink.js';
 import { claimEventName } from '../eventIdentity.js';
-import { limit } from '../ratelimit.js';
-import { parse, renameSchema } from '../validation.js';
+import { HttpError, forbidden } from '../errors.js';
+import { setIdentityCookie } from '../identity.js';
+import { LIMITS, keysFor, limit } from '../ratelimit.js';
+import { linkPhraseSchema, parse, renameSchema } from '../validation.js';
 
 function rolesFor(ctx: Ctx, identityId: number): Record<string, Role> {
   const rows = ctx.db
@@ -36,6 +40,63 @@ export function meRoutes(ctx: Ctx): Router {
       .prepare('UPDATE identities SET display_name = ? WHERE id = ?')
       .run(displayName, req.identity.id);
     res.json(me(req.identity.id, displayName));
+  });
+
+  /** Show a phrase on this device so another one can become you (SPEC §3.1
+   *  follow-up; spec identity-and-people, A1). */
+  router.post('/me/link-code', limit(ctx.limiter, 'write'), (req, res) => {
+    const code = mintLinkCode(ctx.db, req.identity.id);
+    audit(ctx.db, {
+      identityId: req.identity.id,
+      eventId: null,
+      action: 'link_mint',
+      entity: 'identity',
+      entityId: req.identity.id,
+    });
+    res.json(code);
+  });
+
+  /**
+   * Redeem a phrase minted on another device: this browser's cookie is
+   * repointed at that identity, and the freshly minted one it arrived with is
+   * simply abandoned. Guesses share the password-attempt budget, and like
+   * `/auth` a correct phrase refunds its token.
+   */
+  router.post('/me/link', (req, res) => {
+    const keys = keysFor('auth', req);
+    let retryAfter = 0;
+    for (const key of keys) {
+      retryAfter = Math.max(retryAfter, ctx.limiter.consume(key, LIMITS.auth));
+    }
+    if (retryAfter > 0) {
+      res.setHeader('Retry-After', String(retryAfter));
+      throw new HttpError(429, 'rate_limited', 'Too many attempts — try again later');
+    }
+
+    const { phrase } = parse(linkPhraseSchema, req.body);
+    const identity = redeemLinkCode(ctx.db, phrase);
+    if (!identity) {
+      audit(ctx.db, {
+        identityId: req.identity.id,
+        eventId: null,
+        action: 'link_failed',
+        entity: 'identity',
+        entityId: null,
+      });
+      throw forbidden('That phrase didn’t match — codes work once and expire after 10 minutes');
+    }
+
+    for (const key of keys) ctx.limiter.refund(key, LIMITS.auth);
+    setIdentityCookie(res, identity.token, process.env.NODE_ENV === 'production');
+    // Attributed to the adopted identity; entityId records the one left behind.
+    audit(ctx.db, {
+      identityId: identity.id,
+      eventId: null,
+      action: 'link_redeem',
+      entity: 'identity',
+      entityId: req.identity.id,
+    });
+    res.json(me(identity.id, identity.display_name));
   });
 
   return router;
