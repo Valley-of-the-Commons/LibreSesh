@@ -4,8 +4,8 @@ import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
 import type { ProposalRow } from '../db.js';
 import { conflict, forbidden, notFound } from '../errors.js';
+import { NameResolver } from '../eventIdentity.js';
 import {
-  NameResolver,
   loadSessionDto,
   speakerNames,
   toProposalDto,
@@ -59,7 +59,7 @@ export function proposalRoutes(ctx: Ctx): Router {
       .get(row.id, viewerId);
     return toProposalDto(row, {
       tagIds,
-      authorName: new NameResolver(ctx.db).get(row.created_by),
+      authorName: new NameResolver(ctx.db, row.event_id).get(row.created_by),
       speakerName:
         row.speaker_id === null
           ? ''

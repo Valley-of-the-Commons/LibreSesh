@@ -79,9 +79,15 @@ export const cloneEventSchema = z
 /** Demo instances hand out a role on a click; there is no password to check. */
 export const demoAuthSchema = z.object({
   role: z.enum(['viewer', 'user', 'admin']),
+  displayName: displayNameSchema.optional(),
 });
 
-export const authSchema = z.object({ password: z.string().min(1).max(200) });
+export const authSchema = z.object({
+  password: z.string().min(1).max(200),
+  /** The name to go by inside this event. Optional: without one you keep the
+   *  name you already claimed here, or are seeded from your global default. */
+  displayName: displayNameSchema.optional(),
+});
 
 export const roomSchema = z.object({
   name: trimmed(80),

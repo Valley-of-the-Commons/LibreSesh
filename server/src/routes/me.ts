@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import type { Me, Role } from '../shared/types.js';
 import type { Ctx } from '../context.js';
+import { claimEventName } from '../eventIdentity.js';
 import { limit } from '../ratelimit.js';
 import { parse, renameSchema } from '../validation.js';
 
@@ -35,6 +36,23 @@ export function meRoutes(ctx: Ctx): Router {
       .prepare('UPDATE identities SET display_name = ? WHERE id = ?')
       .run(displayName, req.identity.id);
     res.json(me(req.identity.id, displayName));
+  });
+
+  return router;
+}
+
+/**
+ * Renaming yourself inside one event. Names are unique per event (migration
+ * 009), so this is where the collision is caught; `PATCH /me` above only moves
+ * the global seed and cannot clash with anything.
+ */
+export function eventMeRoutes(ctx: Ctx): Router {
+  const router = Router({ mergeParams: true });
+
+  router.patch('/me', limit(ctx.limiter, 'write'), (req, res) => {
+    const { displayName } = parse(renameSchema, req.body);
+    claimEventName(ctx.db, req.event.id, req.identity.id, displayName);
+    res.json({ displayName });
   });
 
   return router;

@@ -5,7 +5,8 @@ import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
 import type { ContributionRow } from '../db.js';
 import { forbidden, notFound } from '../errors.js';
-import { NameResolver, toContributionDto } from '../mappers.js';
+import { NameResolver } from '../eventIdentity.js';
+import { toContributionDto } from '../mappers.js';
 import { limit } from '../ratelimit.js';
 import { getSession } from '../sessionRules.js';
 import { contributionSchema, hiddenSchema, parse } from '../validation.js';
@@ -27,8 +28,8 @@ export function contributionRoutes(ctx: Ctx): Router {
     return row;
   };
 
-  const dtoFor = (row: ContributionRow) =>
-    toContributionDto(row, new NameResolver(ctx.db).get(row.created_by));
+  const dtoFor = (row: ContributionRow, eventId: number) =>
+    toContributionDto(row, new NameResolver(ctx.db, eventId).get(row.created_by));
 
   router.post(
     '/sessions/:id/contributions',
@@ -51,7 +52,7 @@ export function contributionRoutes(ctx: Ctx): Router {
           req.identity.id,
           new Date().toISOString(),
         );
-      const dto = dtoFor(load(req.event.id, Number(info.lastInsertRowid)));
+      const dto = dtoFor(load(req.event.id, Number(info.lastInsertRowid)), req.event.id);
       audit(ctx.db, {
         identityId: req.identity.id,
         eventId: req.event.id,
@@ -101,7 +102,7 @@ export function contributionRoutes(ctx: Ctx): Router {
       const row = load(req.event.id, Number(req.params.id));
       const { hidden } = parse(hiddenSchema, req.body);
       ctx.db.prepare('UPDATE contributions SET hidden = ? WHERE id = ?').run(hidden ? 1 : 0, row.id);
-      const dto = dtoFor(load(req.event.id, row.id));
+      const dto = dtoFor(load(req.event.id, row.id), req.event.id);
       audit(ctx.db, {
         identityId: req.identity.id,
         eventId: req.event.id,

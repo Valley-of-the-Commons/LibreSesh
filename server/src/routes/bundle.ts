@@ -3,8 +3,8 @@ import type { BundleDto, SessionDetailDto } from '../shared/types.js';
 import { atLeast } from '../auth.js';
 import type { Ctx } from '../context.js';
 import type { ContributionRow, PersonRow, RoomRow, SessionRow, TagRow } from '../db.js';
+import { NameResolver, eventDisplayName } from '../eventIdentity.js';
 import {
-  NameResolver,
   speakerNames,
   tagIdsBySession,
   toContributionDto,
@@ -53,7 +53,7 @@ export function bundleRoutes(ctx: Ctx): Router {
       ctx.db,
       sessions.map((s) => s.id),
     );
-    const names = new NameResolver(ctx.db);
+    const names = new NameResolver(ctx.db, eventId);
     const speakers = speakerNames(ctx.db, eventId);
 
     // Admins see hidden contributions in the count; everyone else does not.
@@ -70,6 +70,8 @@ export function bundleRoutes(ctx: Ctx): Router {
     const bundle: BundleDto = {
       event: toEventDto(req.event),
       role: req.role,
+      displayName:
+        eventDisplayName(ctx.db, eventId, req.identity.id) ?? req.identity.display_name,
       rooms: rooms.map(toRoomDto),
       tags: tags.map(toTagDto),
       sessions: sessions.map((s) =>
@@ -109,7 +111,7 @@ export function bundleRoutes(ctx: Ctx): Router {
 
   router.get('/sessions/:id', limit(ctx.limiter, 'read'), (req, res) => {
     const session = getSession(ctx.db, req.event.id, Number(req.params.id));
-    const names = new NameResolver(ctx.db);
+    const names = new NameResolver(ctx.db, req.event.id);
     const isAdmin = atLeast(req.role, 'admin');
     const contributions = ctx.db
       .prepare<[number, number], ContributionRow>(

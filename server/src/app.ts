@@ -15,7 +15,7 @@ import { bundleRoutes } from './routes/bundle.js';
 import { contributionRoutes } from './routes/contributions.js';
 import { eventAuthRoutes } from './routes/eventAuth.js';
 import { eventRoutes } from './routes/events.js';
-import { meRoutes } from './routes/me.js';
+import { eventMeRoutes, meRoutes } from './routes/me.js';
 import { peopleRoutes } from './routes/people.js';
 import { roomRoutes } from './routes/rooms.js';
 import { proposalRoutes } from './routes/proposals.js';
@@ -57,6 +57,7 @@ export function createApp(db: Db, config: Config): App {
   // The calendar feed authenticates by capability token instead of a cookie.
   event.use(calendarRoutes(ctx));
   event.use(requireRole(db, 'viewer'));
+  event.use(eventMeRoutes(ctx));
   event.use(bundleRoutes(ctx));
   event.use(streamRoutes(ctx));
   event.use(roomRoutes(ctx));

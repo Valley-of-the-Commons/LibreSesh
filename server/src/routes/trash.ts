@@ -4,7 +4,8 @@ import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
 import type { ContributionRow, SessionRow } from '../db.js';
 import { conflict, notFound } from '../errors.js';
-import { NameResolver, loadSessionDto, toContributionDto } from '../mappers.js';
+import { NameResolver } from '../eventIdentity.js';
+import { loadSessionDto, toContributionDto } from '../mappers.js';
 import { limit } from '../ratelimit.js';
 
 /**
@@ -16,7 +17,7 @@ export function trashRoutes(ctx: Ctx): Router {
   const adminWrite = [requireRole(ctx.db, 'admin'), requireWritable, limit(ctx.limiter, 'write')];
 
   router.get('/trash', requireRole(ctx.db, 'admin'), limit(ctx.limiter, 'read'), (req, res) => {
-    const names = new NameResolver(ctx.db);
+    const names = new NameResolver(ctx.db, req.event.id);
     const sessions = ctx.db
       .prepare<[number], SessionRow>(
         `SELECT * FROM sessions WHERE event_id = ? AND deleted_at IS NOT NULL
@@ -97,7 +98,7 @@ export function trashRoutes(ctx: Ctx): Router {
 
     const dto = toContributionDto(
       { ...row, deleted_at: null },
-      new NameResolver(ctx.db).get(row.created_by),
+      new NameResolver(ctx.db, req.event.id).get(row.created_by),
     );
     audit(ctx.db, {
       identityId: req.identity.id,

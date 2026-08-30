@@ -1,7 +1,8 @@
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import { clearRole, getRole, roleForPassword } from '../auth.js';
 import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
+import { claimEventName, eventDisplayName } from '../eventIdentity.js';
 import { HttpError, forbidden } from '../errors.js';
 import { LIMITS, keysFor } from '../ratelimit.js';
 import { authSchema, demoAuthSchema, parse } from '../validation.js';
@@ -12,6 +13,21 @@ import { authSchema, demoAuthSchema, parse } from '../validation.js';
  */
 export function eventAuthRoutes(ctx: Ctx): Router {
   const router = Router({ mergeParams: true });
+
+  /**
+   * Names are unique per event (migration 009), so entry is where one is
+   * claimed. Runs before the role is granted: a clash must leave you outside
+   * the event, back at the gate with a name to change, not inside it nameless.
+   */
+  const claim = (req: Request, desired?: string): void => {
+    const held = eventDisplayName(ctx.db, req.event.id, req.identity.id);
+    claimEventName(
+      ctx.db,
+      req.event.id,
+      req.identity.id,
+      desired ?? held ?? req.identity.display_name,
+    );
+  };
 
   const grant = (identityId: number, eventId: number, role: string): void => {
     ctx.db
@@ -26,7 +42,8 @@ export function eventAuthRoutes(ctx: Ctx): Router {
     // On a demo instance the gate is a role picker, not a password prompt.
     // There is no secret to brute-force here, so no rate limiting either.
     if (ctx.config.demoMode) {
-      const { role } = parse(demoAuthSchema, req.body);
+      const { role, displayName } = parse(demoAuthSchema, req.body);
+      claim(req, displayName);
       grant(req.identity.id, req.event.id, role);
       audit(ctx.db, {
         identityId: req.identity.id,
@@ -51,7 +68,7 @@ export function eventAuthRoutes(ctx: Ctx): Router {
       throw new HttpError(429, 'rate_limited', 'Too many password attempts — try again later');
     }
 
-    const { password } = parse(authSchema, req.body);
+    const { password, displayName } = parse(authSchema, req.body);
     const role = roleForPassword(req.event, password);
     if (!role) {
       audit(ctx.db, {
@@ -65,6 +82,7 @@ export function eventAuthRoutes(ctx: Ctx): Router {
     }
 
     for (const key of keys) ctx.limiter.refund(key, LIMITS.auth);
+    claim(req, displayName);
     grant(req.identity.id, req.event.id, role);
     res.json({ role });
   });

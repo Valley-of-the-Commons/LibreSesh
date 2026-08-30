@@ -6,6 +6,8 @@ export type ContributionKind = 'note' | 'link' | 'question';
 
 export interface Me {
   id: number;
+  /** The name you are offered when entering a new event. Inside an event the
+   *  name that counts is `BundleDto.displayName`. */
   displayName: string;
   /** Role held per event slug. Absent slug = no access. */
   roles: Record<string, Role>;
@@ -125,6 +127,9 @@ export interface ProposalDto {
 export interface BundleDto {
   event: EventDto;
   role: Role;
+  /** What you go by inside this event. Names are unique per event, not
+   *  globally, so this is not necessarily `Me.displayName`. */
+  displayName: string;
   rooms: RoomDto[];
   tags: TagDto[];
   sessions: SessionDto[];

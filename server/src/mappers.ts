@@ -20,6 +20,8 @@ import type {
   TagRow,
 } from './db.js';
 
+import { NameResolver } from './eventIdentity.js';
+
 export const toEventSummary = (e: EventRow): EventSummary => ({
   slug: e.slug,
   name: e.name,
@@ -76,26 +78,6 @@ export const toPersonDto = (row: PersonRow, viewerIdentityId: number): PersonDto
   updatedAt: row.updated_at,
 });
 
-/** Cheap per-request cache so a bundle resolves each author name once. */
-export class NameResolver {
-  private readonly cache = new Map<number, string>();
-  private readonly stmt;
-
-  constructor(db: Db) {
-    this.stmt = db.prepare<[number], { display_name: string }>(
-      'SELECT display_name FROM identities WHERE id = ?',
-    );
-  }
-
-  get(identityId: number): string {
-    const hit = this.cache.get(identityId);
-    if (hit !== undefined) return hit;
-    const name = this.stmt.get(identityId)?.display_name ?? 'unknown';
-    this.cache.set(identityId, name);
-    return name;
-  }
-}
-
 export function tagIdsBySession(db: Db, sessionIds: number[]): Map<number, number[]> {
   const out = new Map<number, number[]>();
   if (sessionIds.length === 0) return out;
@@ -151,7 +133,7 @@ export function speakerNames(db: Db, eventId: number): Map<number, string> {
 /** Load one session as a DTO (tags, author and speaker resolved). */
 export function loadSessionDto(db: Db, row: SessionRow): SessionDto {
   const tagIds = tagIdsBySession(db, [row.id]).get(row.id) ?? [];
-  const names = new NameResolver(db);
+  const names = new NameResolver(db, row.event_id);
   const speaker =
     row.speaker_id === null
       ? ''
@@ -174,7 +156,7 @@ export function loadProposalDtos(
     .all(eventId);
   if (rows.length === 0) return [];
 
-  const names = new NameResolver(db);
+  const names = new NameResolver(db, eventId);
   const speakers = speakerNames(db, eventId);
 
   const tags = new Map<number, number[]>();
