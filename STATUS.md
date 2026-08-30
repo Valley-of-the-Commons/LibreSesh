@@ -108,6 +108,10 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
   front end and `deploy/backup.sh` have never actually been run. Treat the
   first VPS deploy as their real test.
   Railway-specific notes live in `_planning/deployment-guide.md` §10.
+  The first deploy also ran with **no volume attached**, so a rebuild destroyed
+  the event on it; that failure mode is now a startup error rather than silent
+  data loss (`server/src/storage.ts`), but the running instance still needs its
+  volume checked and the data re-created.
 - **No component test coverage, and no error boundary.** 305 tests, and the
   only web-side ones (`format.test.ts`, `calendar.test.ts`) cover pure
   functions — there is no jsdom/testing-library stack, so nothing renders a
