@@ -268,33 +268,44 @@ export function Calendar({
       style={{ maxHeight: 'calc(100vh - 200px)' }}
     >
       <div className="relative" style={{ width: GUTTER_W + rooms.length * COL_W }}>
-        {/* The room band is deliberately a different surface from the grid
-            below, with its own axis label. Unlabelled columns over a time grid
-            read as weekdays — this is a room axis, and has to say so. */}
-        <div className="sticky top-0 z-20 flex border-b-2 border-stone-300 bg-stone-100/95 shadow-sm backdrop-blur dark:border-stone-600 dark:bg-stone-800/95">
-          <div
-            className="flex shrink-0 items-end justify-end pb-2 pr-2"
-            style={{ width: GUTTER_W }}
-          >
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">
-              Room
-            </span>
+        {/*
+          Each room is a detached card, not a table header cell: a row of
+          bordered cells sitting flush on a time grid reads as one table, and
+          then as weekdays. The cards keep the column width so they still line
+          up with the grid, but the gaps between them and the painted gap below
+          say "these are labels for the columns", not "this is row zero".
+        */}
+        <div className="sticky top-0 z-20 flex bg-white/95 pb-3 pt-1 backdrop-blur dark:bg-stone-900/95">
+          <div className="shrink-0 px-1" style={{ width: GUTTER_W }}>
+            {/* Same padding and border box as a card, so the label sits on the
+                same line as the room names rather than floating. */}
+            <div className="border border-transparent py-2 text-right text-xs leading-4">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
+                Room
+              </span>
+            </div>
           </div>
           {rooms.map((room) => (
-            <div
-              key={room.id}
-              className="border-l border-stone-200 px-3 py-2 dark:border-stone-700"
-              style={{ width: COL_W }}
-            >
-              <div className="truncate text-xs font-semibold">{room.name}</div>
-              <div className="truncate text-xs text-stone-400 dark:text-stone-500">
-                {room.capacity ? `${room.capacity} seats` : 'no capacity set'}
-                {room.openTrack && (
-                  <>
-                    {' · '}
-                    <span className="font-medium text-emerald-700 dark:text-emerald-400">open track</span>
-                  </>
-                )}
+            <div key={room.id} className="shrink-0 px-1" style={{ width: COL_W }}>
+              <div
+                className={`rounded-lg border px-3 py-2 ${
+                  room.openTrack
+                    ? 'border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/50'
+                    : 'border-stone-200 bg-stone-50 dark:border-stone-700 dark:bg-stone-800'
+                }`}
+              >
+                <div className="truncate text-xs font-semibold">{room.name}</div>
+                <div className="truncate text-xs text-stone-400 dark:text-stone-500">
+                  {room.capacity ? `${room.capacity} seats` : 'no capacity set'}
+                  {room.openTrack && (
+                    <>
+                      {' · '}
+                      <span className="font-medium text-emerald-700 dark:text-emerald-400">
+                        anyone may book
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           ))}
