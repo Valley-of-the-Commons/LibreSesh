@@ -23,26 +23,11 @@ milestone is one commit (commit policy: milestones).
 - [ ] Replace invisible blur-to-save with an explicit edit affordance.
 - [ ] Apply new primitives across AdminPage; remove every `underline`.
 
-## M2b — Rooms vs tracks (DECIDED 2026-08-29)
+## M2b — Rooms vs tracks — DROPPED 2026-08-30
 
-Today `rooms.open_track` is a boolean meaning "attendees may schedule here", so
-"track" is an adjective on a room. Tracks and rooms are separate things — one
-room hosts many tracks over a day.
-
-Naming: **rooms stay "rooms"**, in the UI and in the code. An earlier draft of
-this plan renamed them "venues"; that did not follow from the tracks insight
-and was reverted 2026-08-30.
-
-- [ ] Migration: `tags.kind TEXT NOT NULL DEFAULT 'label'` ('label' | 'track').
-      A track is a promoted tag — reuses colour, filters, CRUD, session-tag
-      join. No third entity.
-- [ ] Migration: rename `rooms.open_track` -> `rooms.open_booking`. The column
-      is about who may schedule, not about tracks.
-- [ ] Grid: columns stay rooms, header row explicitly labelled **Room**
-      (currently unlabelled and so ambiguous). Add a "column by: Room | Track"
-      toggle.
-- [ ] Track colour renders as a spine on session blocks.
-- [ ] Admin: tags section splits into Tracks and Labels.
+Descoped at the user's call: not a work item. Rewritten as a tiered backlog
+entry in STATUS.md ("Grid columns read as tracks, not rooms"), where the cheap
+relabel is separated from the speculative track feature.
 
 ## M3 — Permissions matrix (server)
 
