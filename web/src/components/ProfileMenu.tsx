@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Me, PersonDto, Role } from '@shared/types';
+import type { PersonDto, Role } from '@shared/types';
 import { api } from '../lib/api';
 import { RoleBadge, useToast } from './ui';
 
@@ -10,7 +10,9 @@ const itemClass =
   'dark:text-stone-200 dark:hover:bg-stone-800 dark:focus-visible:bg-stone-800';
 
 export interface ProfileMenuProps {
-  me: Me | null;
+  /** What you go by *in this event* — names are unique per event, so this is
+   *  not necessarily `Me.displayName`. */
+  displayName: string;
   slug: string;
   role: Role;
   userLabel: string;
@@ -27,7 +29,7 @@ export interface ProfileMenuProps {
  * could change who you are.
  */
 export function ProfileMenu({
-  me,
+  displayName,
   slug,
   role,
   userLabel,
@@ -110,7 +112,7 @@ export function ProfileMenu({
         aria-expanded={open}
         className="flex items-center gap-2 rounded-full border border-stone-300 bg-white px-3 py-1.5 text-xs font-medium hover:border-stone-400 dark:border-stone-600 dark:bg-stone-900 dark:hover:border-stone-500"
       >
-        <span className="max-w-24 truncate">{me?.displayName ?? '…'}</span>
+        <span className="max-w-24 truncate">{displayName}</span>
         <RoleBadge role={role} userLabel={userLabel} />
       </button>
 

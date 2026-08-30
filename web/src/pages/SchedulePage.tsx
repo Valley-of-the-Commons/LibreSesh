@@ -43,7 +43,7 @@ export function SchedulePage() {
   const { slug = "", sessionId } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
-  const { me, setMe } = useMe();
+  const { me } = useMe();
   const data = useEventData(slug);
   const filters = useFilters();
 
@@ -420,12 +420,7 @@ export function SchedulePage() {
   if (data.status === "loading") return <Spinner label="Loading schedule…" />;
   if (data.status === "gate") {
     return (
-      <Gate
-        slug={slug}
-        me={me}
-        onMe={setMe}
-        onEntered={() => void data.reload()}
-      />
+      <Gate slug={slug} me={me} onEntered={() => void data.reload()} />
     );
   }
   if (data.status === "error" || !bundle || !event) {
@@ -587,7 +582,7 @@ export function SchedulePage() {
               ?
             </button>
             <ProfileMenu
-              me={me}
+              displayName={bundle.displayName}
               slug={slug}
               role={role}
               userLabel={event.userRoleLabel}

@@ -5,7 +5,6 @@ import { ApiError, api } from '../lib/api';
 import { dayLabel, fmtMin, place, todayInZone } from '../lib/format';
 import { renderMarkdown } from '../lib/markdown';
 import { useEventData } from '../lib/useEventData';
-import { useMe } from '../lib/useMe';
 import {
   EmptyState,
   Field,
@@ -190,6 +189,8 @@ export function ProfilePage() {
           person={person}
           asAdmin={!!isAdmin && !person.isMine}
           mine={person.isMine}
+          displayName={bundle?.displayName ?? ''}
+          onRenamed={() => void data.reload()}
           onClose={() => setEditing(false)}
           onSaved={(updated) => {
             setDetail((d) => (d ? { ...d, person: updated } : d));
@@ -208,6 +209,8 @@ function ProfileEditor({
   person,
   asAdmin,
   mine,
+  displayName,
+  onRenamed,
   onClose,
   onSaved,
 }: {
@@ -215,14 +218,16 @@ function ProfileEditor({
   person: PersonDto;
   asAdmin: boolean;
   /** Whether this profile belongs to the caller — only then is the display
-   *  name theirs to edit, since `api.rename` always writes *your* identity. */
+   *  name theirs to edit, since a rename always writes *your* identity. */
   mine: boolean;
+  /** The caller's name in this event, seeding the field above. */
+  displayName: string;
+  onRenamed: () => void;
   onClose: () => void;
   onSaved: (person: PersonDto) => void;
 }) {
   const toast = useToast();
-  const { me, setMe } = useMe();
-  const [displayName, setDisplayName] = useState(me?.displayName ?? '');
+  const [nextDisplayName, setNextDisplayName] = useState(displayName);
   const [name, setName] = useState(person.name);
   const [bio, setBio] = useState(person.bio);
   const [links, setLinks] = useState<PersonLink[]>(person.links);
@@ -238,13 +243,12 @@ function ProfileEditor({
     setBusy(true);
     try {
       // Your display name and this profile are two separate records, so saving
-      // makes two calls. The rename goes first: a failure there leaves nothing
-      // to undo, where a saved profile followed by a failed rename would leave
-      // the form half-applied.
-      const nextDisplay = displayName.trim();
-      if (mine && nextDisplay && nextDisplay !== me?.displayName) {
-        setMe(await api.rename(nextDisplay));
-      }
+      // makes two calls. The rename goes first: it is the one that can be
+      // refused — names are unique inside an event — and a saved profile
+      // followed by a rejected rename would leave the form half-applied.
+      const wanted = nextDisplayName.trim();
+      const renamed = mine && wanted !== '' && wanted !== displayName;
+      if (renamed) await api.renameInEvent(slug, wanted);
       const body = {
         name: name.trim(),
         bio: bio.trim(),
@@ -256,6 +260,7 @@ function ProfileEditor({
         ? await api.updatePerson(slug, person.id, body)
         : await api.updateMyProfile(slug, body);
       onSaved(updated);
+      if (renamed) onRenamed();
       onClose();
       toast.show('Profile saved');
     } catch (err) {
@@ -271,11 +276,11 @@ function ProfileEditor({
       {mine && (
         <Field
           label="Display name"
-          hint="How you appear in the header and on anything you post. Saved on this device — no account needed."
+          hint="How you appear in this event, on the header chip and anything you post. Must be unlike anyone else's here."
         >
           <input
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
+            value={nextDisplayName}
+            onChange={(e) => setNextDisplayName(e.target.value)}
             maxLength={40}
             className={inputClass}
             autoFocus

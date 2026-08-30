@@ -65,7 +65,6 @@ const encode = encodeURIComponent;
 
 export const api = {
   me: () => request<Me>('GET', '/me'),
-  rename: (displayName: string) => request<Me>('PATCH', '/me', { displayName }),
 
   listEvents: () => request<EventSummary[]>('GET', '/events'),
   createEvent: (
@@ -102,11 +101,17 @@ export const api = {
       instanceKey ? { 'X-Instance-Key': instanceKey } : {},
     ),
 
-  authenticate: (slug: string, password: string) =>
-    request<{ role: Role }>('POST', `/e/${encode(slug)}/auth`, { password }),
+  /** `displayName` is claimed inside the event, where names are unique. A 409
+   *  means someone here already has it — nothing is granted, so the gate can
+   *  ask again. */
+  authenticate: (slug: string, password: string, displayName?: string) =>
+    request<{ role: Role }>('POST', `/e/${encode(slug)}/auth`, { password, displayName }),
   /** Demo instances only: the gate picks a role instead of checking a password. */
-  authenticateAsRole: (slug: string, role: Role) =>
-    request<{ role: Role }>('POST', `/e/${encode(slug)}/auth`, { role }),
+  authenticateAsRole: (slug: string, role: Role, displayName?: string) =>
+    request<{ role: Role }>('POST', `/e/${encode(slug)}/auth`, { role, displayName }),
+  /** Rename yourself inside one event. 409 if the name is taken there. */
+  renameInEvent: (slug: string, displayName: string) =>
+    request<{ displayName: string }>('PATCH', `/e/${encode(slug)}/me`, { displayName }),
   logout: (slug: string) => request<void>('POST', `/e/${encode(slug)}/logout`),
 
   bundle: (slug: string) => request<BundleDto>('GET', `/e/${encode(slug)}/bundle`),

@@ -7,12 +7,11 @@ export interface GateProps {
   slug: string;
   eventName?: string;
   me: Me | null;
-  onMe: (me: Me) => void;
   onEntered: () => void;
 }
 
 /** Full-screen password gate — an event's schedule is never public (SPEC §3.2). */
-export function Gate({ slug, eventName, me, onMe, onEntered }: GateProps) {
+export function Gate({ slug, eventName, me, onEntered }: GateProps) {
   const [password, setPassword] = useState('');
   const [name, setName] = useState(me?.displayName ?? '');
   const [error, setError] = useState<string | null>(null);
@@ -23,15 +22,13 @@ export function Gate({ slug, eventName, me, onMe, onEntered }: GateProps) {
     setBusy(true);
     setError(null);
     try {
-      const trimmed = name.trim();
-      if (trimmed && trimmed !== me?.displayName) {
-        onMe(await api.rename(trimmed));
-      }
-      await api.authenticate(slug, password.trim());
+      // The name is claimed as part of entry: it has to be unique inside this
+      // event, and the server grants no role if it is taken.
+      await api.authenticate(slug, password.trim(), name.trim() || undefined);
       onEntered();
     } catch (err) {
       setError(
-        err instanceof ApiError && (err.status === 429 || err.status === 404)
+        err instanceof ApiError && (err.status === 429 || err.status === 404 || err.status === 409)
           ? err.message
           : 'That password doesn’t match this event.',
       );
@@ -45,11 +42,7 @@ export function Gate({ slug, eventName, me, onMe, onEntered }: GateProps) {
     setBusy(true);
     setError(null);
     try {
-      const trimmed = name.trim();
-      if (trimmed && trimmed !== me?.displayName) {
-        onMe(await api.rename(trimmed));
-      }
-      await api.authenticateAsRole(slug, role);
+      await api.authenticateAsRole(slug, role, name.trim() || undefined);
       onEntered();
     } catch (err) {
       setError((err as Error).message);
