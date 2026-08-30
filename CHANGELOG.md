@@ -6,6 +6,12 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- **Organisers no longer get the tour uninvited.** The first visit to an event
+  auto-started the coach-marks for everyone, including the person who had just
+  created it — so the walkthrough of how to read a schedule stood between an
+  organiser and the first thing they came to do. Admins are skipped now; the
+  "?" button still opens it for anyone who wants it.
+
 - **A tall modal is no longer cut off at the top.** The panel was centred with
   `items-center` and capped at `90vh`. An overflowing flex child centred that
   way has its top edge *above* the container's, where no scrolling can reach

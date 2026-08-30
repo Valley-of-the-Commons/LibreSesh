@@ -74,13 +74,19 @@ export function SchedulePage() {
 
   // First visit to this event auto-starts the tour, once the schedule has
   // painted and storage doesn't already say it's been seen.
+  //
+  // Not for organisers: they arrive to run the event, usually straight from
+  // creating it, and coach-marks explaining how to read a schedule are in the
+  // way of the first thing they actually want to do. The "?" button still
+  // opens it on request — this only stops it appearing uninvited.
+  const autoTourRole = data.bundle?.role;
   useEffect(() => {
-    if (data.status !== "ready" || tourSeen(slug)) return;
+    if (data.status !== "ready" || autoTourRole === "admin" || tourSeen(slug)) return;
     const raf = requestAnimationFrame(() => {
       if (document.querySelector("[data-tour]")) setTourOpen(true);
     });
     return () => cancelAnimationFrame(raf);
-  }, [data.status, slug]);
+  }, [data.status, autoTourRole, slug]);
 
   const bundle = data.bundle;
   const event = bundle?.event;
