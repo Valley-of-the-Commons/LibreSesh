@@ -1,5 +1,8 @@
 import { createHash, randomInt } from 'node:crypto';
-import type { Db, IdentityRow } from './db.js';
+import { atLeast } from './auth.js';
+import type { Db, IdentityRow, PersonRow } from './db.js';
+import { claimEventName, eventDisplayName } from './eventIdentity.js';
+import { newIdentityToken } from './identity.js';
 
 /**
  * Link phrases: `pine-otter-lantern`. Three words beat a hex code because a
@@ -111,7 +114,11 @@ export function mintLinkCode(db: Db, identityId: number): { phrase: string; expi
   const now = Date.now();
   const expiresAt = new Date(now + LINK_CODE_TTL_MS).toISOString();
   const phrase = db.transaction(() => {
-    db.prepare('DELETE FROM link_codes WHERE identity_id = ?').run(identityId);
+    // Only this identity's *device* phrase — a speaker code minted against
+    // the same identity must survive.
+    db.prepare('DELETE FROM link_codes WHERE identity_id = ? AND person_id IS NULL').run(
+      identityId,
+    );
     // The hash is UNIQUE across identities; on the off-chance of a collision
     // just roll again.
     for (;;) {
@@ -130,16 +137,20 @@ export function mintLinkCode(db: Db, identityId: number): { phrase: string; expi
 }
 
 /**
- * Redeem a phrase: burns the code and hands back the identity it belongs to.
- * The caller sets that identity's token as the requester's cookie — adoption,
- * not merging. Undefined means wrong, expired, or already used.
+ * Redeem a phrase and hand back the identity it belongs to. The caller sets
+ * that identity's token as the requester's cookie — adoption, not merging.
+ * A device phrase burns on first use; a speaker code (`person_id` set) is
+ * reusable until revoked, `used_at` just recording the last redemption.
+ * Undefined means wrong, expired, used up, or revoked.
  */
 export function redeemLinkCode(db: Db, rawPhrase: string): IdentityRow | undefined {
   return db.transaction((): IdentityRow | undefined => {
     const row = db
       .prepare<[string, string], { id: number; identity_id: number }>(
         `SELECT id, identity_id FROM link_codes
-          WHERE code_hash = ? AND used_at IS NULL AND expires_at > ?`,
+          WHERE code_hash = ?
+            AND (expires_at IS NULL OR expires_at > ?)
+            AND (used_at IS NULL OR person_id IS NOT NULL)`,
       )
       .get(hashPhrase(rawPhrase), new Date().toISOString());
     if (!row) return undefined;
@@ -151,4 +162,84 @@ export function redeemLinkCode(db: Db, rawPhrase: string): IdentityRow | undefin
       .prepare<[number], IdentityRow>('SELECT * FROM identities WHERE id = ?')
       .get(row.identity_id);
   })();
+}
+
+/** Four words, not three: a speaker code lives until revoked. ~37 bits. */
+export const newSpeakerPhrase = (): string =>
+  Array.from({ length: 4 }, () => WORDS[randomInt(WORDS.length)]).join('-');
+
+/**
+ * Mint (or replace) the speaker code for one person. Everything identity-
+ * shaped happens here, at mint time, in the organiser's request — so
+ * redemption stays the dumb adoption `/me/link` already does:
+ *
+ * - an unclaimed person gets a fresh identity attached (nobody's cookie
+ *   points at it until the code is redeemed);
+ * - that identity is raised to the speaker role in this event, never
+ *   downgraded (an organiser who is also a speaker stays an organiser);
+ * - it claims the person's name at this event, suffixed on a collision the
+ *   same way migration 009 resolved them.
+ */
+export function mintSpeakerCode(
+  db: Db,
+  eventId: number,
+  person: PersonRow,
+): { phrase: string } {
+  const now = new Date().toISOString();
+  const phrase = db.transaction(() => {
+    let identityId = person.identity_id;
+    if (identityId === null) {
+      identityId = Number(
+        db
+          .prepare(
+            'INSERT INTO identities (token, display_name, created_at, last_seen_at) VALUES (?, ?, ?, ?)',
+          )
+          .run(newIdentityToken(), person.name, now, now).lastInsertRowid,
+      );
+      db.prepare('UPDATE people SET identity_id = ? WHERE id = ?').run(identityId, person.id);
+    }
+
+    const held = db
+      .prepare<[number, number], { role: 'viewer' | 'user' | 'speaker' | 'admin' }>(
+        'SELECT role FROM roles WHERE identity_id = ? AND event_id = ?',
+      )
+      .get(identityId, eventId);
+    if (!held || !atLeast(held.role, 'speaker')) {
+      db.prepare(
+        `INSERT INTO roles (identity_id, event_id, role, granted_at) VALUES (?, ?, 'speaker', ?)
+         ON CONFLICT(identity_id, event_id) DO UPDATE SET role = excluded.role, granted_at = excluded.granted_at`,
+      ).run(identityId, eventId, now);
+    }
+
+    if (!eventDisplayName(db, eventId, identityId)) {
+      const base = person.name.slice(0, 40);
+      try {
+        claimEventName(db, eventId, identityId, base);
+      } catch {
+        const suffix = ` #${identityId}`;
+        claimEventName(db, eventId, identityId, base.slice(0, 40 - suffix.length) + suffix);
+      }
+    }
+
+    db.prepare('DELETE FROM link_codes WHERE person_id = ?').run(person.id);
+    for (;;) {
+      const candidate = newSpeakerPhrase();
+      try {
+        db.prepare(
+          `INSERT INTO link_codes (identity_id, person_id, code_hash, created_at, expires_at)
+           VALUES (?, ?, ?, ?, NULL)`,
+        ).run(identityId, person.id, hashPhrase(candidate), now);
+        return candidate;
+      } catch (err) {
+        if (!String(err).includes('UNIQUE')) throw err;
+      }
+    }
+  })();
+  return { phrase };
+}
+
+/** Revoke a person's speaker code. Devices already linked keep the identity —
+ *  an organiser who wants them out changes the role, not the code. */
+export function revokeSpeakerCode(db: Db, personId: number): void {
+  db.prepare('DELETE FROM link_codes WHERE person_id = ?').run(personId);
 }

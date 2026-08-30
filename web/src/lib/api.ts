@@ -157,6 +157,11 @@ export const api = {
     request<PersonDto>('PATCH', `/e/${encode(slug)}/people/${id}`, body),
   deletePerson: (slug: string, id: number) =>
     request<void>('DELETE', `/e/${encode(slug)}/people/${id}`),
+  /** Mint (or replace) a person's speaker code; the phrase is shown only once. */
+  mintSpeakerCode: (slug: string, id: number) =>
+    request<{ phrase: string }>('POST', `/e/${encode(slug)}/people/${id}/speaker-code`),
+  revokeSpeakerCode: (slug: string, id: number) =>
+    request<void>('DELETE', `/e/${encode(slug)}/people/${id}/speaker-code`),
   /** Fold profile `from` into `id`: sessions/pitches repoint, `from` disappears. */
   mergePerson: (slug: string, id: number, from: number) =>
     request<PersonDto>('POST', `/e/${encode(slug)}/people/${id}/merge`, { from }),

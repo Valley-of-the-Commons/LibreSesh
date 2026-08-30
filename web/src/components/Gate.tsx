@@ -36,7 +36,7 @@ export function Gate({ slug, eventName, me, onEntered }: GateProps) {
       setError(
         err instanceof ApiError && err.status !== 403
           ? err.message
-          : 'That phrase didn’t match — codes work once and expire after 10 minutes.',
+          : 'That phrase didn’t match — it may have expired or been revoked.',
       );
       setBusy(false);
     }
@@ -159,7 +159,7 @@ export function Gate({ slug, eventName, me, onEntered }: GateProps) {
             <>
               <Field
                 label="Link phrase"
-                hint="On your other device, open the menu behind your name and choose “Link another device”."
+                hint="From “Link another device” in the menu behind your name on your other device — or the speaker phrase an organiser gave you."
               >
                 <input
                   value={phrase}

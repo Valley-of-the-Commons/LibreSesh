@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { atLeast, requireRole, requireWritable } from '../auth.js';
 import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
+import { mintSpeakerCode, revokeSpeakerCode } from '../deviceLink.js';
 import type { PersonRow, SessionRow } from '../db.js';
 import { badRequest, conflict, forbidden, notFound } from '../errors.js';
 import { loadSessionDto, toPersonDto } from '../mappers.js';
@@ -276,6 +277,57 @@ export function peopleRoutes(ctx: Ctx): Router {
         }
       }
       res.json(dto);
+    },
+  );
+
+  /**
+   * Mint (or replace) this person's speaker code (identity spec, follow-up).
+   * The phrase is returned once and stored only as a hash; minting attaches an
+   * identity to an unclaimed person and raises it to the speaker role, so the
+   * fresh person DTO is broadcast.
+   */
+  router.post(
+    '/people/:id/speaker-code',
+    requireRole(ctx.db, 'admin'),
+    requireWritable,
+    limit(ctx.limiter, 'write'),
+    (req, res) => {
+      const person = load(req.event.id, Number(req.params.id));
+      const { phrase } = mintSpeakerCode(ctx.db, req.event.id, person);
+      audit(ctx.db, {
+        identityId: req.identity.id,
+        eventId: req.event.id,
+        action: 'speaker_code_mint',
+        entity: 'person',
+        entityId: person.id,
+      });
+      ctx.broker.publish(
+        req.event.slug,
+        'person.updated',
+        toPersonDto(load(req.event.id, person.id), req.identity.id),
+      );
+      res.json({ phrase });
+    },
+  );
+
+  /** Revoke the code. Devices that already redeemed it keep the identity —
+   *  taking the *role* away is a separate, deliberate act. */
+  router.delete(
+    '/people/:id/speaker-code',
+    requireRole(ctx.db, 'admin'),
+    requireWritable,
+    limit(ctx.limiter, 'write'),
+    (req, res) => {
+      const person = load(req.event.id, Number(req.params.id));
+      revokeSpeakerCode(ctx.db, person.id);
+      audit(ctx.db, {
+        identityId: req.identity.id,
+        eventId: req.event.id,
+        action: 'speaker_code_revoke',
+        entity: 'person',
+        entityId: person.id,
+      });
+      res.status(204).end();
     },
   );
 

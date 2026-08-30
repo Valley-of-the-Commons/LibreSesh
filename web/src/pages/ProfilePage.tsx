@@ -159,6 +159,14 @@ export function ProfilePage() {
               ))}
             </ul>
           )}
+
+          {isAdmin && (
+            <SpeakerAccess
+              slug={slug}
+              person={person}
+              onChanged={() => void data.reload()}
+            />
+          )}
         </div>
 
         <h2 className="mb-2 mt-6 text-sm font-semibold">Sessions</h2>
@@ -453,5 +461,85 @@ function MergeModal({
         </PrimaryButton>
       </div>
     </Modal>
+  );
+}
+
+/**
+ * Organiser-only: mint or revoke this person's speaker phrase. The phrase is
+ * shown exactly once, at mint — the server keeps only a hash. Whoever types
+ * it at any gate becomes this person with the speaker role, on any number of
+ * devices, until it is revoked.
+ */
+function SpeakerAccess({
+  slug,
+  person,
+  onChanged,
+}: {
+  slug: string;
+  person: PersonDto;
+  onChanged: () => void;
+}) {
+  const toast = useToast();
+  const [phrase, setPhrase] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const mint = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await api.mintSpeakerCode(slug, person.id);
+      setPhrase(res.phrase);
+      onChanged();
+    } catch (err) {
+      toast.show((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const revoke = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await api.revokeSpeakerCode(slug, person.id);
+      setPhrase(null);
+      toast.show('Speaker phrase revoked');
+    } catch (err) {
+      toast.show((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-4 border-t border-stone-100 pt-3 dark:border-stone-800">
+      <div className="flex items-center gap-2">
+        <span className="flex-1 text-xs font-semibold text-stone-500 dark:text-stone-400">
+          Speaker access
+        </span>
+        <SecondaryButton className="py-1 text-xs" onClick={() => void mint()} disabled={busy}>
+          {phrase ? 'New phrase' : 'Generate phrase'}
+        </SecondaryButton>
+        <SecondaryButton className="py-1 text-xs" onClick={() => void revoke()} disabled={busy}>
+          Revoke
+        </SecondaryButton>
+      </div>
+      {phrase ? (
+        <>
+          <div className="mt-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 text-center font-mono text-sm font-semibold dark:border-stone-700 dark:bg-stone-800">
+            {phrase}
+          </div>
+          <p className="mt-1.5 text-xs text-stone-500 dark:text-stone-400">
+            Shown once — give it to {person.name}. Typing it at the event gate signs them in as
+            this profile with the speaker role, from any device, until you revoke it.
+          </p>
+        </>
+      ) : (
+        <p className="mt-1.5 text-xs text-stone-500 dark:text-stone-400">
+          A phrase {person.name} can type at the gate to become this profile, with the speaker
+          role. Generating a new one replaces the old.
+        </p>
+      )}
+    </div>
   );
 }
