@@ -5,6 +5,7 @@ import { ApiError, api } from '../lib/api';
 import { dayLabel, fmtMin, place, todayInZone } from '../lib/format';
 import { renderMarkdown } from '../lib/markdown';
 import { useEventData } from '../lib/useEventData';
+import { useMe } from '../lib/useMe';
 import {
   EmptyState,
   Field,
@@ -188,6 +189,7 @@ export function ProfilePage() {
           slug={slug}
           person={person}
           asAdmin={!!isAdmin && !person.isMine}
+          mine={person.isMine}
           onClose={() => setEditing(false)}
           onSaved={(updated) => {
             setDetail((d) => (d ? { ...d, person: updated } : d));
@@ -205,16 +207,22 @@ function ProfileEditor({
   slug,
   person,
   asAdmin,
+  mine,
   onClose,
   onSaved,
 }: {
   slug: string;
   person: PersonDto;
   asAdmin: boolean;
+  /** Whether this profile belongs to the caller — only then is the display
+   *  name theirs to edit, since `api.rename` always writes *your* identity. */
+  mine: boolean;
   onClose: () => void;
   onSaved: (person: PersonDto) => void;
 }) {
   const toast = useToast();
+  const { me, setMe } = useMe();
+  const [displayName, setDisplayName] = useState(me?.displayName ?? '');
   const [name, setName] = useState(person.name);
   const [bio, setBio] = useState(person.bio);
   const [links, setLinks] = useState<PersonLink[]>(person.links);
@@ -229,6 +237,14 @@ function ProfileEditor({
     if (!name.trim() || busy) return;
     setBusy(true);
     try {
+      // Your display name and this profile are two separate records, so saving
+      // makes two calls. The rename goes first: a failure there leaves nothing
+      // to undo, where a saved profile followed by a failed rename would leave
+      // the form half-applied.
+      const nextDisplay = displayName.trim();
+      if (mine && nextDisplay && nextDisplay !== me?.displayName) {
+        setMe(await api.rename(nextDisplay));
+      }
       const body = {
         name: name.trim(),
         bio: bio.trim(),
@@ -252,13 +268,30 @@ function ProfileEditor({
   return (
     <Modal title="Edit profile" onClose={onClose}>
       <FormStack>
-      <Field label="Name">
+      {mine && (
+        <Field
+          label="Display name"
+          hint="How you appear in the header and on anything you post. Saved on this device — no account needed."
+        >
+          <input
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            maxLength={40}
+            className={inputClass}
+            autoFocus
+          />
+        </Field>
+      )}
+      <Field
+        label="Name"
+        hint={mine ? 'The name on this profile — what sessions you host are credited to.' : undefined}
+      >
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={120}
           className={inputClass}
-          autoFocus
+          autoFocus={!mine}
         />
       </Field>
       <Field label="Bio" hint="Markdown is supported.">

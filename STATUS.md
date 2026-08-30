@@ -14,9 +14,12 @@ plan lives in `_planning/plans/2026-08-29-ui-overhaul-permissions-pitches.md`:
 - **Pitch board.** Always show the creator, default the creator as host,
   up/down votes replacing proposal interest, and a hot/new split. Not started.
 - **Whole-app UI sweep.** The primitives landed and the admin page is done;
-  27 underline usages remain across SchedulePage, ProposalBoard, DetailSheet,
-  ProfilePage, EventListPage, NewEventPage, IdentityPanel and Tour. Links
-  inside rendered markdown keep their underline deliberately.
+  20 underline usages remain across SchedulePage (4), ProposalBoard (4),
+  DetailSheet (4), ProfilePage (5), EventListPage (1), NewEventPage (1) and
+  Tour (1). The count excludes the three `[&_a]:underline` in prose wrappers —
+  links inside rendered markdown keep their underline deliberately — and
+  IdentityPanel, which was deleted on 2026-08-30 when the identity modal became
+  a menu.
 - **ARCHITECTURE.md concurrency paragraph.** §Realtime documents broadcast and
   heartbeats but never states the model: last-write-wins, `assertNotStale`
   409 on an `updated_at` mismatch, no CRDT by design.
@@ -38,13 +41,14 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 
 ## High Priority
 
+- It should be possible to change name of the main event. Preferably also the link (subpage).
 - **Display names are not unique.** `PATCH /me` writes
   `identities.display_name` with no collision check at all (`me.ts:35`), so any
   number of people can call themselves the same thing — including copying an
-  organiser's name. Note the field is *global*, not per event, so "already
+  organiser's name. Note the field is _global_, not per event, so "already
   taken" needs deciding first: unique per event is what an attendee would
   expect, but the column is shared across every event an identity attends.
-  Related: [_planning/specs/identity-and-people.md](_planning/specs/identity-and-people.md),
+  Related: [\_planning/specs/identity-and-people.md](_planning/specs/identity-and-people.md),
   where the same column is what a second device cannot reclaim.
 - **People dedupe/merge.** Anyone who can create a session or a pitch can create
   a person by typing a new speaker name, so "A. Lovelace" and "Ada Lovelace" can

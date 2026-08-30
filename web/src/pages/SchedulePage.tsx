@@ -20,9 +20,9 @@ import { useMe } from "../lib/useMe";
 import { Calendar, PX_PER_MIN, timeClashPairs } from "../components/Calendar";
 import { DetailSheet } from "../components/DetailSheet";
 import { Gate } from "../components/Gate";
-import { IdentityPanel } from "../components/IdentityPanel";
 import { ListView } from "../components/ListView";
 import { Logo } from "../components/Logo";
+import { ProfileMenu } from "../components/ProfileMenu";
 import { SessionModal } from "../components/SessionModal";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Tour, tourSeen, type TourStep } from "../components/Tour";
@@ -31,7 +31,6 @@ import {
   EmptyState,
   Modal,
   PrimaryButton,
-  RoleBadge,
   SecondaryButton,
   Spinner,
   inputClass,
@@ -48,7 +47,6 @@ export function SchedulePage() {
   const data = useEventData(slug);
   const filters = useFilters();
 
-  const [identityOpen, setIdentityOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   const [arrange, setArrange] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -458,7 +456,7 @@ export function SchedulePage() {
     {
       target: "identity",
       title: "This is you",
-      body: `You're known by a name on this device, not an account. Tap to rename yourself, or enter another password to change your role from ${participant}.`,
+      body: `You're known by a name on this device, not an account — you're here as ${participant}. Open it for your profile, or to sign out.`,
     },
     {
       target: "days",
@@ -588,17 +586,16 @@ export function SchedulePage() {
             >
               ?
             </button>
-            <button
-              type="button"
-              data-tour="identity"
-              onClick={() => setIdentityOpen(true)}
-              className="flex items-center gap-2 rounded-full border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium hover:border-stone-400 dark:hover:border-stone-500"
-            >
-              <span className="max-w-24 truncate">
-                {me?.displayName ?? "…"}
-              </span>
-              <RoleBadge role={role} userLabel={event.userRoleLabel} />
-            </button>
+            <ProfileMenu
+              me={me}
+              slug={slug}
+              role={role}
+              userLabel={event.userRoleLabel}
+              people={bundle.people}
+              onSignOut={() => {
+                void api.logout(slug).then(() => void data.reload());
+              }}
+            />
           </div>
         </div>
 
@@ -951,31 +948,6 @@ export function SchedulePage() {
               ? () => void deleteSession(editing.session as SessionDto)
               : undefined
           }
-        />
-      )}
-
-      {identityOpen && (
-        <IdentityPanel
-          me={me}
-          slug={slug}
-          role={role}
-          people={bundle.people}
-          userLabel={event.userRoleLabel}
-          onMe={setMe}
-          onRoleChange={(next) => {
-            setIdentityOpen(false);
-            toast.show(
-              `You are now ${next === "user" ? event.userRoleLabel : next} for this event`,
-            );
-            void data.reload();
-          }}
-          onSignOut={() => {
-            void api.logout(slug).then(() => {
-              setIdentityOpen(false);
-              void data.reload();
-            });
-          }}
-          onClose={() => setIdentityOpen(false)}
         />
       )}
 

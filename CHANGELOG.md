@@ -41,6 +41,14 @@ All notable changes to this project are documented here.
 
 ### Changed
 
+- **The identity chip opens a menu, not a modal.** Tapping your name in the
+  schedule header used to open a panel that could rename you *and* change your
+  role by typing another event password — two consequential changes one stray
+  click apart. It is now a two-item dropdown: view/edit your profile, or sign
+  out. Your display name moved onto the profile form, beside the profile name
+  it was always a separate record from, and roles follow the passwords an
+  organiser issues, so changing yours means signing out and entering another.
+
 - **Form layout primitives.** `Field` no longer carries its own bottom margin,
   which had forced every adjacent button to hardcode a matching `mb-3` to sit
   on the same baseline — and broke whenever a field grew a hint. Spacing now
