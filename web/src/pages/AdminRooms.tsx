@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { RoomDto } from "@shared/types";
-import { ROOM_COLORS, nextRoomColor } from "@shared/roomColors";
+import { ROOM_COLORS } from "@shared/roomColors";
 import {
   DangerButton,
   Field,
@@ -296,8 +296,6 @@ export function AdminRooms({
   const [capacity, setCapacity] = useState("");
   const [openTrack, setOpenTrack] = useState(false);
   const [busy, setBusy] = useState(false);
-  // Mirrors what the server would pick, so the swatch is not a surprise.
-  const suggested = nextRoomColor(rooms.map((r) => r.color));
 
   const add = async () => {
     if (!name.trim() || busy) return;
@@ -382,17 +380,6 @@ export function AdminRooms({
           >
             Add room
           </PrimaryButton>
-          {/* The colour is assigned, not chosen — a note, not a control. */}
-          <span className="flex items-center gap-1.5 text-xs text-stone-500 dark:text-stone-400">
-            <span
-              aria-hidden
-              className="h-4 w-4 shrink-0 rounded-full border border-stone-300 dark:border-stone-600"
-              style={{ background: suggested }}
-            />
-            Gets{" "}
-            <span className="font-mono uppercase">{suggested}</span>; change it
-            after creating.
-          </span>
         </FormRow>
       </FormStack>
     </Section>
