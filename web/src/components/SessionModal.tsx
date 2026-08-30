@@ -52,7 +52,7 @@ export function SessionModal({
   onDelete,
 }: SessionModalProps) {
   const isAdmin = role === 'admin';
-  // Users may only place sessions in open-track rooms (SPEC §5.1).
+  // Users may only place sessions in rooms that allow booking (SPEC §5.1).
   const allowedRooms = useMemo(
     () => (isAdmin ? rooms : rooms.filter((r) => r.openTrack)),
     [isAdmin, rooms],
@@ -116,12 +116,12 @@ export function SessionModal({
     <Modal title={heading} onClose={onCancel}>
       {!isAdmin && (
         <p className="-mt-2 mb-3 text-xs text-stone-500 dark:text-stone-400">
-          Open sessions live in open-track rooms and stay editable by you.
+          Open sessions live in rooms that anyone may book, and stay editable by you.
         </p>
       )}
       {allowedRooms.length === 0 && (
         <p className="mb-3 rounded-lg bg-stone-50 dark:bg-stone-800 px-3 py-2 text-xs text-stone-600 dark:text-stone-300">
-          This event has no open-track rooms yet, so there is nowhere for you to add a session.
+          No room here is open for booking yet, so there is nowhere for you to add a session.
         </p>
       )}
 

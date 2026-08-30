@@ -428,7 +428,7 @@ export function SchedulePage() {
     tourSteps.push({
       target: 'add',
       title: 'Add a session',
-      body: 'Organisers add official sessions anywhere; everyone else proposes open sessions in the open-track rooms.',
+      body: 'Organisers add official sessions anywhere; everyone else proposes open sessions in the rooms that anyone may book.',
     });
   }
   tourSteps.push({

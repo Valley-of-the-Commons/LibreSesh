@@ -46,19 +46,28 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 
 ## Medium Priority
 
-- **Grid header: the "open track" badge.** Partly done — the room axis is now
-  labelled and visually separated (2026-08-30), which was the bulk of the
-  confusion. What remains is the badge itself: a column still reads
-  "Workshop A · 60 seats · open track" (`Calendar.tsx`), and `open_track`
-  means "attendees may schedule here", nothing to do with tracks. Two small
-  independent pieces:
-  1. Relabel the badge to what the flag means ("anyone may book").
-  2. Rename `rooms.open_track` -> `rooms.open_booking` so the code stops
-     implying a track concept it does not have.
+- **"Tracks" are named but do not exist.** There is no track anywhere in the
+  system: no table, no column, no API, nothing an organiser can define. The
+  only thing carrying the word was `rooms.open_track`, a boolean meaning
+  "attendees may schedule here" — a booking permission, not a track. The UI
+  wording was removed on 2026-08-30; the column name is the last trace.
 
-  Tracks as a real concept (a promoted tag, plus a column-by-track toggle)
-  stays out of scope: nobody has asked to *group* by track, only noted the
-  header was misleading, and that is now fixed. Revisit only on real demand.
+  - **Rename `rooms.open_track` -> `rooms.open_booking`.** Small and
+    self-contained: a migration, `RoomRow`, `RoomDto.openTrack`, the admin
+    toggle, the seed and the tests. Removes the last implication of a feature
+    that was never built.
+  - **Decide whether tracks should exist at all.** A track would be a thematic
+    strand spanning several rooms and days — "Design track", "Ops track" —
+    which is a real conference concept the tool has no answer for. Tags are
+    the closest existing thing and may already be enough: they are per-event,
+    named, coloured, filterable and attach to both sessions and pitches. If
+    tracks are wanted as a distinct concept, the cheap shape is a `kind` on
+    tags ('label' | 'track') rather than a third entity, plus optionally a
+    "column by: Room | Track" toggle on the grid.
+
+  No user has asked to group the schedule by track — the original report was
+  that the grid header was *misleading*, and that is fixed. Do the rename;
+  treat the feature as unproven until someone asks for it.
 
 - **No write path under flaky connectivity.** Reads recover well — `EventSource`
   auto-reconnects and `useEventData` refetches the whole bundle on reopen, and
