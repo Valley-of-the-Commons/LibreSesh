@@ -25,7 +25,6 @@ import { ListView } from "../components/ListView";
 import { Logo } from "../components/Logo";
 import { ProfileMenu } from "../components/ProfileMenu";
 import { SessionModal } from "../components/SessionModal";
-import { ThemeToggle } from "../components/ThemeToggle";
 import { Tour, tourSeen, type TourStep } from "../components/Tour";
 import {
   Chip,
@@ -666,17 +665,11 @@ export function SchedulePage() {
                   : "reconnecting…"}
             </div>
           </div>
-          <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-            <ThemeToggle />
-            {role === "admin" && (
-              <Link
-                data-tour="manage"
-                to={`/e/${slug}/admin`}
-                className="rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500"
-              >
-                Manage Event
-              </Link>
-            )}
+          {/* Theme moved into the profile menu and Manage Event down to the
+              action row, where it belongs beside Add session. On a phone this
+              header had five controls competing for the width left over after
+              the event name. */}
+          <div className="ml-auto flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => setTourOpen(true)}
@@ -840,20 +833,41 @@ export function SchedulePage() {
             ● Now {fmtMin(nowMinuteOfDay(timezone))}
           </button>
 
+          {/* Manage / Arrange / Add travel together at every width — an
+              organiser's three actions belong in one place, not split between
+              the header and here. Each keeps its glyph and drops its label
+              below `sm`, which is what buys the room on a phone. */}
           <div className="ml-auto flex items-center gap-2">
+            {role === "admin" && (
+              <Link
+                data-tour="manage"
+                to={`/e/${slug}/admin`}
+                aria-label="Manage Event"
+                title="Manage Event"
+                className="flex items-center gap-1.5 rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2 text-xs font-medium text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500"
+              >
+                <span aria-hidden="true">⚙</span>
+                <span className="hidden sm:inline">Manage Event</span>
+              </Link>
+            )}
             {canArrange && (
               <button
                 type="button"
                 data-tour="arrange"
                 onClick={() => setArrange((a) => !a)}
                 aria-pressed={arrange}
-                className={`rounded-lg border px-3 py-2 text-xs font-medium ${
+                aria-label={arrange ? "Done arranging" : "Arrange sessions"}
+                title={arrange ? "Done arranging" : "Arrange sessions"}
+                className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium ${
                   arrange
                     ? "border-stone-900 bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-white"
                     : "border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500"
                 }`}
               >
-                {arrange ? "Done arranging" : "Arrange Sessions"}
+                <span aria-hidden="true">{arrange ? "✓" : "↕"}</span>
+                <span className="hidden sm:inline">
+                  {arrange ? "Done arranging" : "Arrange Sessions"}
+                </span>
               </button>
             )}
             {canWrite && (
@@ -861,9 +875,12 @@ export function SchedulePage() {
                 type="button"
                 data-tour="add"
                 onClick={() => setEditing({})}
-                className="rounded-lg bg-stone-900 dark:bg-stone-100 dark:text-stone-900 px-3 py-2 text-xs font-semibold text-white hover:bg-stone-700 dark:hover:bg-stone-300"
+                aria-label="Add session"
+                title="Add session"
+                className="flex items-center gap-1.5 rounded-lg bg-stone-900 dark:bg-stone-100 dark:text-stone-900 px-3 py-2 text-xs font-semibold text-white hover:bg-stone-700 dark:hover:bg-stone-300"
               >
-                + Add session
+                <span aria-hidden="true">+</span>
+                <span className="hidden sm:inline">Add session</span>
               </button>
             )}
           </div>

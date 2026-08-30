@@ -4,6 +4,19 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+### Changed
+
+- **The schedule header makes room on a phone.** Five controls were competing
+  for whatever width the event name left over. The theme switcher moved into
+  the profile menu behind your name — it is a preference you set once, not a
+  control you reach for — and **Manage Event** moved down beside Arrange and
+  Add session, so an organiser's three actions sit together at every width
+  instead of being split between the header and the toolbar. Add session,
+  Arrange and Manage Event each keep their glyph and drop their label below
+  `sm`, which is what actually buys the space; every one carries a real label
+  for assistive tech and a tooltip. The events list keeps its own theme
+  switcher, having no profile menu to hide it in.
+
 ### Fixed
 
 - **Organisers no longer get the tour uninvited.** The first visit to an event

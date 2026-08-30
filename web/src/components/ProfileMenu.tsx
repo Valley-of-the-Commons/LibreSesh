@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { PersonDto, Role } from '@shared/types';
 import { api } from '../lib/api';
 import { DeviceLinkModal } from './DeviceLink';
+import { ThemeToggle } from './ThemeToggle';
 import { RoleBadge, useToast } from './ui';
 
 const itemClass =
@@ -171,6 +172,18 @@ export function ProfileMenu({
           >
             Link another device
           </button>
+          <div
+            role="separator"
+            className="my-1 border-t border-stone-200 dark:border-stone-700"
+          />
+          {/* Deliberately not a menuitem: picking a theme is a setting you
+              adjust and look at, so the menu stays open while you do. */}
+          <div className="px-3 py-2">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
+              Theme
+            </p>
+            <ThemeToggle fullWidth />
+          </div>
           <div
             role="separator"
             className="my-1 border-t border-stone-200 dark:border-stone-700"
