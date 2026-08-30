@@ -35,6 +35,7 @@ export function ProfilePage() {
   const [status, setStatus] = useState<Status>('loading');
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [merging, setMerging] = useState(false);
 
   useEffect(() => {
     let live = true;
@@ -122,6 +123,11 @@ export function ProfilePage() {
         <div className="mt-4 rounded-2xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-5 shadow-sm">
           <div className="flex items-start gap-3">
             <h1 className="flex-1 text-lg font-semibold tracking-tight">{person.name}</h1>
+            {isAdmin && (
+              <SecondaryButton className="shrink-0 py-1.5" onClick={() => setMerging(true)}>
+                Merge…
+              </SecondaryButton>
+            )}
             {canEdit && (
               <SecondaryButton className="shrink-0 py-1.5" onClick={() => setEditing(true)}>
                 Edit profile
@@ -182,6 +188,22 @@ export function ProfilePage() {
           </ul>
         )}
       </div>
+
+      {merging && bundle && (
+        <MergeModal
+          slug={slug}
+          survivor={person}
+          people={bundle.people}
+          onClose={() => setMerging(false)}
+          onMerged={(updated, loserId) => {
+            setDetail((d) => (d ? { ...d, person: updated } : d));
+            data.apply({ type: 'person.deleted', entity: { id: loserId } });
+            data.apply({ type: 'person.updated', entity: updated });
+            void data.reload();
+            setMerging(false);
+          }}
+        />
+      )}
 
       {editing && (
         <ProfileEditor
@@ -354,6 +376,80 @@ function ProfileEditor({
         <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
         <PrimaryButton onClick={() => void save()} disabled={busy || !name.trim()}>
           {busy ? 'Saving…' : 'Save'}
+        </PrimaryButton>
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * Fold a duplicate profile into this one (identity spec, B2). The duplicate's
+ * sessions and pitches move here, then it disappears — there is no undo, which
+ * is why the sentence spells out the direction before the button.
+ */
+function MergeModal({
+  slug,
+  survivor,
+  people,
+  onClose,
+  onMerged,
+}: {
+  slug: string;
+  survivor: PersonDto;
+  people: PersonDto[];
+  onClose: () => void;
+  onMerged: (updated: PersonDto, loserId: number) => void;
+}) {
+  const toast = useToast();
+  const [fromId, setFromId] = useState<number | null>(null);
+  const [busy, setBusy] = useState(false);
+  const candidates = people.filter((p) => p.id !== survivor.id);
+
+  const merge = async () => {
+    if (fromId === null || busy) return;
+    setBusy(true);
+    try {
+      const updated = await api.mergePerson(slug, survivor.id, fromId);
+      onMerged(updated, fromId);
+    } catch (err) {
+      toast.show((err as Error).message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal title="Merge a duplicate" onClose={onClose}>
+      <p className="mb-4 text-sm text-stone-600 dark:text-stone-300">
+        The profile you pick is folded into <span className="font-medium">{survivor.name}</span>:
+        its sessions and pitches move here, then it is removed. This cannot be undone.
+      </p>
+      {candidates.length === 0 ? (
+        <p className="text-sm text-stone-400 dark:text-stone-500">
+          There is no other profile to merge.
+        </p>
+      ) : (
+        <FormStack>
+          <Field label="Duplicate to fold in">
+            <select
+              value={fromId === null ? '' : String(fromId)}
+              onChange={(e) => setFromId(e.target.value ? Number(e.target.value) : null)}
+              className={inputClass}
+            >
+              <option value="">— pick a profile —</option>
+              {candidates.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                  {p.claimed ? ' (claimed)' : ''}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </FormStack>
+      )}
+      <div className="mt-4 flex justify-end gap-2">
+        <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
+        <PrimaryButton onClick={() => void merge()} disabled={busy || fromId === null}>
+          {busy ? 'Merging…' : 'Merge'}
         </PrimaryButton>
       </div>
     </Modal>

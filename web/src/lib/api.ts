@@ -157,6 +157,9 @@ export const api = {
     request<PersonDto>('PATCH', `/e/${encode(slug)}/people/${id}`, body),
   deletePerson: (slug: string, id: number) =>
     request<void>('DELETE', `/e/${encode(slug)}/people/${id}`),
+  /** Fold profile `from` into `id`: sessions/pitches repoint, `from` disappears. */
+  mergePerson: (slug: string, id: number, from: number) =>
+    request<PersonDto>('POST', `/e/${encode(slug)}/people/${id}/merge`, { from }),
   // 201 when it creates your profile, 200 when it updates it — the caller only
   // needs the person back either way.
   updateMyProfile: (slug: string, body: Partial<PersonWrite>) =>

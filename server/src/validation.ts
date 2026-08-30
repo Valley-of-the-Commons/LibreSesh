@@ -43,6 +43,9 @@ export const renameSchema = z.object({ displayName: displayNameSchema });
 
 export const linkPhraseSchema = z.object({ phrase: z.string().min(1).max(120) });
 
+/** Merge duplicate people: `from` is folded into the profile in the URL. */
+export const mergePersonSchema = z.object({ from: z.number().int().positive() });
+
 export const createEventSchema = z
   .object({
     name: trimmed(120),

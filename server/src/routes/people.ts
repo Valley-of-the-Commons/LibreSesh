@@ -3,11 +3,17 @@ import { atLeast, requireRole, requireWritable } from '../auth.js';
 import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
 import type { PersonRow, SessionRow } from '../db.js';
-import { conflict, forbidden, notFound } from '../errors.js';
+import { badRequest, conflict, forbidden, notFound } from '../errors.js';
 import { loadSessionDto, toPersonDto } from '../mappers.js';
 import { requireCapability } from '../permissions.js';
 import { limit } from '../ratelimit.js';
-import { myProfileSchema, parse, personPatchSchema, personSchema } from '../validation.js';
+import {
+  mergePersonSchema,
+  myProfileSchema,
+  parse,
+  personPatchSchema,
+  personSchema,
+} from '../validation.js';
 import type { PersonDetailDto } from '../shared/types.js';
 
 /**
@@ -197,6 +203,78 @@ export function peopleRoutes(ctx: Ctx): Router {
         entityId: person.id,
       });
       ctx.broker.publish(req.event.slug, 'person.updated', dto);
+      res.json(dto);
+    },
+  );
+
+  /**
+   * Fold a duplicate profile into this one (identity spec, B2): sessions and
+   * pitches are repointed, blanks on the survivor fill from the duplicate, the
+   * duplicate is soft-deleted. When only one side is claimed, the claim moves
+   * to the survivor; when both are, picking the survivor *is* picking whose
+   * claim wins — the other identity simply ends up profile-less, not deleted.
+   * Not reversible through /trash, hence admin-only and audited.
+   */
+  router.post(
+    '/people/:id/merge',
+    requireRole(ctx.db, 'admin'),
+    requireWritable,
+    limit(ctx.limiter, 'write'),
+    (req, res) => {
+      const survivor = load(req.event.id, Number(req.params.id));
+      const { from } = parse(mergePersonSchema, req.body);
+      if (from === survivor.id) throw badRequest('A profile cannot be merged into itself');
+      const loser = load(req.event.id, from);
+
+      const now = new Date().toISOString();
+      const movedSessions = ctx.db
+        .prepare<[number], { id: number }>('SELECT id FROM sessions WHERE speaker_id = ?')
+        .all(loser.id)
+        .map((r) => r.id);
+
+      ctx.db.transaction(() => {
+        ctx.db
+          .prepare('UPDATE sessions SET speaker_id = ? WHERE speaker_id = ?')
+          .run(survivor.id, loser.id);
+        ctx.db
+          .prepare('UPDATE proposals SET speaker_id = ? WHERE speaker_id = ?')
+          .run(survivor.id, loser.id);
+        // The loser's claim must be nulled before the survivor takes it —
+        // (event_id, identity_id) is unique.
+        ctx.db
+          .prepare('UPDATE people SET identity_id = NULL, deleted_at = ? WHERE id = ?')
+          .run(now, loser.id);
+        ctx.db
+          .prepare(
+            'UPDATE people SET identity_id = ?, bio = ?, links = ?, updated_at = ? WHERE id = ?',
+          )
+          .run(
+            survivor.identity_id ?? loser.identity_id,
+            survivor.bio || loser.bio,
+            survivor.links === '[]' ? loser.links : survivor.links,
+            now,
+            survivor.id,
+          );
+      })();
+
+      const dto = toPersonDto(load(req.event.id, survivor.id), req.identity.id);
+      audit(ctx.db, {
+        identityId: req.identity.id,
+        eventId: req.event.id,
+        action: 'merge',
+        entity: 'person',
+        entityId: loser.id,
+      });
+      ctx.broker.publish(req.event.slug, 'person.deleted', { id: loser.id });
+      ctx.broker.publish(req.event.slug, 'person.updated', dto);
+      for (const sessionId of movedSessions) {
+        const row = ctx.db
+          .prepare<[number], SessionRow>('SELECT * FROM sessions WHERE id = ?')
+          .get(sessionId);
+        if (row && row.deleted_at === null) {
+          ctx.broker.publish(req.event.slug, 'session.updated', loadSessionDto(ctx.db, row));
+        }
+      }
       res.json(dto);
     },
   );
