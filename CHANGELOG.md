@@ -6,6 +6,13 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- **Brand assets.** The LibreSesh logo replaces the placeholder initial-letter
+  square: the stacked mark with its "open source scheduling" tagline heads the
+  event list, and the one-line wordmark sits in the schedule header, linking
+  home. Each variant ships light and reversed artwork rather than one tinted
+  with `currentColor`, because the mark is three colours — dark mode *darkens*
+  the calendar cells while it lightens the wordmark. An SVG favicon and a
+  180px apple-touch-icon are linked from `index.html`.
 - **Per-event permission matrix.** Nine capabilities — commenting, moderating,
   pitching, voting, starring, creating and editing open sessions, editing your
   own profile — each assignable to any of the three roles, edited from the

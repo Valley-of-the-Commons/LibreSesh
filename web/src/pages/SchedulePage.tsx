@@ -22,6 +22,7 @@ import { DetailSheet } from "../components/DetailSheet";
 import { Gate } from "../components/Gate";
 import { IdentityPanel } from "../components/IdentityPanel";
 import { ListView } from "../components/ListView";
+import { Logo } from "../components/Logo";
 import { SessionModal } from "../components/SessionModal";
 import { ThemeToggle } from "../components/ThemeToggle";
 import { Tour, tourSeen, type TourStep } from "../components/Tour";
@@ -523,11 +524,15 @@ export function SchedulePage() {
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
           <Link
             to="/"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-sm font-bold text-white"
+            className="flex shrink-0 items-center"
             aria-label="All events"
           >
-            {event.name.charAt(0).toUpperCase()}
+            <Logo variant="oneline" className="h-5 w-auto sm:h-6" />
           </Link>
+          <span
+            aria-hidden="true"
+            className="hidden h-6 w-px shrink-0 bg-stone-300 dark:bg-stone-700 sm:block"
+          />
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold tracking-tight">
               {event.name}

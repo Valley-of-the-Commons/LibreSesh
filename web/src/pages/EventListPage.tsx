@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { EventSummary } from '@shared/types';
 import { api } from '../lib/api';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { Logo } from '../components/Logo';
 import { EmptyState, Spinner } from '../components/ui';
 
 const fmtRange = (start: string, end: string): string => {
@@ -29,14 +30,11 @@ export function EventListPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-10">
-      <header className="mb-6 flex items-center gap-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-md bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-sm font-bold text-white">
-          L
-        </div>
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight">LibreSesh</h1>
-          <p className="text-xs text-stone-500 dark:text-stone-400">Live schedules for conferences and unconferences.</p>
-        </div>
+      <header className="mb-8 flex flex-wrap items-center gap-x-4 gap-y-3">
+        {/* The logo carries the wordmark and the tagline as artwork, so the
+            page's real heading is the screen-reader one. */}
+        <h1 className="sr-only">LibreSesh — live schedules for conferences and unconferences</h1>
+        <Logo className="h-11 w-auto sm:h-14" />
         <div className="ml-auto flex items-center gap-2">
           <ThemeToggle />
           <Link
