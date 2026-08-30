@@ -1,20 +1,30 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import type { ContributionDto, ContributionKind, SessionDto } from '@shared/types';
-import { dateRange, zonedTimeToUtc } from '@shared/time';
-import { ApiError, api, type SessionWrite } from '../lib/api';
-import { dayLabel, fmtMin, nowMinuteOfDay, place, todayInZone } from '../lib/format';
-import { useEventData } from '../lib/useEventData';
-import { useFilters } from '../lib/useFilters';
-import { useMe } from '../lib/useMe';
-import { Calendar, PX_PER_MIN, timeClashPairs } from '../components/Calendar';
-import { DetailSheet } from '../components/DetailSheet';
-import { Gate } from '../components/Gate';
-import { IdentityPanel } from '../components/IdentityPanel';
-import { ListView } from '../components/ListView';
-import { SessionModal } from '../components/SessionModal';
-import { ThemeToggle } from '../components/ThemeToggle';
-import { Tour, tourSeen, type TourStep } from '../components/Tour';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import type {
+  ContributionDto,
+  ContributionKind,
+  SessionDto,
+} from "@shared/types";
+import { dateRange, zonedTimeToUtc } from "@shared/time";
+import { ApiError, api, type SessionWrite } from "../lib/api";
+import {
+  dayLabel,
+  fmtMin,
+  nowMinuteOfDay,
+  place,
+  todayInZone,
+} from "../lib/format";
+import { useEventData } from "../lib/useEventData";
+import { useFilters } from "../lib/useFilters";
+import { useMe } from "../lib/useMe";
+import { Calendar, PX_PER_MIN, timeClashPairs } from "../components/Calendar";
+import { DetailSheet } from "../components/DetailSheet";
+import { Gate } from "../components/Gate";
+import { IdentityPanel } from "../components/IdentityPanel";
+import { ListView } from "../components/ListView";
+import { SessionModal } from "../components/SessionModal";
+import { ThemeToggle } from "../components/ThemeToggle";
+import { Tour, tourSeen, type TourStep } from "../components/Tour";
 import {
   Chip,
   EmptyState,
@@ -25,12 +35,12 @@ import {
   Spinner,
   inputClass,
   useToast,
-} from '../components/ui';
+} from "../components/ui";
 
 const NOW_TICK_MS = 30_000;
 
 export function SchedulePage() {
-  const { slug = '', sessionId } = useParams();
+  const { slug = "", sessionId } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
   const { me, setMe } = useMe();
@@ -59,33 +69,40 @@ export function SchedulePage() {
   // First visit to this event auto-starts the tour, once the schedule has
   // painted and storage doesn't already say it's been seen.
   useEffect(() => {
-    if (data.status !== 'ready' || tourSeen(slug)) return;
+    if (data.status !== "ready" || tourSeen(slug)) return;
     const raf = requestAnimationFrame(() => {
-      if (document.querySelector('[data-tour]')) setTourOpen(true);
+      if (document.querySelector("[data-tour]")) setTourOpen(true);
     });
     return () => cancelAnimationFrame(raf);
   }, [data.status, slug]);
 
   const bundle = data.bundle;
   const event = bundle?.event;
-  const timezone = event?.timezone ?? 'UTC';
+  const timezone = event?.timezone ?? "UTC";
 
   const days = useMemo(
     () => (event ? dateRange(event.startDate, event.endDate) : []),
     [event],
   );
   const today = useMemo(
-    () => (event ? todayInZone(timezone, new Date(clock)) : ''),
+    () => (event ? todayInZone(timezone, new Date(clock)) : ""),
     [event, timezone, clock],
   );
-  const day = filters.day && days.includes(filters.day) ? filters.day : (days.includes(today) ? today : (days[0] ?? ''));
+  const day =
+    filters.day && days.includes(filters.day)
+      ? filters.day
+      : days.includes(today)
+        ? today
+        : (days[0] ?? "");
   const isToday = day === today;
   const nowMin = useMemo(
     () => (event && isToday ? nowMinuteOfDay(timezone, new Date(clock)) : null),
     [event, isToday, timezone, clock],
   );
 
-  const view = filters.view ?? (typeof window !== 'undefined' && window.innerWidth < 640 ? 'list' : 'cal');
+  const view =
+    filters.view ??
+    (typeof window !== "undefined" && window.innerWidth < 640 ? "list" : "cal");
 
   const dayLabels = useMemo(
     () =>
@@ -112,10 +129,20 @@ export function SchedulePage() {
     return new Set(
       bundle.sessions
         .filter((s) => {
-          if (filters.rooms.length && !filters.rooms.includes(s.roomId)) return false;
-          if (filters.tags.length && !s.tagIds.some((t) => filters.tags.includes(t))) return false;
+          if (filters.rooms.length && !filters.rooms.includes(s.roomId))
+            return false;
+          if (
+            filters.tags.length &&
+            !s.tagIds.some((t) => filters.tags.includes(t))
+          )
+            return false;
           if (filters.mine && !starredIds.has(s.id)) return false;
-          if (q && !`${s.title} ${s.speaker} ${s.description}`.toLowerCase().includes(q)) {
+          if (
+            q &&
+            !`${s.title} ${s.speaker} ${s.description}`
+              .toLowerCase()
+              .includes(q)
+          ) {
             return false;
           }
           if (filters.soon) {
@@ -140,7 +167,10 @@ export function SchedulePage() {
   ]);
 
   const daySessions = useMemo(
-    () => (bundle ? bundle.sessions.filter((s) => place(s, timezone).date === day) : []),
+    () =>
+      bundle
+        ? bundle.sessions.filter((s) => place(s, timezone).date === day)
+        : [],
     [bundle, timezone, day],
   );
   const visibleSessions = useMemo(
@@ -156,7 +186,9 @@ export function SchedulePage() {
     return bundle.sessions
       .filter((s) => matchedIds.has(s.id) && place(s, timezone).date !== day)
       .map((s) => ({ session: s, ...place(s, timezone) }))
-      .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.startMin - b.startMin));
+      .sort((a, b) =>
+        a.date < b.date ? -1 : a.date > b.date ? 1 : a.startMin - b.startMin,
+      );
   }, [bundle, filters.q, matchedIds, timezone, day]);
 
   /** Starred pairs that overlap in time (any room) — you cannot attend both. */
@@ -173,14 +205,14 @@ export function SchedulePage() {
   );
   // Dismissal is keyed to the clashing set, so starring into a fresh clash
   // brings the warning back.
-  const clashKey = clashPairs.map(([a, b]) => `${a.id}-${b.id}`).join(',');
-  const showClashBanner = clashKey !== '' && clashDismissed !== clashKey;
+  const clashKey = clashPairs.map(([a, b]) => `${a.id}-${b.id}`).join(",");
+  const showClashBanner = clashKey !== "" && clashDismissed !== clashKey;
 
   /** Jump to a search result on another day: switch day and open it in one nav. */
   const openResult = useCallback(
     (session: SessionDto) => {
       const params = new URLSearchParams(window.location.search);
-      params.set('day', place(session, timezone).date);
+      params.set("day", place(session, timezone).date);
       navigate(`/e/${slug}/s/${session.id}?${params.toString()}`);
     },
     [navigate, slug, timezone],
@@ -206,15 +238,19 @@ export function SchedulePage() {
 
   const canEdit = useCallback(
     (session: SessionDto) =>
-      bundle?.role === 'admin' ||
-      (bundle?.role === 'user' && session.type === 'open' && session.createdBy === me?.id),
+      bundle?.role === "admin" ||
+      (bundle?.role === "user" &&
+        session.type === "open" &&
+        session.createdBy === me?.id),
     [bundle?.role, me?.id],
   );
 
   const reportError = useCallback(
     (err: unknown) => {
       const message =
-        err instanceof ApiError ? err.message : ((err as Error)?.message ?? 'Something went wrong');
+        err instanceof ApiError
+          ? err.message
+          : ((err as Error)?.message ?? "Something went wrong");
       toast.show(message);
     },
     [toast],
@@ -224,7 +260,8 @@ export function SchedulePage() {
    *  for. Revert and toast if the server rejects it. */
   const toggleStar = useCallback(
     async (session: SessionDto) => {
-      const wasStarred = bundle?.starredSessionIds.includes(session.id) ?? false;
+      const wasStarred =
+        bundle?.starredSessionIds.includes(session.id) ?? false;
       data.setStarred(session.id, !wasStarred);
       try {
         if (wasStarred) await api.unstarSession(slug, session.id);
@@ -245,30 +282,41 @@ export function SchedulePage() {
       if (el && event) {
         el.scrollTo({
           top: (minute - event.dayStartMin) * PX_PER_MIN - el.clientHeight / 2,
-          behavior: 'smooth',
+          behavior: "smooth",
         });
       }
-      document.getElementById('now-anchor')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document
+        .getElementById("now-anchor")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }, [days, event, filters, timezone, today]);
 
   /** PATCH on drop; a rejected move snaps back because we never mutated locally. */
   const moveSession = useCallback(
-    async (session: SessionDto, startMin: number, durMin: number, roomId: number) => {
+    async (
+      session: SessionDto,
+      startMin: number,
+      durMin: number,
+      roomId: number,
+    ) => {
       if (!event) return;
       const date = place(session, timezone).date;
       try {
         const updated = await api.updateSession(slug, session.id, {
           roomId,
           startsAt: zonedTimeToUtc(date, startMin, timezone).toISOString(),
-          endsAt: zonedTimeToUtc(date, startMin + durMin, timezone).toISOString(),
+          endsAt: zonedTimeToUtc(
+            date,
+            startMin + durMin,
+            timezone,
+          ).toISOString(),
           expectedUpdatedAt: session.updatedAt,
         });
-        data.apply({ type: 'session.updated', entity: updated });
+        data.apply({ type: "session.updated", entity: updated });
         toast.show(`Moved to ${fmtMin(startMin)}`);
       } catch (err) {
-        if (err instanceof ApiError && err.code === 'stale') {
-          toast.show('Someone else moved that session — reloading');
+        if (err instanceof ApiError && err.code === "stale") {
+          toast.show("Someone else moved that session — reloading");
           void data.reload();
         } else {
           reportError(err);
@@ -287,12 +335,12 @@ export function SchedulePage() {
             ...body,
             expectedUpdatedAt: editing.session.updatedAt,
           });
-          data.apply({ type: 'session.updated', entity: updated });
-          toast.show('Session updated');
+          data.apply({ type: "session.updated", entity: updated });
+          toast.show("Session updated");
         } else {
           const created = await api.createSession(slug, body);
-          data.apply({ type: 'session.created', entity: created });
-          toast.show('Session added');
+          data.apply({ type: "session.created", entity: created });
+          toast.show("Session added");
         }
         setEditing(null);
       } catch (err) {
@@ -309,10 +357,10 @@ export function SchedulePage() {
       if (!window.confirm(`Delete “${session.title}”?`)) return;
       try {
         await api.deleteSession(slug, session.id);
-        data.apply({ type: 'session.deleted', entity: { id: session.id } });
+        data.apply({ type: "session.deleted", entity: { id: session.id } });
         setEditing(null);
         closeSession();
-        toast.show('Session deleted');
+        toast.show("Session deleted");
       } catch (err) {
         reportError(err);
       }
@@ -324,9 +372,13 @@ export function SchedulePage() {
     async (kind: ContributionKind, body: string, url?: string) => {
       if (!selected) return;
       try {
-        const created = await api.addContribution(slug, selected.id, { kind, body, url });
-        data.apply({ type: 'contribution.created', entity: created });
-        toast.show('Added — everyone sees it live');
+        const created = await api.addContribution(slug, selected.id, {
+          kind,
+          body,
+          url,
+        });
+        data.apply({ type: "contribution.created", entity: created });
+        toast.show("Added — everyone sees it live");
       } catch (err) {
         reportError(err);
       }
@@ -339,7 +391,10 @@ export function SchedulePage() {
       if (!selected) return;
       try {
         await api.deleteContribution(slug, id);
-        data.apply({ type: 'contribution.deleted', entity: { id, sessionId: selected.id } });
+        data.apply({
+          type: "contribution.deleted",
+          entity: { id, sessionId: selected.id },
+        });
       } catch (err) {
         reportError(err);
       }
@@ -350,8 +405,12 @@ export function SchedulePage() {
   const toggleHidden = useCallback(
     async (contribution: ContributionDto) => {
       try {
-        const updated = await api.setContributionHidden(slug, contribution.id, !contribution.hidden);
-        data.apply({ type: 'contribution.hidden', entity: updated });
+        const updated = await api.setContributionHidden(
+          slug,
+          contribution.id,
+          !contribution.hidden,
+        );
+        data.apply({ type: "contribution.hidden", entity: updated });
       } catch (err) {
         reportError(err);
       }
@@ -359,14 +418,21 @@ export function SchedulePage() {
     [data, reportError, slug],
   );
 
-  if (data.status === 'loading') return <Spinner label="Loading schedule…" />;
-  if (data.status === 'gate') {
-    return <Gate slug={slug} me={me} onMe={setMe} onEntered={() => void data.reload()} />;
+  if (data.status === "loading") return <Spinner label="Loading schedule…" />;
+  if (data.status === "gate") {
+    return (
+      <Gate
+        slug={slug}
+        me={me}
+        onMe={setMe}
+        onEntered={() => void data.reload()}
+      />
+    );
   }
-  if (data.status === 'error' || !bundle || !event) {
+  if (data.status === "error" || !bundle || !event) {
     return (
       <EmptyState>
-        {data.error ?? 'Could not load this event.'}
+        {data.error ?? "Could not load this event."}
         <div className="mt-3">
           <Link to="/" className="underline">
             Back to all events
@@ -377,9 +443,11 @@ export function SchedulePage() {
   }
 
   const role = bundle.role;
-  const canWrite = role !== 'viewer' && !event.archived;
+  const canWrite = role !== "viewer" && !event.archived;
   const canArrange =
-    !event.archived && (role === 'admin' || (role === 'user' && bundle.rooms.some((r) => r.openTrack)));
+    !event.archived &&
+    (role === "admin" ||
+      (role === "user" && bundle.rooms.some((r) => r.openTrack)));
 
   // Ordered coach-marks. Role-conditional controls are dropped here; the Tour
   // itself also skips any target that isn't in the DOM. Not memoised because
@@ -387,66 +455,66 @@ export function SchedulePage() {
   const participant = event.userRoleLabel;
   const tourSteps: TourStep[] = [
     {
-      target: 'identity',
-      title: 'This is you',
+      target: "identity",
+      title: "This is you",
       body: `You're known by a name on this device, not an account. Tap to rename yourself, or enter another password to change your role from ${participant}.`,
     },
     {
-      target: 'days',
-      title: 'Pick a day',
-      body: 'One tab per day of the event.',
+      target: "days",
+      title: "Pick a day",
+      body: "One tab per day of the event.",
     },
     {
-      target: 'view',
-      title: 'Grid or list',
-      body: 'Grid shows the rooms side by side; list is a plain agenda that reads better on a phone.',
+      target: "view",
+      title: "Grid or list",
+      body: "Grid shows the rooms side by side; list is a plain agenda that reads better on a phone.",
     },
     {
-      target: 'now',
-      title: 'Jump to now',
-      body: 'Scrolls the grid to the current time and the yellow now-line.',
+      target: "now",
+      title: "Jump to now",
+      body: "Scrolls the grid to the current time and the yellow now-line.",
     },
     {
-      target: 'session-block',
-      title: 'Open a session',
+      target: "session-block",
+      title: "Open a session",
       body: "Tap any block for its description, speaker and everyone's notes, links and questions. Dashed green blocks are open sessions that anyone may propose.",
     },
     {
-      target: 'filters',
-      title: 'Narrow it down',
-      body: 'Search plus room and tag filters. Filters live in the URL, so a filtered view can be shared as a link.',
+      target: "filters",
+      title: "Narrow it down",
+      body: "Search plus room and tag filters. Filters live in the URL, so a filtered view can be shared as a link.",
     },
   ];
   if (canArrange) {
     tourSteps.push({
-      target: 'arrange',
-      title: 'Move things around',
-      body: 'Turn on Arrange, then drag a block to change its time or room, or drag its bottom edge to change its length. It snaps to 5 minutes and only moves what you may edit.',
+      target: "arrange",
+      title: "Move things around",
+      body: "Turn on Arrange, then drag a block to change its time or room, or drag its bottom edge to change its length. It snaps to 5 minutes and only moves what you may edit.",
     });
   }
   if (canWrite) {
     tourSteps.push({
-      target: 'add',
-      title: 'Add a session',
-      body: 'Organisers add official sessions anywhere; everyone else proposes open sessions in the rooms that anyone may book.',
+      target: "add",
+      title: "Add a session",
+      body: "Organisers add official sessions anywhere; everyone else proposes open sessions in the rooms that anyone may book.",
     });
   }
   tourSteps.push({
-    target: 'pitches',
-    title: 'Pitch a session',
-    body: 'Propose a session with no room or time, and say which pitches you would turn up to. Organisers place the popular ones on the grid.',
+    target: "pitches",
+    title: "Pitch a session",
+    body: "Propose a session with no room or time, and say which pitches you would turn up to. Organisers place the popular ones on the grid.",
   });
-  if (role === 'admin') {
+  if (role === "admin") {
     tourSteps.push({
-      target: 'manage',
-      title: 'Organiser tools',
-      body: 'Rooms, tags, passwords, duplicating the event and archiving all live behind Manage.',
+      target: "manage",
+      title: "Organiser tools",
+      body: "Rooms, tags, passwords, duplicating the event and archiving all live behind Manage.",
     });
   }
   tourSteps.push({
-    target: 'live',
+    target: "live",
     title: "It's live",
-    body: 'Everyone else sees your changes within a second, with no refresh needed.',
+    body: "Everyone else sees your changes within a second, with no refresh needed.",
   });
 
   return (
@@ -461,10 +529,19 @@ export function SchedulePage() {
             {event.name.charAt(0).toUpperCase()}
           </Link>
           <div className="min-w-0">
-            <div className="truncate text-sm font-semibold tracking-tight">{event.name}</div>
-            <div data-tour="live" className="truncate text-xs text-stone-500 dark:text-stone-400">
-              {days.length} day{days.length > 1 ? 's' : ''} ·{' '}
-              {event.archived ? 'archived — read-only' : data.connected ? 'schedule is live' : 'reconnecting…'}
+            <div className="truncate text-sm font-semibold tracking-tight">
+              {event.name}
+            </div>
+            <div
+              data-tour="live"
+              className="truncate text-xs text-stone-500 dark:text-stone-400"
+            >
+              {days.length} day{days.length > 1 ? "s" : ""} ·{" "}
+              {event.archived
+                ? "archived — read-only"
+                : data.connected
+                  ? "schedule is live"
+                  : "reconnecting…"}
             </div>
           </div>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
@@ -478,19 +555,23 @@ export function SchedulePage() {
               className="rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500"
             >
               Pitches
-              {bundle.proposals.filter((p) => p.placedSessionId === null).length > 0 && (
+              {bundle.proposals.filter((p) => p.placedSessionId === null)
+                .length > 0 && (
                 <span className="ml-1 text-stone-400 dark:text-stone-500">
-                  {bundle.proposals.filter((p) => p.placedSessionId === null).length}
+                  {
+                    bundle.proposals.filter((p) => p.placedSessionId === null)
+                      .length
+                  }
                 </span>
               )}
             </Link>
-            {role === 'admin' && (
+            {role === "admin" && (
               <Link
                 data-tour="manage"
                 to={`/e/${slug}/admin`}
                 className="rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500"
               >
-                Manage
+                Manage Event
               </Link>
             )}
             <button
@@ -508,7 +589,9 @@ export function SchedulePage() {
               onClick={() => setIdentityOpen(true)}
               className="flex items-center gap-2 rounded-full border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-1.5 text-xs font-medium hover:border-stone-400 dark:hover:border-stone-500"
             >
-              <span className="max-w-24 truncate">{me?.displayName ?? '…'}</span>
+              <span className="max-w-24 truncate">
+                {me?.displayName ?? "…"}
+              </span>
               <RoleBadge role={role} userLabel={event.userRoleLabel} />
             </button>
           </div>
@@ -528,11 +611,19 @@ export function SchedulePage() {
                   onClick={() => filters.set({ day: d })}
                   aria-pressed={day === d}
                   className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-medium ${
-                    day === d ? 'bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-white' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+                    day === d
+                      ? "bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-white"
+                      : "text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800"
                   }`}
                 >
-                  {label.top}{' '}
-                  <span className={day === d ? 'text-stone-300 dark:text-stone-600' : 'text-stone-400 dark:text-stone-500'}>
+                  {label.top}{" "}
+                  <span
+                    className={
+                      day === d
+                        ? "text-stone-300 dark:text-stone-600"
+                        : "text-stone-400 dark:text-stone-500"
+                    }
+                  >
                     {label.sub}
                   </span>
                 </button>
@@ -540,18 +631,23 @@ export function SchedulePage() {
             })}
           </div>
 
-          <div data-tour="view" className="flex rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 p-0.5">
-            {(['cal', 'list'] as const).map((v) => (
+          <div
+            data-tour="view"
+            className="flex rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 p-0.5"
+          >
+            {(["cal", "list"] as const).map((v) => (
               <button
                 key={v}
                 type="button"
                 onClick={() => filters.set({ view: v })}
                 aria-pressed={view === v}
                 className={`rounded-md px-3 py-1.5 text-xs font-medium ${
-                  view === v ? 'bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-white' : 'text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800'
+                  view === v
+                    ? "bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-white"
+                    : "text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800"
                 }`}
               >
-                {v === 'cal' ? 'Grid' : 'List'}
+                {v === "cal" ? "Grid" : "List"}
               </button>
             ))}
           </div>
@@ -571,7 +667,7 @@ export function SchedulePage() {
               onClick={() => setExportOpen(true)}
               className="rounded-lg border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-2 text-xs font-medium text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500"
             >
-              Calendar
+              Calendar Export
             </button>
             {canArrange && (
               <button
@@ -581,11 +677,11 @@ export function SchedulePage() {
                 aria-pressed={arrange}
                 className={`rounded-lg border px-3 py-2 text-xs font-medium ${
                   arrange
-                    ? 'border-stone-900 bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-white'
-                    : 'border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500'
+                    ? "border-stone-900 bg-stone-900 dark:bg-stone-100 dark:text-stone-900 text-white"
+                    : "border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 text-stone-600 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-500"
                 }`}
               >
-                {arrange ? 'Done arranging' : 'Arrange'}
+                {arrange ? "Done arranging" : "Arrange Sessions"}
               </button>
             )}
             {canWrite && (
@@ -602,7 +698,10 @@ export function SchedulePage() {
         </div>
 
         <div className="mx-auto max-w-6xl overflow-x-auto px-4 pb-3 no-scrollbar">
-          <div data-tour="filters" className="flex items-center gap-1.5 whitespace-nowrap">
+          <div
+            data-tour="filters"
+            className="flex items-center gap-1.5 whitespace-nowrap"
+          >
             <input
               value={filters.q}
               onChange={(e) => filters.set({ q: e.target.value })}
@@ -610,12 +709,24 @@ export function SchedulePage() {
               aria-label="Search sessions"
               className="w-40 shrink-0 rounded-full border border-stone-300 dark:border-stone-600 bg-white dark:bg-stone-900 px-3 py-1 text-xs outline-none focus:border-stone-500 dark:focus:border-stone-400"
             />
-            <Chip active={filters.soon} onClick={() => filters.set({ soon: !filters.soon })}>
+            <Chip
+              active={filters.soon}
+              onClick={() => filters.set({ soon: !filters.soon })}
+            >
               Now / next
             </Chip>
-            <Chip active={filters.mine} onClick={() => filters.set({ mine: !filters.mine })}>
-              <span className={filters.mine ? '' : 'text-amber-500 dark:text-amber-400'}>★</span> My agenda (
-              {starredIds.size})
+            <Chip
+              active={filters.mine}
+              onClick={() => filters.set({ mine: !filters.mine })}
+            >
+              <span
+                className={
+                  filters.mine ? "" : "text-amber-500 dark:text-amber-400"
+                }
+              >
+                ★
+              </span>{" "}
+              My agenda ({starredIds.size})
             </Chip>
             <span className="mx-1 h-4 w-px shrink-0 bg-stone-300 dark:bg-stone-600" />
             {bundle.rooms.map((r) => (
@@ -665,8 +776,9 @@ export function SchedulePage() {
                     const pb = place(b, timezone);
                     return (
                       <li key={`${a.id}-${b.id}`}>
-                        {a.title} ({fmtMin(pa.startMin)}–{fmtMin(pa.endMin)}) overlaps {b.title} (
-                        {fmtMin(pb.startMin)}–{fmtMin(pb.endMin)})
+                        {a.title} ({fmtMin(pa.startMin)}–{fmtMin(pa.endMin)})
+                        overlaps {b.title} ({fmtMin(pb.startMin)}–
+                        {fmtMin(pb.endMin)})
                       </li>
                     );
                   })}
@@ -685,16 +797,16 @@ export function SchedulePage() {
         )}
         {bundle.rooms.length === 0 ? (
           <EmptyState>
-            No rooms yet.{' '}
-            {role === 'admin' ? (
+            No rooms yet.{" "}
+            {role === "admin" ? (
               <Link to={`/e/${slug}/admin`} className="underline">
                 Add the first one
               </Link>
             ) : (
-              'An organiser needs to add one.'
+              "An organiser needs to add one."
             )}
           </EmptyState>
-        ) : view === 'cal' ? (
+        ) : view === "cal" ? (
           <Calendar
             scrollRef={calRef}
             rooms={bundle.rooms}
@@ -711,7 +823,9 @@ export function SchedulePage() {
             arrange={arrange}
             canEdit={canEdit}
             onOpen={openSession}
-            onMove={(s, startMin, durMin, roomId) => void moveSession(s, startMin, durMin, roomId)}
+            onMove={(s, startMin, durMin, roomId) =>
+              void moveSession(s, startMin, durMin, roomId)
+            }
           />
         ) : (
           <ListView
@@ -730,27 +844,33 @@ export function SchedulePage() {
           />
         )}
 
-        {bundle.rooms.length > 0 && visibleSessions.length === 0 && otherDayMatches.length === 0 && (
-          <EmptyState>
-            {filters.active ? (
-              <>
-                No sessions match.{' '}
-                <button type="button" className="underline" onClick={filters.clear}>
-                  Clear filters
-                </button>
-              </>
-            ) : (
-              'Nothing scheduled on this day yet.'
-            )}
-          </EmptyState>
-        )}
+        {bundle.rooms.length > 0 &&
+          visibleSessions.length === 0 &&
+          otherDayMatches.length === 0 && (
+            <EmptyState>
+              {filters.active ? (
+                <>
+                  No sessions match.{" "}
+                  <button
+                    type="button"
+                    className="underline"
+                    onClick={filters.clear}
+                  >
+                    Clear filters
+                  </button>
+                </>
+              ) : (
+                "Nothing scheduled on this day yet."
+              )}
+            </EmptyState>
+          )}
 
         {otherDayMatches.length > 0 && (
           <section className="px-4 pb-24 pt-2 sm:px-0">
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-stone-500 dark:text-stone-400">
               {visibleSessions.length === 0
                 ? `${otherDayMatches.length} match${
-                    otherDayMatches.length > 1 ? 'es' : ''
+                    otherDayMatches.length > 1 ? "es" : ""
                   } on other days`
                 : `${otherDayMatches.length} more on other days`}
             </h2>
@@ -764,9 +884,12 @@ export function SchedulePage() {
                       onClick={() => openResult(session)}
                       className="block w-full rounded-xl border border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900 p-3 text-left shadow-sm hover:shadow"
                     >
-                      <div className="truncate text-sm font-semibold">{session.title}</div>
+                      <div className="truncate text-sm font-semibold">
+                        {session.title}
+                      </div>
                       <div className="mt-0.5 truncate text-xs text-stone-500 dark:text-stone-400">
-                        {label.top} {label.sub} · {fmtMin(startMin)}–{fmtMin(endMin)}
+                        {label.top} {label.sub} · {fmtMin(startMin)}–
+                        {fmtMin(endMin)}
                         {session.speaker && ` · ${session.speaker}`}
                       </div>
                     </button>
@@ -819,7 +942,9 @@ export function SchedulePage() {
           onCancel={() => setEditing(null)}
           onSave={(body) => void saveSession(body)}
           onDelete={
-            editing.session ? () => void deleteSession(editing.session as SessionDto) : undefined
+            editing.session
+              ? () => void deleteSession(editing.session as SessionDto)
+              : undefined
           }
         />
       )}
@@ -835,7 +960,7 @@ export function SchedulePage() {
           onRoleChange={(next) => {
             setIdentityOpen(false);
             toast.show(
-              `You are now ${next === 'user' ? event.userRoleLabel : next} for this event`,
+              `You are now ${next === "user" ? event.userRoleLabel : next} for this event`,
             );
             void data.reload();
           }}
@@ -863,7 +988,9 @@ export function SchedulePage() {
         />
       )}
 
-      {tourOpen && <Tour steps={tourSteps} eventKey={slug} onClose={closeTour} />}
+      {tourOpen && (
+        <Tour steps={tourSteps} eventKey={slug} onClose={closeTour} />
+      )}
     </div>
   );
 }
@@ -887,33 +1014,38 @@ function CalendarExportModal({
 
   // Both scopes are worth subscribing to: the whole programme, or only what
   // you starred. The token is the same either way.
-  const subscribe = useCallback(async (mine: boolean) => {
-    setLoading(true);
-    try {
-      const { token } = await api.calendarToken(slug);
-      setSubUrl(
-        `${window.location.origin}${base}?token=${encodeURIComponent(token)}${
-          mine ? '&mine=1' : ''
-        }`,
-      );
-    } catch (err) {
-      toast.show(
-        err instanceof ApiError ? err.message : 'Could not create a subscription link',
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [base, slug, toast]);
+  const subscribe = useCallback(
+    async (mine: boolean) => {
+      setLoading(true);
+      try {
+        const { token } = await api.calendarToken(slug);
+        setSubUrl(
+          `${window.location.origin}${base}?token=${encodeURIComponent(token)}${
+            mine ? "&mine=1" : ""
+          }`,
+        );
+      } catch (err) {
+        toast.show(
+          err instanceof ApiError
+            ? err.message
+            : "Could not create a subscription link",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [base, slug, toast],
+  );
 
   const copy = useCallback(async () => {
     if (!subUrl) return;
     try {
       // Rejects on insecure origins — fall back to a manual selection.
       await navigator.clipboard.writeText(subUrl);
-      toast.show('Link copied');
+      toast.show("Link copied");
     } catch {
       inputRef.current?.select();
-      toast.show('Press Ctrl/Cmd+C to copy the selected link');
+      toast.show("Press Ctrl/Cmd+C to copy the selected link");
     }
   }, [subUrl, toast]);
 
@@ -921,7 +1053,9 @@ function CalendarExportModal({
     <Modal title="Calendar" onClose={onClose}>
       <div className="space-y-4 text-sm">
         <div>
-          <p className="font-medium text-stone-800 dark:text-stone-200">Download</p>
+          <p className="font-medium text-stone-800 dark:text-stone-200">
+            Download
+          </p>
           <p className="mb-2 text-xs text-stone-500 dark:text-stone-400">
             A one-off snapshot you can import into any calendar app.
           </p>
@@ -950,10 +1084,12 @@ function CalendarExportModal({
         </div>
 
         <div className="border-t border-stone-200 dark:border-stone-700 pt-4">
-          <p className="font-medium text-stone-800 dark:text-stone-200">Subscribe</p>
+          <p className="font-medium text-stone-800 dark:text-stone-200">
+            Subscribe
+          </p>
           <p className="mb-2 text-xs text-stone-500 dark:text-stone-400">
-            A live link your calendar app refreshes on its own. It is personal to you —
-            anyone who has it can read the schedule.
+            A live link your calendar app refreshes on its own. It is personal
+            to you — anyone who has it can read the schedule.
           </p>
           {subUrl ? (
             <div className="flex gap-2">
@@ -971,8 +1107,11 @@ function CalendarExportModal({
             </div>
           ) : (
             <div className="flex flex-wrap gap-2">
-              <PrimaryButton onClick={() => void subscribe(false)} disabled={loading}>
-                {loading ? 'Creating…' : 'Link to the whole schedule'}
+              <PrimaryButton
+                onClick={() => void subscribe(false)}
+                disabled={loading}
+              >
+                {loading ? "Creating…" : "Link to the whole schedule"}
               </PrimaryButton>
               <SecondaryButton
                 onClick={() => void subscribe(true)}
