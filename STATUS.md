@@ -12,8 +12,14 @@ CHANGELOG.md under `[0.2.0]`. What is left of the UI-overhaul plan lives in
 `_planning/plans/2026-08-29-ui-overhaul-permissions-pitches.md`:
 
 - **Pitch board.** Always show the creator, default the creator as host,
-  up/down votes replacing proposal interest, and a hot/new split. Not started.
-- **Whole-app UI sweep.** The primitives landed and the admin page is done;
+  up/down votes replacing proposal interest, and a hot/new split. Not started
+  — but the interest button already wears the up-arrow the votes will use
+  (the ★ it had collided with "on my agenda" on the schedule), so the change
+  is the mechanic and the API, not the glyph.
+- **Whole-app UI sweep.** The primitives landed and the admin page is done —
+  Manage Event is now five tabs (Programme / People / Permissions / Settings /
+  Trash) with the choice in `?tab=`, and the button primitives stand 38px so
+  they line up with the inputs beside them;
   21 underline usages remain across ProfilePage (5), SchedulePage (4),
   ProposalBoard (4), DetailSheet (4), EventListPage (1), NewEventPage (1),
   Tour (1) and Gate (1, the "already here on another device" link added with
