@@ -70,6 +70,16 @@ All notable changes to this project are documented here.
 
 ### Changed
 
+- **Duplicating an event is behind a button.** Seven fields for a thing that
+  happens once in an event's life, if ever, sat permanently open above Trash.
+  The section now expands on request, and says "Duplicate Event/Conf".
+- **Form fields in a grid line up.** `FormGrid` bottom-aligned its children, so
+  a field without a hint had its input lifted by the height of its neighbour's
+  — which is what knocked the room editor's Name and Capacity out of line. It
+  aligns tops now; every child is a `Field` whose label is one line, so the
+  inputs align and hints hang below. The room card also stacks with `FormStack`
+  rather than a run of hand-placed margins.
+
 - **The room panel's create form matches its editor.** Name, capacity and
   colour sit on a grid; the booking permission gets its own line below; the
   button gets its own row. Everything used to share one line, which needed a

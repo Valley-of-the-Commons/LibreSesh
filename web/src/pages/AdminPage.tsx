@@ -75,6 +75,9 @@ export function AdminPage() {
   const [cloneUser, setCloneUser] = useState('');
   const [cloneAdmin, setCloneAdmin] = useState('');
   const [cloning, setCloning] = useState(false);
+  // Duplicating happens once in an event's life, if ever; seven fields should
+  // not sit open above Trash for the whole of the rest of it.
+  const [cloneOpen, setCloneOpen] = useState(false);
 
   const [trash, setTrash] = useState<TrashDto | null>(null);
   const isAdmin = bundle?.role === 'admin';
@@ -109,6 +112,7 @@ export function AdminPage() {
     setCloneUser('');
     setCloneAdmin('');
     setCloning(false);
+    setCloneOpen(false);
   }
 
   const fail = (err: unknown) => toast.show((err as Error).message);
@@ -597,70 +601,81 @@ export function AdminPage() {
       </Section>
 
       <Section
-        title="Duplicate event"
+        title="Duplicate Event/Conf"
         description="Rooms and tags carry over to the new event; sessions and contributions do not."
         className="mb-6"
+        actions={
+          <SecondaryButton
+            className="shrink-0 py-1.5"
+            onClick={() => setCloneOpen(!cloneOpen)}
+            aria-expanded={cloneOpen}
+          >
+            {cloneOpen ? 'Close' : 'Duplicate…'}
+          </SecondaryButton>
+        }
       >
-        <FormStack>
-        <Field label="New name">
-          <input value={cloneName} onChange={(e) => setCloneName(e.target.value)} className={inputClass} />
-        </Field>
-        <Field
-          label="New slug"
-          hint={`Used in the URL: /e/${cloneSlugValue || 'your-event'}`}
-        >
-          <input
-            value={cloneSlug}
-            onChange={(e) => setCloneSlug(slugify(e.target.value))}
-            placeholder={slugify(cloneName) || 'your-event'}
-            className={inputClass}
-          />
-        </Field>
-        <FormGrid>
-          <Field label="Start date">
+        {cloneOpen && (
+          <FormStack>
+          <Field label="New name">
+            <input value={cloneName} onChange={(e) => setCloneName(e.target.value)} className={inputClass} />
+          </Field>
+          <Field
+            label="New slug"
+            hint={`Used in the URL: /e/${cloneSlugValue || 'your-event'}`}
+          >
             <input
-              type="date"
-              value={cloneStart}
-              onChange={(e) => {
-                setCloneStart(e.target.value);
-                if (cloneEnd < e.target.value) setCloneEnd(e.target.value);
-              }}
+              value={cloneSlug}
+              onChange={(e) => setCloneSlug(slugify(e.target.value))}
+              placeholder={slugify(cloneName) || 'your-event'}
               className={inputClass}
             />
           </Field>
-          <Field label="End date">
-            <input
-              type="date"
-              value={cloneEnd}
-              min={cloneStart}
-              onChange={(e) => setCloneEnd(e.target.value)}
-              className={inputClass}
-            />
-          </Field>
-        </FormGrid>
-        <div className="mt-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
-            New passwords
-          </p>
-          <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">At least 6 characters each.</p>
-        </div>
-        <FormGrid cols={3}>
-          <Field label="Viewer">
-            <input value={cloneViewer} onChange={(e) => setCloneViewer(e.target.value)} className={inputClass} />
-          </Field>
-          <Field label="User">
-            <input value={cloneUser} onChange={(e) => setCloneUser(e.target.value)} className={inputClass} />
-          </Field>
-          <Field label="Admin">
-            <input value={cloneAdmin} onChange={(e) => setCloneAdmin(e.target.value)} className={inputClass} />
-          </Field>
-        </FormGrid>
-        <div>
-          <PrimaryButton onClick={() => void cloneEvent()} disabled={!cloneReady || cloning}>
-            {cloning ? 'Duplicating…' : 'Duplicate event'}
-          </PrimaryButton>
-        </div>
-        </FormStack>
+          <FormGrid>
+            <Field label="Start date">
+              <input
+                type="date"
+                value={cloneStart}
+                onChange={(e) => {
+                  setCloneStart(e.target.value);
+                  if (cloneEnd < e.target.value) setCloneEnd(e.target.value);
+                }}
+                className={inputClass}
+              />
+            </Field>
+            <Field label="End date">
+              <input
+                type="date"
+                value={cloneEnd}
+                min={cloneStart}
+                onChange={(e) => setCloneEnd(e.target.value)}
+                className={inputClass}
+              />
+            </Field>
+          </FormGrid>
+          <div className="mt-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500">
+              New passwords
+            </p>
+            <p className="mt-1 text-xs text-stone-500 dark:text-stone-400">At least 6 characters each.</p>
+          </div>
+          <FormGrid cols={3}>
+            <Field label="Viewer">
+              <input value={cloneViewer} onChange={(e) => setCloneViewer(e.target.value)} className={inputClass} />
+            </Field>
+            <Field label="User">
+              <input value={cloneUser} onChange={(e) => setCloneUser(e.target.value)} className={inputClass} />
+            </Field>
+            <Field label="Admin">
+              <input value={cloneAdmin} onChange={(e) => setCloneAdmin(e.target.value)} className={inputClass} />
+            </Field>
+          </FormGrid>
+          <div>
+            <PrimaryButton onClick={() => void cloneEvent()} disabled={!cloneReady || cloning}>
+              {cloning ? 'Duplicating…' : 'Duplicate Event/Conf'}
+            </PrimaryButton>
+          </div>
+          </FormStack>
+        )}
       </Section>
 
       <Section

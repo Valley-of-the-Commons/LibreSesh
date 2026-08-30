@@ -6,6 +6,7 @@ import {
   Field,
   FormGrid,
   FormRow,
+  FormStack,
   IconButton,
   PrimaryButton,
   SecondaryButton,
@@ -42,7 +43,7 @@ function ColorChoice({
   label: string;
 }) {
   return (
-    <div>
+    <div role="group" aria-label={label}>
       <span className="mb-1 block text-xs font-medium text-stone-600 dark:text-stone-300">
         {label}
       </span>
@@ -203,27 +204,27 @@ function RoomRow({
 
       {open && (
         <div className="border-t border-stone-200 px-3 py-3 dark:border-stone-700">
-          <FormGrid>
-            <Field label="Room name">
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={80}
-                className={inputClass}
-              />
-            </Field>
-            <Field label="Capacity" hint="Leave blank if it does not matter.">
-              <input
-                type="number"
-                min={0}
-                value={capacity}
-                onChange={(e) => setCapacity(e.target.value)}
-                className={inputClass}
-              />
-            </Field>
-          </FormGrid>
+          <FormStack>
+            <FormGrid>
+              <Field label="Room name">
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  maxLength={80}
+                  className={inputClass}
+                />
+              </Field>
+              <Field label="Capacity" hint="Leave blank if it does not matter.">
+                <input
+                  type="number"
+                  min={0}
+                  value={capacity}
+                  onChange={(e) => setCapacity(e.target.value)}
+                  className={inputClass}
+                />
+              </Field>
+            </FormGrid>
 
-          <div className="mt-3">
             <Field
               label="Description"
               hint="Shown to attendees. Where it is, how to find it."
@@ -236,42 +237,38 @@ function RoomRow({
                 className={`${inputClass} resize-none`}
               />
             </Field>
-          </div>
 
-          <div className="mt-3">
             <ColorChoice value={color} onChange={setColor} label="Colour" />
-          </div>
 
-          <div className="mt-3">
             <Toggle
               checked={openTrack}
               onChange={setOpenTrack}
               label="Attendees may book this room"
             />
-          </div>
 
-          <FormRow className="mt-4">
-            <PrimaryButton
-              onClick={() => void save()}
-              disabled={!dirty || !name.trim() || saving}
-            >
-              {saving ? "Saving…" : "Save room"}
-            </PrimaryButton>
-            <SecondaryButton
-              onClick={() => {
-                reset();
-                setOpen(false);
-              }}
-            >
-              Cancel
-            </SecondaryButton>
-            <DangerButton
-              className="ml-auto"
-              onClick={() => void onDelete(room)}
-            >
-              Delete
-            </DangerButton>
-          </FormRow>
+            <FormRow className="mt-1">
+              <PrimaryButton
+                onClick={() => void save()}
+                disabled={!dirty || !name.trim() || saving}
+              >
+                {saving ? "Saving…" : "Save room"}
+              </PrimaryButton>
+              <SecondaryButton
+                onClick={() => {
+                  reset();
+                  setOpen(false);
+                }}
+              >
+                Cancel
+              </SecondaryButton>
+              <DangerButton
+                className="ml-auto"
+                onClick={() => void onDelete(room)}
+              >
+                Delete
+              </DangerButton>
+            </FormRow>
+          </FormStack>
         </div>
       )}
     </li>
@@ -341,55 +338,55 @@ export function AdminRooms({
       {/* Same shape as the editor above: fields on a grid, the permission on
           its own line, then the action. Everything that was crammed onto one
           row needed a hand-tuned margin to fake a baseline. */}
-      <FormGrid cols={3}>
-        <Field label="New room">
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && void add()}
-            maxLength={80}
-            className={inputClass}
-          />
-        </Field>
-        <Field label="Capacity" hint="Leave blank if it does not matter.">
-          <input
-            type="number"
-            min={0}
-            value={capacity}
-            onChange={(e) => setCapacity(e.target.value)}
-            className={inputClass}
-          />
-        </Field>
-        <Field label="Colour" hint="Assigned on creation; change it any time.">
-          {/* Same border and padding as an input, so it derives the same
-              height rather than hardcoding one. */}
-          <div className="flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm dark:border-stone-600 dark:bg-stone-900">
-            <span
-              aria-hidden
-              className="h-5 w-5 shrink-0 rounded-full border border-stone-300 dark:border-stone-600"
-              style={{ background: suggested }}
+      <FormStack>
+        <FormGrid cols={3}>
+          <Field label="New room">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && void add()}
+              maxLength={80}
+              className={inputClass}
             />
-            <span className="text-stone-500 dark:text-stone-400">{suggested}</span>
-          </div>
-        </Field>
-      </FormGrid>
+          </Field>
+          <Field label="Capacity" hint="Leave blank if it does not matter.">
+            <input
+              type="number"
+              min={0}
+              value={capacity}
+              onChange={(e) => setCapacity(e.target.value)}
+              className={inputClass}
+            />
+          </Field>
+          <Field label="Colour" hint="Assigned on creation; change it any time.">
+            {/* Same border and padding as an input, so it derives the same
+                height rather than hardcoding one. */}
+            <div className="flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm dark:border-stone-600 dark:bg-stone-900">
+              <span
+                aria-hidden
+                className="h-5 w-5 shrink-0 rounded-full border border-stone-300 dark:border-stone-600"
+                style={{ background: suggested }}
+              />
+              <span className="text-stone-500 dark:text-stone-400">{suggested}</span>
+            </div>
+          </Field>
+        </FormGrid>
 
-      <div className="mt-3">
         <Toggle
           checked={openTrack}
           onChange={setOpenTrack}
           label="Attendees may book this room"
         />
-      </div>
 
-      <FormRow className="mt-4">
-        <PrimaryButton
-          onClick={() => void add()}
-          disabled={!name.trim() || busy}
-        >
-          Add room
-        </PrimaryButton>
-      </FormRow>
+        <FormRow className="mt-1">
+          <PrimaryButton
+            onClick={() => void add()}
+            disabled={!name.trim() || busy}
+          >
+            Add room
+          </PrimaryButton>
+        </FormRow>
+      </FormStack>
     </Section>
   );
 }

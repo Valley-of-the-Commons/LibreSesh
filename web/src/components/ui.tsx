@@ -58,7 +58,13 @@ export function FormRow({ children, className = '' }: { children: ReactNode; cla
   return <div className={`flex flex-wrap items-end gap-2 ${className}`}>{children}</div>;
 }
 
-/** Responsive grid of fields; `items-end` keeps the controls aligned. */
+/**
+ * Responsive grid of fields. `items-start`, not `items-end`: every child is a
+ * `Field`, whose label is one line, so aligning the tops aligns the inputs and
+ * lets a hint hang below its own field. Bottom-aligning instead lifted the
+ * input of any field *without* a hint by the height of its neighbour's — which
+ * is what knocked the room editor's Name and Capacity out of line.
+ */
 export function FormGrid({
   children,
   cols = 2,
@@ -69,7 +75,7 @@ export function FormGrid({
   className?: string;
 }) {
   const at = cols === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2';
-  return <div className={`grid items-end gap-3 ${at} ${className}`}>{children}</div>;
+  return <div className={`grid items-start gap-3 ${at} ${className}`}>{children}</div>;
 }
 
 /** `userLabel` is the event's own word for the middle role, e.g. "attendee". */
@@ -232,7 +238,9 @@ export function Section({
     <section
       className={`rounded-2xl border border-stone-200 bg-white p-5 shadow-sm dark:border-stone-700 dark:bg-stone-900 ${className}`}
     >
-      <div className="mb-3 flex flex-wrap items-start gap-3">
+      <div
+        className={`flex flex-wrap items-start gap-3 ${children ? 'mb-3' : ''}`}
+      >
         <div className="min-w-0 flex-1">
           <h2 className="text-sm font-semibold">{title}</h2>
           {description && (
