@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import type { Me } from '@shared/types';
+import type { Me, Role } from '@shared/types';
 import { ApiError, api } from '../lib/api';
-import { Field, PrimaryButton, inputClass } from './ui';
+import { Field, PrimaryButton, SecondaryButton, inputClass } from './ui';
 
 export interface GateProps {
   slug: string;
@@ -39,6 +39,31 @@ export function Gate({ slug, eventName, me, onMe, onEntered }: GateProps) {
     }
   };
 
+  /** Demo instances hand out roles on a click — there is no password to type. */
+  const enterAs = async (role: Role) => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const trimmed = name.trim();
+      if (trimmed && trimmed !== me?.displayName) {
+        onMe(await api.rename(trimmed));
+      }
+      await api.authenticateAsRole(slug, role);
+      onEntered();
+    } catch (err) {
+      setError((err as Error).message);
+      setBusy(false);
+    }
+  };
+
+  const demo = me?.demoMode === true;
+  const roles: { role: Role; label: string; blurb: string }[] = [
+    { role: 'viewer', label: 'Viewer', blurb: 'Read the schedule, star sessions' },
+    { role: 'user', label: 'Attendee', blurb: 'Add notes, propose open sessions' },
+    { role: 'admin', label: 'Organiser', blurb: 'Full control of the event' },
+  ];
+
   const initial = (eventName ?? slug).trim().charAt(0).toUpperCase() || '?';
 
   return (
@@ -50,6 +75,33 @@ export function Gate({ slug, eventName, me, onMe, onEntered }: GateProps) {
           </div>
           <h1 className="truncate text-lg font-semibold tracking-tight">{eventName ?? slug}</h1>
         </div>
+        {demo ? (
+          <>
+            <p className="mb-1 mt-2 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+              Demo instance
+            </p>
+            <p className="mb-4 text-sm text-stone-500 dark:text-stone-400">
+              Pick a role to look around. Nothing here is private.
+            </p>
+            <div className="flex flex-col gap-2">
+              {roles.map((r) => (
+                <SecondaryButton
+                  key={r.role}
+                  className="flex w-full flex-col items-start gap-0.5 py-2.5 text-left"
+                  onClick={() => void enterAs(r.role)}
+                  disabled={busy}
+                >
+                  <span className="text-sm font-semibold">{r.label}</span>
+                  <span className="text-xs font-normal text-stone-500 dark:text-stone-400">
+                    {r.blurb}
+                  </span>
+                </SecondaryButton>
+              ))}
+            </div>
+            {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+          </>
+        ) : (
+          <>
         <p className="mb-5 text-sm text-stone-500 dark:text-stone-400">This schedule needs the event password.</p>
 
         <Field label="Event password">
@@ -68,6 +120,8 @@ export function Gate({ slug, eventName, me, onMe, onEntered }: GateProps) {
         <PrimaryButton className="mt-4 w-full py-2 text-sm" onClick={() => void submit()} disabled={busy}>
           {busy ? 'Checking…' : 'Enter schedule'}
         </PrimaryButton>
+          </>
+        )}
 
         <div className="mt-5 border-t border-stone-100 dark:border-stone-800 pt-4">
           <Field label="You'll appear as" hint="Remembered on this device. No account needed.">

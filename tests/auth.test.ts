@@ -160,3 +160,79 @@ describe('event auth endpoint', () => {
     await agentFor(harness).post('/api/e/nope/auth').send({ password: 'x' }).expect(404);
   });
 });
+
+describe('demo mode', () => {
+  let harness: Harness;
+
+  afterEach(() => harness.close());
+
+  it('is off by default: a role in the body is not a way in', async () => {
+    harness = makeHarness();
+    seedEvent(harness.db);
+    const agent = agentFor(harness);
+    await agent.get('/api/me').expect(200);
+
+    // No password field at all -> the password schema rejects it.
+    await agent.post('/api/e/testconf/auth').send({ role: 'admin' }).expect(400);
+    await agent.get('/api/e/testconf/bundle').expect(401);
+  });
+
+  it('reports demoMode on /me so the gate knows which form to show', async () => {
+    harness = makeHarness({ demoMode: true });
+    seedEvent(harness.db);
+    const agent = agentFor(harness);
+    const me = await agent.get('/api/me').expect(200);
+    expect(me.body.demoMode).toBe(true);
+  });
+
+  it('does not report demoMode when it is off', async () => {
+    harness = makeHarness();
+    seedEvent(harness.db);
+    const agent = agentFor(harness);
+    const me = await agent.get('/api/me').expect(200);
+    expect(me.body.demoMode).toBe(false);
+  });
+
+  it('grants the requested role on a click, with no password', async () => {
+    harness = makeHarness({ demoMode: true });
+    seedEvent(harness.db);
+    const agent = agentFor(harness);
+    await agent.get('/api/me').expect(200);
+
+    const res = await agent.post('/api/e/testconf/auth').send({ role: 'admin' }).expect(200);
+    expect(res.body.role).toBe('admin');
+
+    // And that role really works.
+    await agent.post('/api/e/testconf/rooms').send({ name: 'Hall' }).expect(201);
+  });
+
+  it('lets a demo visitor switch roles freely', async () => {
+    harness = makeHarness({ demoMode: true });
+    seedEvent(harness.db);
+    const agent = agentFor(harness);
+    await agent.get('/api/me').expect(200);
+
+    await agent.post('/api/e/testconf/auth').send({ role: 'admin' }).expect(200);
+    await agent.post('/api/e/testconf/auth').send({ role: 'viewer' }).expect(200);
+    // Downgraded for real: admin-only writes are refused again.
+    await agent.post('/api/e/testconf/rooms').send({ name: 'Nope' }).expect(403);
+  });
+
+  it('rejects a role that is not one of the three', async () => {
+    harness = makeHarness({ demoMode: true });
+    seedEvent(harness.db);
+    const agent = agentFor(harness);
+    await agent.get('/api/me').expect(200);
+    await agent.post('/api/e/testconf/auth').send({ role: 'superuser' }).expect(400);
+  });
+
+  it('still accepts the real password while in demo mode', async () => {
+    harness = makeHarness({ demoMode: true });
+    seedEvent(harness.db);
+    const agent = agentFor(harness);
+    await agent.get('/api/me').expect(200);
+    // The demo branch parses `role`, so a password-only body is a 400 — the
+    // gate sends one shape or the other, never both.
+    await agent.post('/api/e/testconf/auth').send({ password: 'admin-pw' }).expect(400);
+  });
+});

@@ -9,6 +9,8 @@ export interface Me {
   displayName: string;
   /** Role held per event slug. Absent slug = no access. */
   roles: Record<string, Role>;
+  /** Public-demo instance: the gate offers roles as buttons, no password. */
+  demoMode: boolean;
 }
 
 export interface EventSummary {

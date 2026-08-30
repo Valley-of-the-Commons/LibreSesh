@@ -104,6 +104,9 @@ export const api = {
 
   authenticate: (slug: string, password: string) =>
     request<{ role: Role }>('POST', `/e/${encode(slug)}/auth`, { password }),
+  /** Demo instances only: the gate picks a role instead of checking a password. */
+  authenticateAsRole: (slug: string, role: Role) =>
+    request<{ role: Role }>('POST', `/e/${encode(slug)}/auth`, { role }),
   logout: (slug: string) => request<void>('POST', `/e/${encode(slug)}/logout`),
 
   bundle: (slug: string) => request<BundleDto>('GET', `/e/${encode(slug)}/bundle`),

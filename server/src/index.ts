@@ -10,6 +10,14 @@ const { express: app, ctx } = createApp(db, config);
 const server = app.listen(config.port, '0.0.0.0', () => {
   console.log(`libresesh listening on http://0.0.0.0:${config.port}`);
   console.log(`database: ${config.databasePath}`);
+  if (config.demoMode) {
+    // Loud on purpose: every event on this instance is open to anyone who can
+    // reach it, at whatever role they pick.
+    console.warn(
+      'WARNING: DEMO_MODE is on. Event passwords are NOT checked — anyone can ' +
+        'take any role, including admin. Never set this on a real instance.',
+    );
+  }
 });
 
 // SSE clients hold sockets open; give them a chance to close cleanly.

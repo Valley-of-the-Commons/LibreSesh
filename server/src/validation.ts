@@ -76,6 +76,11 @@ export const cloneEventSchema = z
     path: ['endDate'],
   });
 
+/** Demo instances hand out a role on a click; there is no password to check. */
+export const demoAuthSchema = z.object({
+  role: z.enum(['viewer', 'user', 'admin']),
+});
+
 export const authSchema = z.object({ password: z.string().min(1).max(200) });
 
 export const roomSchema = z.object({

@@ -4,7 +4,7 @@ import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
 import { HttpError, forbidden } from '../errors.js';
 import { LIMITS, keysFor } from '../ratelimit.js';
-import { authSchema, parse } from '../validation.js';
+import { authSchema, demoAuthSchema, parse } from '../validation.js';
 
 /**
  * Password gate for an event. Mounted before the viewer requirement, since
@@ -13,7 +13,32 @@ import { authSchema, parse } from '../validation.js';
 export function eventAuthRoutes(ctx: Ctx): Router {
   const router = Router({ mergeParams: true });
 
+  const grant = (identityId: number, eventId: number, role: string): void => {
+    ctx.db
+      .prepare(
+        `INSERT INTO roles (identity_id, event_id, role, granted_at) VALUES (?, ?, ?, ?)
+         ON CONFLICT(identity_id, event_id) DO UPDATE SET role = excluded.role, granted_at = excluded.granted_at`,
+      )
+      .run(identityId, eventId, role, new Date().toISOString());
+  };
+
   router.post('/auth', (req, res) => {
+    // On a demo instance the gate is a role picker, not a password prompt.
+    // There is no secret to brute-force here, so no rate limiting either.
+    if (ctx.config.demoMode) {
+      const { role } = parse(demoAuthSchema, req.body);
+      grant(req.identity.id, req.event.id, role);
+      audit(ctx.db, {
+        identityId: req.identity.id,
+        eventId: req.event.id,
+        action: 'auth_demo',
+        entity: 'event',
+        entityId: req.event.id,
+      });
+      res.json({ role });
+      return;
+    }
+
     // Hand-rolled instead of the `limit` middleware so a correct password can
     // refund its token — switching roles shouldn't burn the lockout budget.
     const keys = keysFor('auth', req);
@@ -40,12 +65,7 @@ export function eventAuthRoutes(ctx: Ctx): Router {
     }
 
     for (const key of keys) ctx.limiter.refund(key, LIMITS.auth);
-    ctx.db
-      .prepare(
-        `INSERT INTO roles (identity_id, event_id, role, granted_at) VALUES (?, ?, ?, ?)
-         ON CONFLICT(identity_id, event_id) DO UPDATE SET role = excluded.role, granted_at = excluded.granted_at`,
-      )
-      .run(req.identity.id, req.event.id, role, new Date().toISOString());
+    grant(req.identity.id, req.event.id, role);
     res.json({ role });
   });
 

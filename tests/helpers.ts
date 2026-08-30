@@ -30,6 +30,7 @@ export function makeHarness(overrides: Partial<Config> = {}): Harness {
     instanceAdminPassword: 'instance-pw',
     trustProxy: false,
     serveStatic: false,
+    demoMode: false,
     ...overrides,
   };
   const app = createApp(db, config);

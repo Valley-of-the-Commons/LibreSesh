@@ -8,6 +8,13 @@ export interface Config {
   trustProxy: boolean;
   /** Serve web/dist and fall back to index.html (production single-process mode). */
   serveStatic: boolean;
+  /**
+   * Public-demo instance: the event gate hands out roles on a click instead of
+   * checking a password. Deliberately an env var and not a per-event column —
+   * a column is data, so it would survive a clone and could be toggled on a
+   * real event by mistake. This can only be set by whoever deploys.
+   */
+  demoMode: boolean;
 }
 
 function required(name: string, fallback?: string): string {
@@ -37,5 +44,6 @@ export function loadConfig(): Config {
       : (process.env.INSTANCE_ADMIN_PASSWORD ?? 'dev-instance-password'),
     trustProxy: process.env.TRUST_PROXY === '1',
     serveStatic: process.env.SERVE_STATIC === '1' || isProd,
+    demoMode: process.env.DEMO_MODE === '1',
   };
 }
