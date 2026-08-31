@@ -274,6 +274,29 @@ export interface EventExport {
   }[];
 }
 
+/**
+ * One line of the append-only write log. `entityLabel` is the thing's name at
+ * read time — resolved for the page being shown rather than stored, because
+ * the log records *what happened*, not what things were called then.
+ */
+export interface AuditEntryDto {
+  id: number;
+  at: string;
+  /** The actor's display name in this event. Empty if the row has no actor. */
+  actorName: string;
+  action: string;
+  entity: string;
+  entityId: number | null;
+  /** Title or name, when it could still be looked up; otherwise empty. */
+  entityLabel: string;
+}
+
+export interface AuditPageDto {
+  entries: AuditEntryDto[];
+  /** Pass back as `?before=` for the next page. Null at the end of the log. */
+  nextCursor: number | null;
+}
+
 export interface SessionDetailDto {
   session: SessionDto;
   contributions: ContributionDto[];

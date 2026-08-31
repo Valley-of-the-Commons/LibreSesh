@@ -7,6 +7,7 @@ import { useEventData } from '../lib/useEventData';
 import { AdminRooms, type RoomDraft } from './AdminRooms';
 import { AdminPermissions } from './AdminPermissions';
 import { AdminBackup } from './AdminBackup';
+import { AdminAudit } from './AdminAudit';
 import {
   DangerButton,
   Modal,
@@ -35,6 +36,7 @@ const TABS = [
   { id: 'settings', label: 'Settings' },
   { id: 'backup', label: 'Backup' },
   { id: 'trash', label: 'Trash' },
+  { id: 'audit', label: 'Audit' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -506,7 +508,7 @@ export function AdminPage() {
         <h1 className="text-lg font-semibold tracking-tight">Manage {event.name}</h1>
       </div>
 
-      {/* Manage is six unrelated jobs on one page. Tabs keep each of them a
+      {/* Manage is seven unrelated jobs on one page. Tabs keep each of them a
           screenful, and the choice lives in the URL so a reload — or a link
           sent to a co-organiser — lands on the same one. */}
       <div
@@ -1009,6 +1011,12 @@ export function AdminPage() {
               </div>
             )}
           </Section>
+        </div>
+      )}
+
+      {tab === 'audit' && (
+        <div role="tabpanel" id="admin-panel-audit" aria-labelledby="admin-tab-audit">
+          <AdminAudit slug={slug} />
         </div>
       )}
     </div>

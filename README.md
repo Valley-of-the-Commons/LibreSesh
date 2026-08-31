@@ -247,7 +247,8 @@ streams get cut.
 ### Backups
 
 Two of them are reachable from the browser, in **Manage Event → Backup**, for
-organisers with no shell on the box:
+organisers with no shell on the box (and **Manage Event → Audit** shows who
+changed what, which is the other half of recovering from a bad afternoon):
 
 - **Export this event** — the programme as JSON: rooms, tracks, tags, people,
   sessions, pitches and contributions, with star and interest counts. No

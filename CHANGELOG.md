@@ -6,6 +6,18 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- **The audit log is readable, in Manage Event → Audit.** The `audit` table has
+  been filled since the first migration by thirteen route files and had no
+  reader at all — so the recovery story for vandalism was "restore it from
+  Trash and guess who did it". Admin-only, newest first, keyset-paged (the log
+  only grows at the head, so an offset would skip rows as it does). Each line
+  names the actor by their display name in this event and the thing they
+  touched by its title, looked up at read time — soft deletes are what make
+  that possible, so a deleted session is still named in the line recording its
+  deletion. Deletions and failed password or device-phrase attempts are
+  coloured, being what anyone opening this is looking for. The filter box
+  searches what has been loaded and says so.
+
 - **Two backups, in Manage Event → Backup.** Neither existed; the only backup
   was a cron job on the host, which is no use to an organiser who has never
   seen a shell.

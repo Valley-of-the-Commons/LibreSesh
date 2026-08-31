@@ -1,4 +1,5 @@
 import type {
+  AuditPageDto,
   BundleDto,
   ContributionDto,
   ContributionKind,
@@ -226,6 +227,14 @@ export const api = {
     request<SessionDto>('POST', `/e/${encode(slug)}/sessions/${id}/restore`),
   restoreContribution: (slug: string, id: number) =>
     request<ContributionDto>('POST', `/e/${encode(slug)}/contributions/${id}/restore`),
+
+  /** The write log, newest first. `before` is the previous page's
+   *  `nextCursor` — keyset paging, because the log grows at the head. */
+  audit: (slug: string, before?: number) =>
+    request<AuditPageDto>(
+      'GET',
+      `/e/${encode(slug)}/audit${before === undefined ? '' : `?before=${before}`}`,
+    ),
 
   /** The per-event JSON export is a plain authenticated GET, so the link in
    *  Manage Event downloads it directly — no fetch, no blob, no wrapper. */

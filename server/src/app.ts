@@ -11,6 +11,7 @@ import { errorHandler, notFound } from './errors.js';
 import { identityMiddleware } from './identity.js';
 import { RateLimiter } from './ratelimit.js';
 import { agendaRoutes, calendarRoutes } from './routes/agenda.js';
+import { auditRoutes } from './routes/audit.js';
 import { backupRoutes, exportRoutes } from './routes/backup.js';
 import { bundleRoutes } from './routes/bundle.js';
 import { contributionRoutes } from './routes/contributions.js';
@@ -74,6 +75,7 @@ export function createApp(db: Db, config: Config): App {
   event.use(settingsRoutes(ctx));
   event.use(trashRoutes(ctx));
   event.use(exportRoutes(ctx));
+  event.use(auditRoutes(ctx));
   api.use('/e/:slug', event);
 
   api.use((_req, _res, next) => next(notFound('No such endpoint')));
