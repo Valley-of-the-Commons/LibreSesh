@@ -38,15 +38,14 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 
 ## High Priority
 
-- **Pitch board.** Always show the creator, default the creator as host,
-  up/down votes replacing proposal interest, and a hot/new split. The plan is
-  `_planning/plans/2026-08-29-ui-overhaul-permissions-pitches.md`. The interest
-  button already wears the up-arrow the votes will use (the ★ it had collided
-  with "on my agenda" on the schedule), so what is left is the mechanic and the
-  API: `proposal_interest` → `proposal_votes` with a `value` of +1/-1, existing
-  rows migrating to +1, and `interestCount` becoming `score`/`upvotes`/
-  `downvotes`. The JSON export exposes `interestCount`, so bump
-  `EventExport.version` when that shape changes.
+- **Pitch board.** Always show the creator, default the creator as host, and
+  split the board into hot/new. The plan is
+  `_planning/plans/2026-08-29-ui-overhaul-permissions-pitches.md`, whose
+  up/down-vote assumption is **withdrawn** (decided 2026-08-31): interest stays
+  one-way, so no `proposal_votes` table, no migration, and `interestCount`
+  keeps its name and its meaning in `EventExport`. The button already wears an
+  up-arrow rather than a star, which was only ever about the glyph colliding
+  with "on my agenda".
 
 - **Merge moves the person, not their history.** `POST /people/:id/merge`
   repoints `sessions.speaker_id` and `proposals.speaker_id` and abandons the
@@ -60,6 +59,17 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
   Wants the merge transaction to re-key those five tables onto the survivor,
   de-duplicating the two composite keys (`stars`, `proposal_interest`) as it
   goes.
+
+- **A merged-away or deleted person keeps a live speaker code.** Verified
+  2026-08-31 against the running app: mint a code for a profile, merge it into
+  another (or delete it outright), and the phrase still redeems — the stranger
+  who types it adopts that identity and lands in the event with the **speaker**
+  role. Neither `POST /people/:id/merge` nor `DELETE /people/:id` touches
+  `link_codes`, and `redeemLinkCode` never checks whether the bound person is
+  soft-deleted. Worse, it cannot be taken back through the UI: the revoke route
+  loads the person first and a soft-deleted one is a 404, so the only way to
+  kill the code is SQL. Both routes should revoke inside their transaction —
+  and the person delete arguably should too when the profile was claimed.
 
 - **Old migration backups pile up.** Each upgrade with pending migrations
   leaves a `*.backup-<stamp>` file beside the DB and nothing prunes them.
@@ -150,6 +160,11 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 
 ## Low Priority / Ideas
 
+- **Quadratic voting on pitches.** Floated 2026-08-31 for a future instance,
+  explicitly not for this one: it changes what a vote *is* (a budget spent
+  across pitches, not a click per pitch), so it wants its own schema and its
+  own thinking rather than a column bolted onto `proposal_interest`.
+
 - **README screenshot.** Asked for on 2026-08-28 but not possible from the dev
   container — there is no browser and the Playwright/Puppeteer binaries cannot
   be fetched through the firewall. Needs a PNG dropped in by hand.
@@ -180,8 +195,10 @@ against the code on 2026-08-30:
 **Pitches are votable, and have been since the board shipped.** The
 `proposal.vote` capability (`server/src/shared/capabilities.ts`) is granted to
 every role by default, viewers included; `proposal_interest` stores it and the
-board sorts by the count. Replacing that one-way interest with up/down votes
-and a hot/new split is queued under In Progress, not a new idea.
+board sorts by the count. Up/down votes were queued to replace that one-way
+interest and were **dropped on 2026-08-31** — interest stays as it is, and
+quadratic voting is parked under Low Priority for a future instance. The
+hot/new split is still queued, under High Priority.
 
 What stays out is voting on the **programme**: nobody votes a scheduled session
 up or down. The board/programme line is the whole of the distinction, and it is
