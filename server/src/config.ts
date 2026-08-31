@@ -1,10 +1,18 @@
 import { randomBytes } from 'node:crypto';
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { DEMO_SLUG, LONG_DEMO } from './seed.js';
 
 export interface Config {
   port: number;
   databasePath: string;
   cookieSecret: string;
+  /**
+   * Where the cookie secret came from. `ephemeral` is the one that matters:
+   * it means this process invented a key it cannot write down, so a restart
+   * will sign everyone out.
+   */
+  cookieSecretOrigin: 'env' | 'file' | 'ephemeral';
   instanceAdminPassword: string;
   trustProxy: boolean;
   /** Serve web/dist and fall back to index.html (production single-process mode). */
@@ -62,21 +70,58 @@ export function isDemoEvent(config: Config, slug: string): boolean {
   return config.demoMode && config.demoEventSlugs.includes(slug);
 }
 
+/**
+ * The signed identity cookie's key. Production demands an explicit one — it is
+ * a secret, and a managed platform is where secrets belong.
+ *
+ * Everywhere else it used to be generated per boot, which quietly meant every
+ * restart signed the whole room out: the browser's cookie no longer verifies,
+ * a fresh identity is minted, and the person cannot even re-enter under their
+ * own name, because the name they had is still held (uniquely, per event) by
+ * the identity they just lost. So an unconfigured secret is now generated once
+ * and kept beside the database, where it survives a restart the same way the
+ * data does.
+ */
+function resolveCookieSecret(isProd: boolean, databasePath: string): {
+  secret: string;
+  origin: 'env' | 'file' | 'ephemeral';
+} {
+  if (isProd) return { secret: required('COOKIE_SECRET'), origin: 'env' };
+  const configured = process.env.COOKIE_SECRET;
+  if (configured) return { secret: configured, origin: 'env' };
+  if (databasePath === ':memory:') return { secret: randomBytes(32).toString('hex'), origin: 'ephemeral' };
+
+  const path = join(dirname(databasePath), '.cookie-secret');
+  try {
+    return { secret: readFileSync(path, 'utf8').trim(), origin: 'file' };
+  } catch {
+    // Not there yet, or unreadable — try to write one.
+  }
+  try {
+    mkdirSync(dirname(path), { recursive: true });
+    const secret = randomBytes(32).toString('hex');
+    writeFileSync(path, secret, { mode: 0o600 });
+    chmodSync(path, 0o600);
+    return { secret, origin: 'file' };
+  } catch {
+    // A read-only checkout, say. Falling back is better than refusing to boot
+    // in dev, but the caller warns about it.
+    return { secret: randomBytes(32).toString('hex'), origin: 'ephemeral' };
+  }
+}
+
 export function loadConfig(): Config {
   const isProd = process.env.NODE_ENV === 'production';
   const isDemo = process.env.DEMO_MODE === '1';
+  const databasePath = process.env.DATABASE_PATH ?? 'data/app.db';
 
-  // A generated secret is fine for local dev (it only invalidates cookies on
-  // restart); in production an explicit one is required so identities survive
-  // a redeploy.
-  const cookieSecret = isProd
-    ? required('COOKIE_SECRET')
-    : (process.env.COOKIE_SECRET ?? randomBytes(32).toString('hex'));
+  const cookie = resolveCookieSecret(isProd, databasePath);
 
   return {
     port: Number(process.env.PORT ?? 3000),
-    databasePath: process.env.DATABASE_PATH ?? 'data/app.db',
-    cookieSecret,
+    databasePath,
+    cookieSecret: cookie.secret,
+    cookieSecretOrigin: cookie.origin,
     instanceAdminPassword: isProd
       ? required('INSTANCE_ADMIN_PASSWORD')
       : (process.env.INSTANCE_ADMIN_PASSWORD ?? 'dev-instance-password'),

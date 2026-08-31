@@ -169,7 +169,7 @@ Display names are unique within an event, so nobody can take an organiser's.
 | ------------------------- | ---------------- | -------------------------------------------------- |
 | `PORT`                    | `3000`           |                                                    |
 | `DATABASE_PATH`           | `data/app.db`    | `-wal`/`-shm` sidecars sit next to it              |
-| `COOKIE_SECRET`           | random in dev    | **Required in production**; changing it logs everyone out |
+| `COOKIE_SECRET`           | generated once   | **Required in production.** Elsewhere a generated one is kept in `.cookie-secret` beside the database, so restarts do not sign everyone out. Changing it logs everyone out |
 | `INSTANCE_ADMIN_PASSWORD` | dev placeholder  | **Required in production**; gates event creation   |
 | `TRUST_PROXY`             | off              | Set `1` behind Caddy so rate limits see real IPs   |
 | `SERVE_STATIC`            | on in production | Serves `web/dist` from the API process             |

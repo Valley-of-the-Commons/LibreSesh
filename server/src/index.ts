@@ -49,6 +49,22 @@ const { express: app, ctx } = createApp(db, config);
 const server = app.listen(config.port, '0.0.0.0', () => {
   console.log(`libresesh listening on http://0.0.0.0:${config.port}`);
   console.log(`database: ${config.databasePath}`);
+  if (config.cookieSecretOrigin === 'file') {
+    console.log(
+      `cookie secret: generated and kept beside the database — identities survive a restart. ` +
+        'Set COOKIE_SECRET to manage it yourself.',
+    );
+  }
+  if (config.cookieSecretOrigin === 'ephemeral') {
+    // The failure this prevents is baffling from the outside: everyone is
+    // signed out by a restart, and cannot re-enter under their own name,
+    // because the name is still held by the identity they just lost.
+    console.warn(
+      'WARNING: no COOKIE_SECRET, and none could be stored beside the database. ' +
+        'This one was generated in memory, so the next restart signs every visitor out ' +
+        'and their display names stay taken. Set COOKIE_SECRET.',
+    );
+  }
   if (config.demoMode) {
     // Loud on purpose, but precise: only the seeded fixtures are open. Any
     // other event here — including one created through the UI — checks its

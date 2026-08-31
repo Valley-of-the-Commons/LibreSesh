@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Me, Role } from '@shared/types';
 import { ApiError, api } from '../lib/api';
 import { useMe } from '../lib/useMe';
-import { Field, PrimaryButton, SecondaryButton, inputClass } from './ui';
+import { Field, PrimaryButton, SecondaryButton, inputClass, linkClass } from './ui';
 
 export interface GateProps {
   slug: string;
@@ -18,6 +18,17 @@ export function Gate({ slug, eventName, me, onEntered }: GateProps) {
   const [name, setName] = useState(me?.displayName ?? '');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  /**
+   * A free variant of the name that was refused, offered as one click.
+   *
+   * Names are unique inside an event and held by the identity that claimed
+   * them, so "already called that" is a dead end for anyone who lost their
+   * cookie — clearing site data, a second browser, or a server that restarted
+   * with a new signing key. They are the same person and they cannot say so;
+   * the server is right to refuse, and the gate should still let them in.
+   */
+  const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [pendingRole, setPendingRole] = useState<Role | null>(null);
   // The device-link path: type the phrase your other device shows, become it.
   const [linkMode, setLinkMode] = useState(false);
   const [phrase, setPhrase] = useState('');
@@ -42,21 +53,67 @@ export function Gate({ slug, eventName, me, onEntered }: GateProps) {
     }
   };
 
+  /** `name 2`, `name 3`, … — the first one this event has not handed out. */
+  const nextFreeName = async (taken: string, enter: (candidate: string) => Promise<unknown>) => {
+    const base = taken.replace(/\s+\d+$/, '');
+    for (let n = 2; n <= 9; n += 1) {
+      const candidate = `${base} ${n}`.slice(0, 40);
+      try {
+        await enter(candidate);
+        return candidate;
+      } catch (err) {
+        if (!(err instanceof ApiError) || err.code !== 'name_taken') throw err;
+      }
+    }
+    return null;
+  };
+
   const submit = async () => {
     if (!password.trim() || busy) return;
     setBusy(true);
     setError(null);
+    setSuggestion(null);
     try {
       // The name is claimed as part of entry: it has to be unique inside this
       // event, and the server grants no role if it is taken.
       await api.authenticate(slug, password.trim(), name.trim() || undefined);
       onEntered();
     } catch (err) {
-      setError(
-        err instanceof ApiError && (err.status === 429 || err.status === 404 || err.status === 409)
-          ? err.message
-          : 'That password doesn’t match this event.',
+      if (err instanceof ApiError && err.code === 'name_taken') {
+        setError(err.message);
+        setSuggestion(name.trim());
+      } else {
+        setError(
+          err instanceof ApiError && (err.status === 429 || err.status === 404)
+            ? err.message
+            : 'That password doesn’t match this event.',
+        );
+      }
+      setBusy(false);
+    }
+  };
+
+  /** Retry the last entry attempt under the next free variant of the name. */
+  const enterWithSuffix = async (taken: string) => {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const used = await nextFreeName(taken, (candidate) =>
+        demo
+          ? api.authenticateAsRole(slug, pendingRole ?? 'viewer', candidate)
+          : api.authenticate(slug, password.trim(), candidate),
       );
+      if (used === null) {
+        setError('Every variant of that name is taken here — try a different one.');
+        setBusy(false);
+        return;
+      }
+      setName(used);
+      setSuggestion(null);
+      onEntered();
+    } catch (err) {
+      setError((err as Error).message);
       setBusy(false);
     }
   };
@@ -66,10 +123,14 @@ export function Gate({ slug, eventName, me, onEntered }: GateProps) {
     if (busy) return;
     setBusy(true);
     setError(null);
+    setSuggestion(null);
+    // Remembered so the retry below enters as the role they actually picked.
+    setPendingRole(role);
     try {
       await api.authenticateAsRole(slug, role, name.trim() || undefined);
       onEntered();
     } catch (err) {
+      if (err instanceof ApiError && err.code === 'name_taken') setSuggestion(name.trim());
       setError((err as Error).message);
       setBusy(false);
     }
@@ -119,6 +180,16 @@ export function Gate({ slug, eventName, me, onEntered }: GateProps) {
               ))}
             </div>
             {error && <p className="mt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+            {suggestion !== null && (
+              <button
+                type="button"
+                onClick={() => void enterWithSuffix(suggestion)}
+                disabled={busy}
+                className={`mt-1.5 text-xs font-semibold ${linkClass}`}
+              >
+                Enter as “{suggestion.replace(/\s+\d+$/, '')} 2” instead
+              </button>
+            )}
           </>
         ) : (
           <>
@@ -137,6 +208,16 @@ export function Gate({ slug, eventName, me, onEntered }: GateProps) {
         </Field>
         {error && !linkMode && (
           <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{error}</p>
+        )}
+        {suggestion !== null && !linkMode && (
+          <button
+            type="button"
+            onClick={() => void enterWithSuffix(suggestion)}
+            disabled={busy}
+            className={`mt-1.5 text-xs font-semibold ${linkClass}`}
+          >
+            Enter as “{suggestion.replace(/\s+\d+$/, '')} 2” instead
+          </button>
         )}
 
         <PrimaryButton className="mt-4 w-full py-2 text-sm" onClick={() => void submit()} disabled={busy}>

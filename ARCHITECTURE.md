@@ -262,9 +262,13 @@ explicitly *not* built to withstand a targeted attacker with time.
 - **`.npmrc` sets `ignore-scripts=true`.** `better-sqlite3` will not build on
   `npm install`. Use `npm run rebuild:native`, or `--ignore-scripts=false` in
   Docker. This is a supply-chain gate; do not remove it to "fix" the build.
-- **`COOKIE_SECRET` must be set and stable in production.** It is generated per
-  boot in dev, which means every restart invalidates every identity. In
-  production that would reset the whole room's names and roles mid-conference.
+- **`COOKIE_SECRET` must be set and stable in production.** Elsewhere an
+  unconfigured one is generated once and kept in `.cookie-secret` beside the
+  database, because a key that changes per boot invalidates every identity —
+  and the failure is worse than it sounds: the visitor comes back a stranger
+  *and* cannot reclaim their own display name, which the identity they lost
+  still holds. If neither reading nor writing that file works, the boot log
+  says the next restart will sign everyone out.
 - **`TRUST_PROXY=1` behind a reverse proxy**, or every request appears to come
   from the proxy and the per-IP rate limit becomes a single shared bucket.
 - **The instance password gates event creation** and the whole-database

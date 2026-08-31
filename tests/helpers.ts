@@ -27,6 +27,7 @@ export function makeHarness(overrides: Partial<Config> = {}): Harness {
     port: 0,
     databasePath,
     cookieSecret: 'test-secret',
+    cookieSecretOrigin: 'env',
     instanceAdminPassword: 'instance-pw',
     trustProxy: false,
     serveStatic: false,

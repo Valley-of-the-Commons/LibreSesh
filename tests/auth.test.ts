@@ -292,3 +292,68 @@ describe('demo mode config', () => {
     expect(loadConfig().demoMode).toBe(false);
   });
 });
+
+/**
+ * Names are unique inside an event and held by the identity that claimed them,
+ * so somebody who loses their cookie — cleared site data, a second browser, or
+ * a server that restarted with a new signing key — cannot re-enter under their
+ * own name. The server is right to refuse; there has to be a way forward.
+ */
+describe('a name already held in this event', () => {
+  let harness: Harness;
+  afterEach(() => harness.close());
+
+  it('refuses the name but takes the next free variant', async () => {
+    harness = makeHarness();
+    seedEvent(harness.db);
+
+    const first = agentFor(harness);
+    await first.get('/api/me').expect(200);
+    await first
+      .post('/api/e/testconf/auth')
+      .send({ password: 'user-pw', displayName: 'Ada' })
+      .expect(200);
+
+    // The same person, now a stranger to the server.
+    const afterWipe = agentFor(harness);
+    await afterWipe.get('/api/me').expect(200);
+    const refused = await afterWipe
+      .post('/api/e/testconf/auth')
+      .send({ password: 'user-pw', displayName: 'Ada' })
+      .expect(409);
+    expect(refused.body.error.code).toBe('name_taken');
+
+    // Which is what the gate's one-click retry sends.
+    const retry = await afterWipe
+      .post('/api/e/testconf/auth')
+      .send({ password: 'user-pw', displayName: 'Ada 2' })
+      .expect(200);
+    expect(retry.body.role).toBe('user');
+    const me = await afterWipe.get('/api/e/testconf/bundle').expect(200);
+    expect(me.body.displayName).toBe('Ada 2');
+  });
+
+  it('behaves the same on a demo event, where the gate is a role picker', async () => {
+    harness = makeHarness({ demoMode: true });
+    seedEvent(harness.db);
+
+    const first = agentFor(harness);
+    await first.get('/api/me').expect(200);
+    await first
+      .post('/api/e/testconf/auth')
+      .send({ role: 'admin', displayName: 'Ada' })
+      .expect(200);
+
+    const afterRestart = agentFor(harness);
+    await afterRestart.get('/api/me').expect(200);
+    await afterRestart
+      .post('/api/e/testconf/auth')
+      .send({ role: 'admin', displayName: 'Ada' })
+      .expect(409);
+    const retry = await afterRestart
+      .post('/api/e/testconf/auth')
+      .send({ role: 'admin', displayName: 'Ada 2' })
+      .expect(200);
+    expect(retry.body.role).toBe('admin');
+  });
+});

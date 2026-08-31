@@ -81,6 +81,20 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- **A restart no longer signs the room out — and a name you had is no longer a
+  dead end.** Without `COOKIE_SECRET` the signing key was invented at every
+  boot, so each restart invalidated every identity cookie: visitors came back
+  as strangers and could not even re-enter under their own names, because the
+  name is held (uniquely, per event) by the identity they had just lost. Two
+  changes. An unconfigured secret is now generated **once** and kept beside the
+  database as `.cookie-secret` (0600), so it survives a restart the way the
+  data does; production still demands an explicit one, and a boot that can
+  neither read nor write the file says loudly that the next restart will sign
+  everyone out. And the gate now recovers from the collision: "already called
+  that" comes with a one-click **Enter as “Ada 2”**, which walks up the
+  variants until one is free — on the password gate and the demo role picker
+  alike.
+
 - **A speaker code no longer outlives the profile it stands for.** Merging a
   duplicate person into another, or deleting a person outright, left the code
   minted for it sitting in `link_codes` — and the phrase still worked. Whoever
