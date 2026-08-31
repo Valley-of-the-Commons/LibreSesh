@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   DAY_ONE,
   actorWithRole,
+  agentFor,
   at,
   makeHarness,
   seedEvent,
@@ -111,5 +112,71 @@ describe('merging people', () => {
     await admin.post(`/api/e/testconf/people/${id}/merge`).send({ from: id }).expect(400);
     await admin.post(`/api/e/testconf/people/${id}/merge`).send({ from: 9999 }).expect(404);
     await user.post(`/api/e/testconf/people/${id}/merge`).send({ from: id }).expect(403);
+  });
+
+  /**
+   * A speaker code grants an *identity*, and the merge decides which identity
+   * the surviving profile carries — so the loser's code follows the survivor
+   * or dies, and never lingers as a phrase pointing at a profile that is no
+   * longer on the roster.
+   */
+  describe('the loser’s speaker code', () => {
+    const mint = (personId: number) =>
+      admin.post(`/api/e/testconf/people/${personId}/speaker-code`).expect(200);
+
+    it('dies when the survivor keeps an identity of its own', async () => {
+      const a = await makeSession('Ada Lovelace');
+      const b = await makeSession('A. Lovelace', 700);
+      const survivorId = a.body.speakerId as number;
+      const loserId = b.body.speakerId as number;
+
+      // Both profiles have been claimed — the survivor by its own code.
+      await mint(survivorId);
+      const { body: loserCode } = await mint(loserId);
+
+      await admin
+        .post(`/api/e/testconf/people/${survivorId}/merge`)
+        .send({ from: loserId })
+        .expect(200);
+
+      const stranger = agentFor(harness);
+      await stranger.get('/api/me').expect(200);
+      await stranger.post('/api/me/link').send({ phrase: loserCode.phrase }).expect(403);
+      await stranger.get('/api/e/testconf/bundle').expect(401);
+    });
+
+    it('follows the survivor when the survivor inherits that identity', async () => {
+      const a = await makeSession('Ada Lovelace');
+      const b = await makeSession('A. Lovelace', 700);
+      const survivorId = a.body.speakerId as number;
+      const loserId = b.body.speakerId as number;
+
+      // Only the duplicate was ever claimed, so the merge hands the survivor
+      // that identity — and the phrase already emailed to that speaker still
+      // names the person who is left.
+      const { body: loserCode } = await mint(loserId);
+
+      await admin
+        .post(`/api/e/testconf/people/${survivorId}/merge`)
+        .send({ from: loserId })
+        .expect(200);
+
+      const phone = agentFor(harness);
+      await phone.get('/api/me').expect(200);
+      const { body: linked } = await phone
+        .post('/api/me/link')
+        .send({ phrase: loserCode.phrase })
+        .expect(200);
+      expect(linked.roles.testconf).toBe('speaker');
+
+      const bundle = await phone.get('/api/e/testconf/bundle').expect(200);
+      const mine = bundle.body.people.find((p: { isMine: boolean }) => p.isMine) as {
+        id: number;
+      };
+      expect(mine.id).toBe(survivorId);
+
+      // And it is the survivor's code now, so an organiser can revoke it.
+      await admin.delete(`/api/e/testconf/people/${survivorId}/speaker-code`).expect(204);
+    });
   });
 });

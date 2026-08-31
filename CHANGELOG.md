@@ -58,6 +58,20 @@ All notable changes to this project are documented here.
 
 ### Fixed
 
+- **A speaker code no longer outlives the profile it stands for.** Merging a
+  duplicate person into another, or deleting a person outright, left the code
+  minted for it sitting in `link_codes` — and the phrase still worked. Whoever
+  typed it adopted an identity that keeps its **speaker** role and no longer
+  appears on the roster, and no organiser could take it back: revoking loads
+  the person first, and a soft-deleted one is a 404, so the only way to kill it
+  was SQL. Deleting a person now revokes its code in the same transaction, and
+  a merge settles the loser's: the code follows the survivor when the survivor
+  inherited that identity — so a phrase already handed to a speaker keeps
+  working — and is destroyed when the survivor kept its own, because then it
+  points at an identity the merge abandoned. Redemption also refuses any code
+  whose person has been soft-deleted, as a backstop for rows written before
+  this. Device phrases, which belong to no person, are untouched.
+
 - **A demo instance no longer opens every event on it.** `DEMO_MODE=1` made
   the gate a role picker for *all* events, so a real conference running beside
   the demo — or one created through the UI to try the thing out — was open to

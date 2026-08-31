@@ -60,21 +60,6 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
   de-duplicating the two composite keys (`stars`, `proposal_interest`) as it
   goes.
 
-- **A merged-away or deleted person keeps a live speaker code.** Verified
-  2026-08-31 against the running app: mint a code for a profile, merge it into
-  another (or delete it outright), and the phrase still redeems — the stranger
-  who types it adopts that identity and lands in the event with the **speaker**
-  role. Neither `POST /people/:id/merge` nor `DELETE /people/:id` touches
-  `link_codes`, and `redeemLinkCode` never checks whether the bound person is
-  soft-deleted. Worse, it cannot be taken back through the UI: the revoke route
-  loads the person first and a soft-deleted one is a 404, so the only way to
-  kill the code is SQL. Both routes should revoke inside their transaction —
-  and the person delete arguably should too when the profile was claimed.
-
-- **Old migration backups pile up.** Each upgrade with pending migrations
-  leaves a `*.backup-<stamp>` file beside the DB and nothing prunes them.
-  Fine for now (one file per deploy); wants a keep-last-N sweep eventually.
-
 ## Medium Priority
 
 - **Nothing imports an event export.** `GET /export.json` writes a complete

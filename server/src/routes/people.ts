@@ -2,7 +2,11 @@ import { Router } from 'express';
 import { atLeast, requireRole, requireWritable } from '../auth.js';
 import { audit } from '../audit.js';
 import type { Ctx } from '../context.js';
-import { mintSpeakerCode, revokeSpeakerCode } from '../deviceLink.js';
+import {
+  mintSpeakerCode,
+  revokeSpeakerCode,
+  settleSpeakerCodeAfterMerge,
+} from '../deviceLink.js';
 import type { PersonRow, SessionRow } from '../db.js';
 import { badRequest, conflict, forbidden, notFound } from '../errors.js';
 import { loadSessionDto, toPersonDto } from '../mappers.js';
@@ -245,17 +249,21 @@ export function peopleRoutes(ctx: Ctx): Router {
         ctx.db
           .prepare('UPDATE people SET identity_id = NULL, deleted_at = ? WHERE id = ?')
           .run(now, loser.id);
+        const survivingIdentity = survivor.identity_id ?? loser.identity_id;
         ctx.db
           .prepare(
             'UPDATE people SET identity_id = ?, bio = ?, links = ?, updated_at = ? WHERE id = ?',
           )
           .run(
-            survivor.identity_id ?? loser.identity_id,
+            survivingIdentity,
             survivor.bio || loser.bio,
             survivor.links === '[]' ? loser.links : survivor.links,
             now,
             survivor.id,
           );
+        // The loser's row is gone from the roster; its speaker code must not
+        // outlive it as a phrase nobody can revoke.
+        settleSpeakerCodeAfterMerge(ctx.db, loser.id, survivor.id, survivingIdentity);
       })();
 
       const dto = toPersonDto(load(req.event.id, survivor.id), req.identity.id);
@@ -344,6 +352,10 @@ export function peopleRoutes(ctx: Ctx): Router {
         ctx.db
           .prepare('UPDATE people SET deleted_at = ? WHERE id = ?')
           .run(new Date().toISOString(), person.id);
+        // Removing a profile removes the way in that was minted for it —
+        // otherwise the phrase stays live and the revoke route, which loads
+        // the person first, can no longer reach it.
+        revokeSpeakerCode(ctx.db, person.id);
       })();
       audit(ctx.db, {
         identityId: req.identity.id,

@@ -150,7 +150,19 @@ export function redeemLinkCode(db: Db, rawPhrase: string): IdentityRow | undefin
         `SELECT id, identity_id FROM link_codes
           WHERE code_hash = ?
             AND (expires_at IS NULL OR expires_at > ?)
-            AND (used_at IS NULL OR person_id IS NOT NULL)`,
+            AND (used_at IS NULL OR person_id IS NOT NULL)
+            -- A speaker code dies with the profile it stands for. The routes
+            -- that remove a profile revoke it outright; this is the backstop
+            -- for a row that predates them, or a future path that soft-deletes
+            -- a person and forgets. Device phrases (person_id NULL) are
+            -- unaffected.
+            AND (
+              person_id IS NULL
+              OR EXISTS (
+                SELECT 1 FROM people p
+                 WHERE p.id = link_codes.person_id AND p.deleted_at IS NULL
+              )
+            )`,
       )
       .get(hashPhrase(rawPhrase), new Date().toISOString());
     if (!row) return undefined;
@@ -242,4 +254,48 @@ export function mintSpeakerCode(
  *  an organiser who wants them out changes the role, not the code. */
 export function revokeSpeakerCode(db: Db, personId: number): void {
   db.prepare('DELETE FROM link_codes WHERE person_id = ?').run(personId);
+}
+
+/**
+ * Settle the loser's speaker code when two profiles are merged.
+ *
+ * A code grants an *identity*, and merging decides which identity the surviving
+ * profile carries. So the question is not "was this the survivor's code" but
+ * "does this code still hand out the person who is left":
+ *
+ * - it does, when the survivor had no identity of its own and inherited the
+ *   loser's — the phrase an organiser already emailed to that speaker still
+ *   names them, so it follows the profile rather than being cancelled;
+ * - it does not, when the survivor kept its own identity. The loser's identity
+ *   is abandoned by the merge but keeps its `speaker` role, so leaving the code
+ *   alive would let anyone who types it walk in as a profile that is no longer
+ *   on the roster — and no organiser could take it back, because revoking loads
+ *   the person and a soft-deleted one is a 404.
+ *
+ * Called inside the merge transaction, after the loser is soft-deleted.
+ */
+export function settleSpeakerCodeAfterMerge(
+  db: Db,
+  loserId: number,
+  survivorId: number,
+  survivingIdentityId: number | null,
+): void {
+  const code = db
+    .prepare<[number], { id: number; identity_id: number }>(
+      'SELECT id, identity_id FROM link_codes WHERE person_id = ?',
+    )
+    .get(loserId);
+  if (!code) return;
+
+  // `link_codes.person_id` is unique where set, so the survivor's own code —
+  // if it has one — wins and the loser's goes.
+  const survivorHasOne = db
+    .prepare<[number], { id: number }>('SELECT id FROM link_codes WHERE person_id = ?')
+    .get(survivorId);
+
+  if (code.identity_id === survivingIdentityId && !survivorHasOne) {
+    db.prepare('UPDATE link_codes SET person_id = ? WHERE id = ?').run(survivorId, code.id);
+    return;
+  }
+  db.prepare('DELETE FROM link_codes WHERE id = ?').run(code.id);
 }

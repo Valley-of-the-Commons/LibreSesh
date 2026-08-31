@@ -131,4 +131,51 @@ describe('speaker codes', () => {
     await user.post(`/api/e/testconf/people/${personId}/speaker-code`).expect(403);
     await user.delete(`/api/e/testconf/people/${personId}/speaker-code`).expect(403);
   });
+
+  /**
+   * The code is a live credential. If the profile it stands for leaves the
+   * roster, the phrase has to die with it — an organiser cannot revoke what
+   * the revoke route can no longer load.
+   */
+  describe('a code does not outlive its profile', () => {
+    it('dies when the person is deleted', async () => {
+      const personId = await seedPerson();
+      const { body } = await mint(personId);
+
+      await admin.delete(`/api/e/testconf/people/${personId}`).expect(204);
+
+      const stranger = agentFor(harness);
+      await stranger.get('/api/me').expect(200);
+      await stranger.post('/api/me/link').send({ phrase: body.phrase }).expect(403);
+      await stranger.get('/api/e/testconf/bundle').expect(401);
+      expect(
+        harness.db.prepare('SELECT COUNT(*) AS n FROM link_codes').get(),
+      ).toEqual({ n: 0 });
+    });
+
+    /** The backstop, for a row written before the routes learned to revoke. */
+    it('is refused when its person was soft-deleted behind the app’s back', async () => {
+      const personId = await seedPerson();
+      const { body } = await mint(personId);
+      harness.db
+        .prepare('UPDATE people SET deleted_at = ? WHERE id = ?')
+        .run(new Date().toISOString(), personId);
+
+      const stranger = agentFor(harness);
+      await stranger.get('/api/me').expect(200);
+      await stranger.post('/api/me/link').send({ phrase: body.phrase }).expect(403);
+    });
+
+    it('leaves an ordinary device phrase alone', async () => {
+      const personId = await seedPerson();
+      await mint(personId);
+      const phone = agentFor(harness);
+      await phone.get('/api/me').expect(200);
+      const { body } = await phone.post('/api/me/link-code').expect(200);
+
+      const laptop = agentFor(harness);
+      await laptop.get('/api/me').expect(200);
+      await laptop.post('/api/me/link').send({ phrase: body.phrase }).expect(200);
+    });
+  });
 });
