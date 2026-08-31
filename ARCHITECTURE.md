@@ -168,6 +168,28 @@ when a name is already taken. `config.cookieSecretOrigin` records which of the
 three routes was taken — `env`, `file`, or `ephemeral` — and the boot log warns
 loudly about the last one.
 
+```mermaid
+flowchart TD
+  R["Request arrives with a cid cookie<br/>s:token.HMAC"] --> V{"HMAC recomputed with<br/>COOKIE_SECRET — matches?"}
+  V -- "no, or no cookie at all" --> M["Mint a new identities row<br/>set a fresh signed cid"]
+  V -- yes --> L["token → identities row<br/>this request is that person"]
+  M --> N["A stranger: no roles anywhere"]
+  L --> Q{"roles row for<br/>this identity + this event?"}
+  Q -- no --> G["401 — the gate"]
+  Q -- yes --> H["Handler runs with req.role"]
+  N --> G
+  G -. "enter with a name" .-> NAME{"is that name already held<br/>in this event?"}
+  NAME -- "no" --> H
+  NAME -- "yes, by another identity" --> S["409 name_taken<br/>gate offers Ada 2"]
+
+  style M fill:#fde68a,stroke:#b45309,color:#000
+  style S fill:#fecaca,stroke:#b91c1c,color:#000
+```
+
+Rotating the secret pushes every returning visitor down the yellow branch at
+once, and their old names are still held — which is the red box, for everyone,
+until they pick a new one.
+
 **What identity is not:** it is not a login, and it is not global state. A role
 is a row keyed on (identity, event); a display name is a row keyed on (event,
 identity). Signing out of an event deletes the role, never the identity — which
@@ -198,6 +220,63 @@ claimed — precisely so that redemption stays the same dumb token adoption in
 both cases. That is what makes one speaker code work from any number of
 devices. Phrases are stored hashed; guesses share the password rate-limit
 budget.
+
+### Merging two people
+
+Two rows in `people` can describe one human — an organiser typed "Ada
+Lovelace" onto a session while Ada herself claimed a profile as "A. Lovelace".
+`POST /people/:id/merge` folds them together. The names in the code are
+positional, and worth stating once: **the `:id` in the URL is the survivor**,
+the profile that remains; **`from` in the body is the loser**, the duplicate
+being folded in and soft-deleted.
+
+What the merge moves is *profile* data. What it does not move is anything keyed
+on an **identity** — and that is the distinction the whole feature turns on:
+
+```mermaid
+flowchart LR
+  subgraph before["Before the merge"]
+    direction TB
+    I1(["identity #7<br/>“Ada”, on a laptop"]) --> P1["people: Ada<br/>survivor"]
+    I2(["identity #9<br/>“Ada on phone”"]) --> P2["people: A. Lovelace<br/>loser"]
+    P2 --- SS1["sessions.speaker_id"]
+    I2 -.-> C1["contributions.created_by<br/>stars · created_by · interest"]
+  end
+
+  subgraph after["After the merge"]
+    direction TB
+    I1b(["identity #7"]) --> P1b["people: Ada<br/>+ speaker_id, bio, links,<br/>speaker code"]
+    I2b(["identity #9<br/>still signed in,<br/>still “Ada on phone”"]) -.-> C2["contributions.created_by<br/>stars · created_by · interest<br/>unchanged"]
+    P2b["people: A. Lovelace<br/>deleted_at set, identity_id NULL"]
+  end
+
+  before ==> after
+
+  style P2b fill:#e7e5e4,stroke:#78716c,color:#000
+  style C2 fill:#fde68a,stroke:#b45309,color:#000
+```
+
+So after a merge, verified against the running app:
+
+- the survivor holds both profiles' sessions and pitches, the identity claim if
+  it had none, the bio and links if its own were empty, and the speaker code if
+  that code still names the surviving person;
+- **the loser's identity keeps everything it wrote**, still under its own event
+  display name — so one human's contributions stay split across two names on
+  screen;
+- **the human on the losing device silently stops owning a profile.** They are
+  still signed in and still called what they were called, but nothing in the
+  event is `isMine` any more, so they cannot edit the bio that describes them;
+- they *can* still delete their own contributions: that is keyed on
+  `created_by`, and their identity was never touched.
+
+The obvious fix — re-key the five identity-keyed tables onto the survivor — is
+not obviously right, which is why it is still queued rather than done. It would
+unify the history under one name, and in the same stroke take away the losing
+device's ability to delete words it wrote, because ownership is exactly that
+key. The alternative is to make merging an **adoption** the way device linking
+is, and adoption cannot be done *to* someone: it swaps a cookie, and only the
+holder of that browser can do it.
 
 ### Migrations
 
