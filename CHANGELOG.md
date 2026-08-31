@@ -6,6 +6,17 @@ All notable changes to this project are documented here.
 
 ### Added
 
+- **The audit log prunes itself, at a size you choose.** New events and every
+  existing one start at **1000 entries** (migration 016), settable per event in
+  Manage Event → Settings; 0 keeps everything. Past the cap the oldest go as
+  new ones arrive — checked once every hundred writes rather than on each one,
+  so no action in the app pays for a `DELETE` it does not need, and applied
+  immediately when an organiser lowers the cap. Instance-level rows (a
+  whole-database backup, an event created from the landing page) carry no event
+  id and are never pruned by this. Said plainly in the UI, because it is a real
+  trade: a cap means an organiser who sets it low and then makes a thousand
+  edits can push an earlier action off the end.
+
 - **The audit log is readable, in Manage Event → Audit.** The `audit` table has
   been filled since the first migration by thirteen route files and had no
   reader at all — so the recovery story for vandalism was "restore it from

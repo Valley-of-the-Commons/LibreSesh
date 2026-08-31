@@ -81,7 +81,7 @@ function Entry({ entry }: { entry: AuditEntryDto }) {
   );
 }
 
-export function AdminAudit({ slug }: { slug: string }) {
+export function AdminAudit({ slug, auditKeep }: { slug: string; auditKeep: number }) {
   const toast = useToast();
   const [entries, setEntries] = useState<AuditEntryDto[] | null>(null);
   const [cursor, setCursor] = useState<number | null>(null);
@@ -129,7 +129,11 @@ export function AdminAudit({ slug }: { slug: string }) {
   return (
     <Section
       title="Audit log"
-      description="Every write, oldest kept forever: who created, edited, deleted or restored what, plus the password and device-phrase attempts that failed. Nobody can edit this list, including organisers."
+      description={
+        auditKeep === 0
+          ? 'Every write, kept forever: who created, edited, deleted or restored what, plus the password and device-phrase attempts that failed. Nobody can edit this list, including organisers.'
+          : `Who created, edited, deleted or restored what, plus the password and device-phrase attempts that failed. Nobody can edit this list, including organisers — but it keeps the newest ${auditKeep.toLocaleString()} entries and drops the rest, which Settings can change.`
+      }
     >
       {entries === null ? (
         <Spinner label="Loading the log…" />

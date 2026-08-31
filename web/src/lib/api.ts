@@ -348,5 +348,6 @@ export interface SettingsWrite {
   userPassword?: string;
   adminPassword?: string;
   userRoleLabel?: string;
+  auditKeep?: number;
   archived?: boolean;
 }

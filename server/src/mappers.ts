@@ -40,6 +40,7 @@ export const toEventDto = (e: EventRow): EventDto => ({
   weekRailFrom: e.week_rail_from,
   dayEndMin: e.day_end_min,
   userRoleLabel: e.user_role_label,
+  auditKeep: e.audit_keep,
 });
 
 export const toRoomDto = (r: RoomRow): RoomDto => ({

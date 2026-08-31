@@ -23,6 +23,8 @@ export interface EventRow {
   admin_pw_hash: string;
   archived: number;
   user_role_label: string;
+  /** Audit entries kept for this event; 0 keeps everything. */
+  audit_keep: number;
   created_at: string;
 }
 

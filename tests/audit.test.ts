@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { pruneAudit, resetPruneCounters } from '../server/src/audit.js';
 import type { AuditPageDto } from '../server/src/shared/types.js';
 import {
   DAY_ONE,
@@ -131,5 +132,119 @@ describe('the audit log, read back', () => {
     const all = [...first.entries, ...second.entries].map((e) => e.id);
     expect(all).toEqual([...all].sort((a, b) => b - a));
     expect(second.nextCursor).toBeNull();
+  });
+
+  /**
+   * The log is append-only and used to grow without limit. A cap is the
+   * housekeeping bound; it is deliberately not a promise about the exact row
+   * count at any instant, because pruning on every write would put a DELETE
+   * behind every action in the app.
+   */
+  describe('retention', () => {
+    const count = (): number =>
+      (
+        harness.db
+          .prepare<[number], { n: number }>('SELECT COUNT(*) AS n FROM audit WHERE event_id = ?')
+          .get(eventId) as { n: number }
+      ).n;
+
+    const fill = (rows: number): void => {
+      const insert = harness.db.prepare(
+        'INSERT INTO audit (identity_id, event_id, action, entity, entity_id, at) VALUES (NULL, ?, ?, ?, ?, ?)',
+      );
+      for (let i = 0; i < rows; i += 1) {
+        insert.run(eventId, 'create', 'tag', i + 1, new Date(Date.now() + i).toISOString());
+      }
+    };
+
+    beforeEach(() => resetPruneCounters());
+
+    it('defaults to keeping a thousand entries', async () => {
+      const bundle = await admin.get('/api/e/testconf/bundle').expect(200);
+      expect((bundle.body as { event: { auditKeep: number } }).event.auditKeep).toBe(1000);
+    });
+
+    it('drops the oldest past the cap and keeps the newest', () => {
+      harness.db.prepare('UPDATE events SET audit_keep = 10 WHERE id = ?').run(eventId);
+      fill(25);
+      const newest = harness.db
+        .prepare<[number], { id: number }>(
+          'SELECT id FROM audit WHERE event_id = ? ORDER BY id DESC LIMIT 1',
+        )
+        .get(eventId) as { id: number };
+
+      expect(pruneAudit(harness.db, eventId)).toBe(15);
+      expect(count()).toBe(10);
+      // The survivors are the *newest* ten, which is the whole point.
+      const kept = harness.db
+        .prepare<[number], { id: number }>('SELECT id FROM audit WHERE event_id = ? ORDER BY id DESC')
+        .all(eventId) as { id: number }[];
+      expect(kept[0]?.id).toBe(newest.id);
+      expect(kept).toHaveLength(10);
+    });
+
+    it('keeps everything at 0', () => {
+      harness.db.prepare('UPDATE events SET audit_keep = 0 WHERE id = ?').run(eventId);
+      fill(50);
+      expect(pruneAudit(harness.db, eventId)).toBe(0);
+      expect(count()).toBe(50);
+    });
+
+    it('never touches another event, or the instance-level rows', () => {
+      const otherId = seedEvent(harness.db, { slug: 'otherconf' });
+      harness.db
+        .prepare(
+          'INSERT INTO audit (identity_id, event_id, action, entity, entity_id, at) VALUES (NULL, ?, ?, ?, NULL, ?)',
+        )
+        .run(otherId, 'create', 'room', new Date().toISOString());
+      harness.db
+        .prepare(
+          'INSERT INTO audit (identity_id, event_id, action, entity, entity_id, at) VALUES (NULL, NULL, ?, ?, NULL, ?)',
+        )
+        .run('backup', 'instance', new Date().toISOString());
+
+      harness.db.prepare('UPDATE events SET audit_keep = 5 WHERE id = ?').run(eventId);
+      fill(30);
+      pruneAudit(harness.db, eventId);
+
+      expect(
+        harness.db
+          .prepare<[number], { n: number }>('SELECT COUNT(*) AS n FROM audit WHERE event_id = ?')
+          .get(otherId),
+      ).toEqual({ n: 1 });
+      expect(
+        harness.db.prepare('SELECT COUNT(*) AS n FROM audit WHERE event_id IS NULL').get(),
+      ).toEqual({ n: 1 });
+    });
+
+    it('trims as writes come in, without pruning on every one', async () => {
+      harness.db.prepare('UPDATE events SET audit_keep = 100 WHERE id = ?').run(eventId);
+      fill(400);
+      // The first write after a restart checks, so this one prunes to the cap.
+      await admin.post('/api/e/testconf/tags').send({ name: 'First' }).expect(201);
+      expect(count()).toBeLessThanOrEqual(101);
+
+      // Subsequent writes accumulate against the slack rather than each paying
+      // for a DELETE, so the log sits a little above the cap between prunes.
+      for (let i = 0; i < 5; i += 1) {
+        await admin.post('/api/e/testconf/tags').send({ name: `Tag ${i}` }).expect(201);
+      }
+      expect(count()).toBeGreaterThan(100);
+      expect(count()).toBeLessThan(200);
+    });
+
+    it('applies a tightened cap the moment it is saved', async () => {
+      fill(300);
+      await admin.patch('/api/e/testconf/settings').send({ auditKeep: 100 }).expect(200);
+      // 100 kept, plus the row recording the settings change itself.
+      expect(count()).toBeLessThanOrEqual(101);
+    });
+
+    it('refuses a cap small enough to make the log a toy', async () => {
+      await admin.patch('/api/e/testconf/settings').send({ auditKeep: 5 }).expect(400);
+      await admin.patch('/api/e/testconf/settings').send({ auditKeep: -1 }).expect(400);
+      await admin.patch('/api/e/testconf/settings').send({ auditKeep: 100 }).expect(200);
+      await admin.patch('/api/e/testconf/settings').send({ auditKeep: 0 }).expect(200);
+    });
   });
 });

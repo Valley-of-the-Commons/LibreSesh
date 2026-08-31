@@ -19,6 +19,18 @@ export const displayNameSchema = trimmed(40);
 /** Day count at which the schedule switches to a week rail. One would mean
  *  every event gets one; beyond a quarter the rail is unusable either way. */
 export const weekRailFromSchema = z.coerce.number().int().min(1).max(90);
+/**
+ * Audit entries kept per event. 0 means keep everything; anything else has a
+ * floor, because a cap of five would make the log a rolling toy rather than a
+ * record — and the point of the setting is storage, not forgetting on demand.
+ */
+export const auditKeepSchema = z.coerce
+  .number()
+  .int()
+  .refine((n) => n === 0 || (n >= 100 && n <= 1_000_000), {
+    message: 'Keep 0 (everything) or between 100 and 1,000,000 entries',
+  });
+
 /** What an event calls its middle role. Shown as a chip, so keep it short. */
 export const roleLabelSchema = trimmed(24);
 export const slugSchema = z
@@ -300,6 +312,7 @@ export const settingsSchema = z
     userPassword: passwordSchema.optional(),
     adminPassword: passwordSchema.optional(),
     userRoleLabel: roleLabelSchema.optional(),
+    auditKeep: auditKeepSchema.optional(),
     archived: z.boolean().optional(),
   })
   .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' })

@@ -77,6 +77,7 @@ export function AdminPage() {
   const [dayStart, setDayStart] = useState('');
   const [dayEnd, setDayEnd] = useState('');
   const [weekRailFrom, setWeekRailFrom] = useState('8');
+  const [auditKeep, setAuditKeep] = useState('1000');
   const [userRoleLabel, setUserRoleLabel] = useState('');
   const [viewerPassword, setViewerPassword] = useState('');
   const [userPassword, setUserPassword] = useState('');
@@ -142,6 +143,7 @@ export function AdminPage() {
     setDayStart(fmtMin(event.dayStartMin));
     setDayEnd(fmtMin(event.dayEndMin));
     setWeekRailFrom(String(event.weekRailFrom));
+    setAuditKeep(String(event.auditKeep));
     setUserRoleLabel(event.userRoleLabel);
     // Clear the duplicate form too, so it isn't pre-filled after a clone.
     setCloneName('');
@@ -398,6 +400,7 @@ export function AdminPage() {
         dayStartMin: toMinutes(dayStart),
         dayEndMin: toMinutes(dayEnd),
         weekRailFrom: Number(weekRailFrom) || 8,
+        auditKeep: Number(auditKeep),
         ...(userRoleLabel.trim() ? { userRoleLabel: userRoleLabel.trim() } : {}),
         ...(viewerPassword ? { viewerPassword } : {}),
         ...(userPassword ? { userPassword } : {}),
@@ -811,6 +814,27 @@ export function AdminPage() {
               </div>
             </Field>
             <Field
+              label="Audit entries to keep"
+              hint="The log in the Audit tab is append-only and nothing else prunes it. Past this many entries the oldest are dropped as new ones arrive. 0 keeps every entry forever."
+            >
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={1000000}
+                  step={100}
+                  value={auditKeep}
+                  onChange={(e) => setAuditKeep(e.target.value)}
+                  className={`${inputClass} w-32`}
+                />
+                <span className="text-xs text-stone-500 dark:text-stone-400">
+                  {Number(auditKeep) === 0
+                    ? 'entries · keeping everything'
+                    : 'entries · older ones are dropped'}
+                </span>
+              </div>
+            </Field>
+            <Field
               label="What you call your participants"
               hint="Shown on role badges and in prompts. “attendee”, “participant”, “member”…"
             >
@@ -1016,7 +1040,7 @@ export function AdminPage() {
 
       {tab === 'audit' && (
         <div role="tabpanel" id="admin-panel-audit" aria-labelledby="admin-tab-audit">
-          <AdminAudit slug={slug} />
+          <AdminAudit slug={slug} auditKeep={event.auditKeep} />
         </div>
       )}
     </div>

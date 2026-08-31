@@ -54,6 +54,8 @@ export interface EventDto extends EventSummary {
   dayEndMin: number;
   /** What this event calls its middle role, e.g. "attendee". */
   userRoleLabel: string;
+  /** How many audit entries this event keeps; 0 keeps everything. */
+  auditKeep: number;
 }
 
 export interface RoomDto {

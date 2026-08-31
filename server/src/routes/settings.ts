@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { hashPassword, requireRole, roleForPassword } from '../auth.js';
-import { audit } from '../audit.js';
+import { audit, pruneAudit } from '../audit.js';
 import type { Ctx } from '../context.js';
 import type { EventRow } from '../db.js';
 import type { Role } from '../shared/types.js';
@@ -84,7 +84,7 @@ export function settingsRoutes(ctx: Ctx): Router {
         .prepare(
           `UPDATE events SET name = ?, start_date = ?, end_date = ?, day_start_min = ?,
                   day_end_min = ?, week_rail_from = ?, viewer_pw_hash = ?, user_pw_hash = ?, admin_pw_hash = ?,
-                  archived = ?, user_role_label = ?
+                  archived = ?, user_role_label = ?, audit_keep = ?
             WHERE id = ?`,
         )
         .run(
@@ -99,8 +99,15 @@ export function settingsRoutes(ctx: Ctx): Router {
           body.adminPassword ? hashPassword(body.adminPassword) : current.admin_pw_hash,
           body.archived === undefined ? current.archived : body.archived ? 1 : 0,
           body.userRoleLabel ?? current.user_role_label,
+          body.auditKeep ?? current.audit_keep,
           current.id,
         );
+
+      // Apply a tightened cap now rather than at the next hundredth write —
+      // an organiser who sets it to trim the log expects the log to be trimmed.
+      if (body.auditKeep !== undefined && body.auditKeep !== current.audit_keep) {
+        pruneAudit(ctx.db, current.id);
+      }
 
       const updated = ctx.db
         .prepare<[number], EventRow>('SELECT * FROM events WHERE id = ?')

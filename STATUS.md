@@ -62,12 +62,6 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
 
 ## Medium Priority
 
-- **The audit log grows forever.** Every write appends a row and nothing
-  prunes or archives them. Fine at conference scale (tens of thousands of rows
-  is nothing to SQLite, and the page is keyset-paged), but an instance that
-  runs for years will carry every event it ever hosted. Wants either a
-  retention window or a per-event purge when an event is deleted — and a
-  decision about which, since the log's value is that nobody can edit it.
 - **Instance-level audit rows have no screen.** A whole-database backup or an
   event created from the landing page carries no `event_id`, so those rows are
   invisible in Manage Event → Audit, which is per-event by design. They are the
