@@ -3,37 +3,23 @@
 The shared queue: what is in flight, what is blocked, and what is planned.
 Shipped work moves to [CHANGELOG.md](CHANGELOG.md) and is not repeated here.
 
-Last updated: 2026-08-30
+Last updated: 2026-08-31
 
 ## In Progress
 
 Working directly on `main`. 0.2.0 was tagged 2026-08-30; what shipped is in
-CHANGELOG.md under `[0.2.0]`. What is left of the UI-overhaul plan lives in
+CHANGELOG.md under `[0.2.0]`, and what has landed since is under
+`[Unreleased]`. What is left of the UI-overhaul plan lives in
 `_planning/plans/2026-08-29-ui-overhaul-permissions-pitches.md`:
 
-- **Pitch board.** Always show the creator, default the creator as host,
-  up/down votes replacing proposal interest, and a hot/new split. Not started
-  — but the interest button already wears the up-arrow the votes will use
-  (the ★ it had collided with "on my agenda" on the schedule), so the change
-  is the mechanic and the API, not the glyph.
-- **Whole-app UI sweep.** The primitives landed and the admin page is done —
-  Manage Event is now five tabs (Programme / People / Permissions / Settings /
-  Trash) with the choice in `?tab=`, and the button primitives stand 38px so
-  they line up with the inputs beside them;
+- **Whole-app UI sweep.** The primitives landed and the admin page is done.
   21 underline usages remain across ProfilePage (5), SchedulePage (4),
   ProposalBoard (4), DetailSheet (4), EventListPage (1), NewEventPage (1),
   Tour (1) and Gate (1, the "already here on another device" link added with
   device linking). The count excludes the `[&_a]:underline` in prose wrappers —
   links inside rendered markdown keep their underline deliberately — and the
-  five in `ui.tsx`, which are the primitives themselves.
-- **Backups shipped, one loose end.** Both shapes landed in Manage Event →
-  Backup (CHANGELOG `[Unreleased]`). Not covered: nothing *imports* an export
-  back, so the JSON is an archive and a hand-off format, not a restore path —
-  the whole-DB backup is the restore path.
-- **Demo mode is per event now.** `DEMO_MODE=1` opens only the seeded
-  fixtures; anything else on the instance keeps its passwords. The config
-  comment that called a per-event demo column a mistake still stands — this is
-  a deploy-time list of slugs, not data an organiser can toggle.
+  five in `ui.tsx`, which are the primitives themselves. Re-counted 2026-08-31:
+  unchanged, since the new Backup tab uses `no-underline` on its download link.
 - **ARCHITECTURE.md concurrency paragraph.** §Realtime documents broadcast and
   heartbeats but never states the model: last-write-wins, `assertNotStale`
   409 on an `updated_at` mismatch, no CRDT by design.
@@ -51,6 +37,16 @@ CHANGELOG `[Unreleased]` for what landed.
 _The only queue of future work, priority-ordered. Top High-Priority item = next up._
 
 ## High Priority
+
+- **Pitch board.** Always show the creator, default the creator as host,
+  up/down votes replacing proposal interest, and a hot/new split. The plan is
+  `_planning/plans/2026-08-29-ui-overhaul-permissions-pitches.md`. The interest
+  button already wears the up-arrow the votes will use (the ★ it had collided
+  with "on my agenda" on the schedule), so what is left is the mechanic and the
+  API: `proposal_interest` → `proposal_votes` with a `value` of +1/-1, existing
+  rows migrating to +1, and `interestCount` becoming `score`/`upvotes`/
+  `downvotes`. The JSON export exposes `interestCount`, so bump
+  `EventExport.version` when that shape changes.
 
 - **Merge moves the person, not their history.** `POST /people/:id/merge`
   repoints `sessions.speaker_id` and `proposals.speaker_id` and abandons the
@@ -70,6 +66,13 @@ _The only queue of future work, priority-ordered. Top High-Priority item = next 
   Fine for now (one file per deploy); wants a keep-last-N sweep eventually.
 
 ## Medium Priority
+
+- **Nothing imports an event export.** `GET /export.json` writes a complete
+  archive of an event and there is no route that reads one back, so the JSON is
+  a hand-off and a record, not a restore path — the encrypted whole-DB backup
+  is the only way back. An importer would want a new slug, fresh ids, and a
+  decision about what to do with authorship names that belong to identities the
+  target instance has never seen.
 
 - **Number fields accept nonsense.** Room capacity is `type="number" min={0}`,
   which the browser enforces on the spinner but not on typing or paste; the
