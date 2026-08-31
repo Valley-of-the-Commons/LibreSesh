@@ -61,7 +61,10 @@ export function identityMiddleware(db: Db, isProd: boolean) {
 
   return (req: Request, res: Response, next: NextFunction): void => {
     const now = new Date().toISOString();
-    const cookieToken = req.signedCookies?.[COOKIE_NAME] as string | undefined;
+    // `false` is what cookie-parser puts here when the signature does not
+    // verify — a tampered cookie, or one signed with a previous secret. Both
+    // mean "no identity", so the falsy test below is the whole check.
+    const cookieToken = req.signedCookies?.[COOKIE_NAME] as string | false | undefined;
 
     let identity = cookieToken ? findIdentityByToken(db, cookieToken) : undefined;
 

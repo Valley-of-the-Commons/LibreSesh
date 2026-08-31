@@ -292,6 +292,9 @@ accumulate one per upgrade — prune them when you prune your nightly ones.
 
 [ARCHITECTURE.md](ARCHITECTURE.md) covers how the pieces fit together and the
 threat model — what this defends against, and what it deliberately does not.
+Start with **§What a cookie is, exactly** if you are touching anything to do
+with identity, sign-in or `COOKIE_SECRET`: it is the concept the rest hangs
+off, and the one most easily got wrong.
 
 ## Roadmap
 

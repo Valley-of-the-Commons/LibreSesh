@@ -128,6 +128,51 @@ A pitch has no room and no time; a session always has both. Making
 then has to special-case. Placing a pitch creates a real session and links the
 two, leaving ownership with the pitcher.
 
+### What a cookie is, exactly
+
+Identity is the one concept everything else hangs off, and it is easy to be
+vague about. Precisely, then:
+
+**The cookie is `cid`, and it carries the token — the token *is* the identity.**
+`identities.token` is 22 random base62 characters and is stored in the database
+in clear. Whoever presents it is that person; there is no second factor and no
+account. It is a bearer credential, which is why the row is treated as a secret
+everywhere else in this document.
+
+**`COOKIE_SECRET` signs that cookie; it does not encrypt it.** Express sets the
+cookie's wire value to
+
+```
+s:<token>.<base64 of HMAC-SHA256(token) keyed by COOKIE_SECRET, "=" stripped>
+```
+
+so the token is plainly readable in the browser's cookie jar, followed by a
+signature over it. On each request `cookie-parser` recomputes the HMAC with the
+configured secret and compares. The signature answers *"did this server issue
+this value"* — it stops someone editing their own cookie to a token they
+guessed or stole from a URL — and answers nothing about confidentiality. The
+cookie is `httpOnly`, `SameSite=Lax`, `secure` in production, 400 days.
+
+**When the check fails, the request is simply anonymous.** `cookie-parser` puts
+`false` (not `undefined`) in `req.signedCookies.cid` for a bad signature, and
+`identityMiddleware` treats anything falsy as "no cookie" and mints a fresh
+identity. Do not tighten that test to `!== undefined`.
+
+**So changing `COOKIE_SECRET` signs out every visitor at once**, and the damage
+does not stop there: their display name is held, uniquely per event, by the
+identity they just lost, so they cannot even re-enter under their own name.
+That is why an unconfigured secret is generated **once** and kept in
+`.cookie-secret` beside the database rather than invented per boot, why
+production requires an explicit one, and why the gate offers "Enter as *Ada 2*"
+when a name is already taken. `config.cookieSecretOrigin` records which of the
+three routes was taken — `env`, `file`, or `ephemeral` — and the boot log warns
+loudly about the last one.
+
+**What identity is not:** it is not a login, and it is not global state. A role
+is a row keyed on (identity, event); a display name is a row keyed on (event,
+identity). Signing out of an event deletes the role, never the identity — which
+is what lets authorship survive it.
+
 ### One person, many devices
 
 A browser identity lives in one cookie jar, so the same human on a phone and a
